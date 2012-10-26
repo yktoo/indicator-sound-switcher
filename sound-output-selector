@@ -25,7 +25,7 @@ class SoundOutputSelector:
   def __init__(self):
     self.ind = appindicator.Indicator(
       "sound-output-selector",
-      "/home/dk/Tmp/sound-output-selector/sound-output-selector.svg",
+      "sound-output-selector.svg",
       appindicator.CATEGORY_APPLICATION_STATUS)
     self.ind.set_status(appindicator.STATUS_ACTIVE)
     # Initialize audio sink list
