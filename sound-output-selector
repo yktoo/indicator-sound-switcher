@@ -22,7 +22,9 @@ import appindicator
 import re
 
 class SoundOutputSelector:
+
   def __init__(self):
+
     self.ind = appindicator.Indicator(
       "sound-output-selector",
       "sound_output_selector",
@@ -36,6 +38,7 @@ class SoundOutputSelector:
     self.ind.set_menu(self.menu)
 
   def build_sink_list(self):
+
     # Invoke pacmd to enumerate sinks
     p = subprocess.Popen(['pacmd', 'list-sinks'], stdout=subprocess.PIPE)
     c = p.communicate()[0]
@@ -57,6 +60,7 @@ class SoundOutputSelector:
 
   # Handler of sink selection item click event
   def item_select_sink(self, widget, buf):
+
     # Change default sink
     subprocess.call(['pacmd', 'set-default-sink', '%d' % buf], stdout=open(os.devnull, 'wb'))
     # Remap all active sink inputs as well
@@ -69,16 +73,19 @@ class SoundOutputSelector:
 
   # Terminates the app
   def item_quit(self, widget, buf):
+
     gtk.main_quit()
 
   # Handler of refresh item click event
   def item_refresh(self, widget, buf):
+
     self.build_sink_list()
     for item in self.menu.get_children(): self.menu.remove(item)
     self.menu_setup()
 
   # Initializes indicator menu
   def menu_setup(self):
+
     # Add sink items
     group_item = None
     for sink_idx, sink_name in self.sinks.items():
@@ -106,9 +113,9 @@ class SoundOutputSelector:
 
   # Main event loop
   def main(self):
+
     gtk.main()
 
 if __name__ == "__main__":
   indicator = SoundOutputSelector()
   indicator.main()
-
