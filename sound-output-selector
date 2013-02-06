@@ -26,7 +26,7 @@ class SoundOutputSelector:
     self.ind = appindicator.Indicator(
       "sound-output-selector",
       "sound-output-selector.svg",
-      appindicator.CATEGORY_APPLICATION_STATUS)
+      appindicator.CATEGORY_HARDWARE)
     self.ind.set_status(appindicator.STATUS_ACTIVE)
     # Initialize audio sink list
     self.build_sink_list()
@@ -82,7 +82,7 @@ class SoundOutputSelector:
     # Add sink items
     group_item = None
     for sink_idx, sink_name in self.sinks.items():
-      item = gtk.RadioMenuItem(group_item, sink_name)
+      item = gtk.RadioMenuItem(group_item, "_{} {}".format(sink_idx+1, sink_name))
       if sink_idx == self.active_sink_index: item.set_active(True)
       item.connect("activate", self.item_select_sink, sink_idx)
       item.show()
@@ -94,12 +94,12 @@ class SoundOutputSelector:
     item.show()
     self.menu.append(item)
     # Add Refresh item
-    item = gtk.MenuItem('Refresh device list')
+    item = gtk.MenuItem('_Refresh device list')
     item.connect("activate", self.item_refresh, None)
     item.show()
     self.menu.append(item)
     # Add Quit item
-    item = gtk.MenuItem('Quit')
+    item = gtk.MenuItem('_Quit')
     item.connect("activate", self.item_quit, None)
     item.show()
     self.menu.append(item)
