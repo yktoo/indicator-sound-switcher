@@ -16,6 +16,7 @@
 ### END LICENSE
 
 # Global definitions
+__app_id__        = "sound-output-selector"
 __app_name__      = "Sound Output Selector"
 __app_icon_name__ = "sound_output_selector"
 __version__       = "0.01"
@@ -31,10 +32,10 @@ class SoundOutputSelector:
 
   def __init__(self):
 
-    global __app_icon_name__
+    global __app_id__, __app_icon_name__
 
     self.ind = appindicator.Indicator(
-      "sound-output-selector",
+      __app_id__,
       __app_icon_name__,
       appindicator.CATEGORY_HARDWARE)
     self.ind.set_status(appindicator.STATUS_ACTIVE)
