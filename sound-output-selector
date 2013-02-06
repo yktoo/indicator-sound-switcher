@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 ### BEGIN LICENSE
-# Copyright (C) 2011 Dmitry Kann, http://yktoo.com
+# Copyright (C) 2012-2013 Dmitry Kann, http://yktoo.com
+#
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
 # by the Free Software Foundation.
@@ -14,6 +15,11 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### END LICENSE
 
+# Global definitions
+__app_name__      = "Sound Output Selector"
+__app_icon_name__ = "sound_output_selector"
+__version__       = "0.01"
+
 import sys
 import gtk
 import subprocess
@@ -25,9 +31,11 @@ class SoundOutputSelector:
 
   def __init__(self):
 
+    global __app_icon_name__
+
     self.ind = appindicator.Indicator(
       "sound-output-selector",
-      "sound_output_selector",
+      __app_icon_name__,
       appindicator.CATEGORY_HARDWARE)
     self.ind.set_status(appindicator.STATUS_ACTIVE)
     # Initialize audio sink list
@@ -57,6 +65,35 @@ class SoundOutputSelector:
         mo = re.match('^\s*device\.description *= *"(.+)"', line)
         if mo is not None:
           self.sinks[current_sink_index] = mo.group(1)
+
+  # Handler of about item click event
+  def item_about(self, widget, buf):
+
+    global __app_name__, __app_icon_name__, __version__
+
+    dialog = gtk.AboutDialog()
+    dialog.set_name(__app_name__)
+    dialog.set_copyright('Written by Dmitry Kann')
+    dialog.set_license('''
+Copyright (C) 2012-2013 Dmitry Kann, http://yktoo.com
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License version 3, as published
+by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranties of
+MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/''')
+    dialog.set_version(__version__)
+    dialog.set_website('http://yktoo.com')
+    dialog.set_website_label('yktoo.com')
+    dialog.set_logo_icon_name(__app_icon_name__)
+    dialog.connect("response", lambda x,y: dialog.destroy())
+    dialog.run()
 
   # Handler of sink selection item click event
   def item_select_sink(self, widget, buf):
@@ -103,6 +140,11 @@ class SoundOutputSelector:
     # Add Refresh item
     item = gtk.MenuItem('_Refresh device list')
     item.connect("activate", self.item_refresh, None)
+    item.show()
+    self.menu.append(item)
+    # Add About item
+    item = gtk.MenuItem('_About')
+    item.connect("activate", self.item_about, None)
     item.show()
     self.menu.append(item)
     # Add Quit item
