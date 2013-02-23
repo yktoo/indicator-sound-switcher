@@ -5,7 +5,7 @@ Sound input/output selector indicator for Ubuntu/Unity. I created this app becau
 
 It shows an icon in the indicator area in Ubuntu's Panel. Icon's menu allows you to switch the current sound input and output ('source' and 'sink' in PulseAudio's terms, respectively) with just two clicks:
 
-![Screenshot of the indicator](https://raw.github.com/yktoo/sound-output-selector/master/Screenshot.png)
+![Screenshot of the indicator](https://raw.github.com/yktoo/indicator-sound-switcher/master/Screenshot.png)
 
 The application makes use of native PulseAudio interface and appropriate Python bindings (```lib_pulseaudio```). The list of devices is updated automatically thanks to PulseAudio subscription capabilities.
 
