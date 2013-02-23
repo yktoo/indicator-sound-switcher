@@ -1,10 +1,23 @@
-sound-output-selector
-=====================
+indicator-sound-switcher
+========================
 
-Sound output selector indicator for Ubuntu/Unity. I created this very primitive app because there's just no sound output switcher indicator available in Unity.
+Sound input/output selector indicator for Ubuntu/Unity. I created this app because there was just no sound switcher indicator available.
 
-It shows an icon in the indicator area in Ubuntu's Panel. Icon's menu allows you to switch the current sound output ('sink' in PulseAudio's terms) with just one click (okay, two clicks as first one is to get the menu open):
+It shows an icon in the indicator area in Ubuntu's Panel. Icon's menu allows you to switch the current sound input and output ('source' and 'sink' in PulseAudio's terms, respectively) with just two clicks:
 
 ![Screenshot of the indicator](https://raw.github.com/yktoo/sound-output-selector/master/Screenshot.png)
 
-It's a very initial version, although already seems to work. It completely relies on the ```pacmd``` tool to list sinks and switch audio streams between them. It does not have any change subscription capabilities, meaning, if there's an audio device added or removed, you have to manually update the list using the **Refresh device list** menu item.
+The application makes use of native PulseAudio interface and appropriate Python bindings (```lib_pulseaudio```). The list of devices is updated automatically thanks to PulseAudio subscription capabilities.
+
+Installation
+------------
+
+To install ```lib_pulseaudio``` use:
+
+```sudo pip install libpulseaudio```
+
+In order to make icon available, you need to create a symlink in ```/usr/share/pixmaps```:
+
+```sudo ln -s /path/to/app/indicator_sound_switcher.svg /usr/share/pixmaps/indicator_sound_switcher.svg```
+
+After that simply start ```indicator-sound-switcher```
