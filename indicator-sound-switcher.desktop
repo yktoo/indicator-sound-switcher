@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=AudioVideo;
+Comment=Sound input/output selector indicator.
+Exec=/usr/bin/indicator-sound-switcher
+Hidden=False
+Icon=indicator-sound-switcher
+Name=Sound Switcher Indicator
+StartupNotify=true
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true
