@@ -15,7 +15,7 @@ setup(
     scripts=['indicator-sound-switcher'],
     data_files=[
         ('/usr/share/applications',                      ['indicator-sound-switcher.desktop']),
-        ('/usr/share/icons/ubuntu-mono-dark/status/22',  ['icons/ubuntu-mono-dark/indicator_sound_switcher.svg']),
-        ('/usr/share/icons/ubuntu-mono-light/status/22', ['icons/ubuntu-mono-light/indicator_sound_switcher.svg']),
+        ('/usr/share/icons/ubuntu-mono-dark/status/22',  ['icons/ubuntu-mono-dark/indicator-sound-switcher.svg']),
+        ('/usr/share/icons/ubuntu-mono-light/status/22', ['icons/ubuntu-mono-light/indicator-sound-switcher.svg']),
     ]
 )
