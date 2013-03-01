@@ -1,3 +1,57 @@
 #!/bin/bash
+#-------------------------------------------------------------------------------
+# Purpose:
+#   Build distribution packages for Ubuntu
+# Parameters:
+#   None
+# Requires:
+#   None
+#-------------------------------------------------------------------------------
 
-python ./setup.py --quiet sdist --owner=root --group=root
+SETUP_SCRIPT="setup.py"
+DIST_ROOT_DIR="dist"
+
+# Logs a failure message and exits
+# Parameters:
+#   1 - message
+err() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
+# Extract name and version values from the setup script file
+APP_NAME=$(sed -ne 's/\s*name=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
+APP_VERSION=$(sed -ne 's/\s*version=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
+
+echo "Building <$APP_NAME> version <$APP_VERSION>"
+
+# Initial cleanup: clean the dist dir
+[ ! -d "$DIST_ROOT_DIR" ] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
+
+# Run the setup script to create a source tarball
+python "$SETUP_SCRIPT" --quiet sdist --owner=root --group=root || err "Building source tarball failed"
+
+# Add '.orig' and change '-' to '_' before version in tarball's name
+TARBALL_NAME="${DIST_ROOT_DIR}/${APP_NAME}_${APP_VERSION}.orig.tar.gz"
+mv "${DIST_ROOT_DIR}/${APP_NAME}-${APP_VERSION}.tar.gz" "$TARBALL_NAME" || err "Renaming tarball file failed"
+
+# Unpack the tarball: it will create the release dir
+tar --directory "$DIST_ROOT_DIR" -xzf "$TARBALL_NAME" "${APP_NAME}-${APP_VERSION}" || err "Unpacking $TARBALL_NAME failed"
+
+# Copy debian/ into the release dir
+RELEASE_DIR="${DIST_ROOT_DIR}/${APP_NAME}-${APP_VERSION}"
+cp -r debian "$RELEASE_DIR" || err "Copying debian/ into $RELEASE_DIR failed"
+
+# Build a Debian source package
+pushd .
+cd "$RELEASE_DIR"
+debuild -S -sa || err "Building Debian package failed"
+popd >/dev/null
+
+# Cleanup: remove the release dir
+rm -rf "$RELEASE_DIR"
+
+echo "--------------------------------------------------------------------------------"
+echo "To upload issue the following command:"
+echo "  cd $DIST_ROOT_DIR && dput ppa:yktooo/ppa ${APP_NAME}_${APP_VERSION}-1_source.changes"
+echo "--------------------------------------------------------------------------------"

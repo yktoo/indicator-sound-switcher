@@ -1,0 +1,5 @@
+indicator-sound-switcher (1.0.0-1) quantal; urgency=low
+
+  * Initial release.
+
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 01 Mar 2013 10:23:53 +0100

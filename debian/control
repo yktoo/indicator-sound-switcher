@@ -1,0 +1,12 @@
+Source: indicator-sound-switcher
+Maintainer: Dmitry Kann <yktooo@gmail.com>
+Section: python
+Priority: optional
+Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Standards-Version: 3.9.1
+
+Package: python-indicator-sound-switcher
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Sound input/output selector indicator
+
