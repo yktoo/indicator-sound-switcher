@@ -1,0 +1,37 @@
+Installation of the Sound Switcher Indicator
+============================================
+
+
+Installation from package
+-------------------------
+
+You should always prefer the standard package distribution mechanism (via
+packages). To install the application from the my PPA:
+
+  1. Add the PPA:
+
+    sudo apt-add-repository ppa:yktooo/ppa
+
+  2. Update the package list:
+
+    sudo apt-get update
+
+  3. Install the package:
+
+    sudo apt-get install indicator-sound-switcher
+
+
+Installation from the source tarball
+------------------------------------
+
+In order to install the application from the source tarball:
+
+  1. Download the tarball (indicator-sound-switcher-*.tar.gz)
+
+  2. Decompress the archive
+
+  3. cd to the indicator-sound-switcher-* dir
+
+  4. Run:
+
+    sudo python setup.py install

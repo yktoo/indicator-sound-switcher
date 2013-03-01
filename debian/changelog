@@ -1,3 +1,13 @@
+indicator-sound-switcher (1.0.1-1) quantal; urgency=low
+
+  * Renamed the package (removed python- from its name).
+  * Fixed dependencies (added libpulse0 et al.).
+  * Moved lib_pulseaudio.py into the package indicator_sound_switcher to avoid
+    possible conflicts in the future
+
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 01 Mar 2013 13:56:00 +0100
+
+
 indicator-sound-switcher (1.0.0-1) quantal; urgency=low
 
   * Initial release.

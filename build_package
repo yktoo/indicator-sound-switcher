@@ -52,6 +52,6 @@ popd >/dev/null
 rm -rf "$RELEASE_DIR"
 
 echo "--------------------------------------------------------------------------------"
-echo "To upload issue the following command:"
-echo "  cd $DIST_ROOT_DIR && dput ppa:yktooo/ppa ${APP_NAME}_${APP_VERSION}-1_source.changes"
+echo "Build succeeded. To upload issue the following command:"
+echo "  dput ppa:yktooo/ppa \"$DIST_ROOT_DIR/${APP_NAME}_${APP_VERSION}-1_source.changes\""
 echo "--------------------------------------------------------------------------------"

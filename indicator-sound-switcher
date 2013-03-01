@@ -19,7 +19,7 @@
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -37,8 +37,7 @@ import threading
 import gtk
 import appindicator
 
-# Use 'sudo pip install libpulseaudio' to install this lib
-from pulseaudio.lib_pulseaudio import *
+from indicator_sound_switcher.lib_pulseaudio import *
 
 class SoundSwitcherIndicator(object):
 
@@ -261,7 +260,7 @@ class SoundSwitcherIndicator(object):
 
   # Debug output method
   def _log(self, msg):
-    print msg
+    #print msg
     return
 
   # Main event loop

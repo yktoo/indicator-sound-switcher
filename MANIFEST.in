@@ -1,0 +1,4 @@
+include AUTHORS
+include COPYING
+include INSTALL
+include README.md
