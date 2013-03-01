@@ -7,17 +7,9 @@ It shows an icon in the indicator area in Ubuntu's Panel. Icon's menu allows you
 
 ![Screenshot of the indicator](https://raw.github.com/yktoo/indicator-sound-switcher/master/Screenshot.png)
 
-The application makes use of native PulseAudio interface and appropriate Python bindings (```lib_pulseaudio```). The list of devices is updated automatically thanks to PulseAudio subscription capabilities.
+The application makes use of native PulseAudio interface. The list of devices is updated automatically thanks to PulseAudio subscription capabilities.
 
 Installation
 ------------
 
-To install ```lib_pulseaudio``` use:
-
-```sudo pip install libpulseaudio```
-
-In order to make icon available, you need to create a symlink in ```/usr/share/pixmaps```:
-
-```sudo ln -s /path/to/app/indicator_sound_switcher.svg /usr/share/pixmaps/indicator_sound_switcher.svg```
-
-After that simply start ```indicator-sound-switcher```
+Please refer to the INSTALL document.
