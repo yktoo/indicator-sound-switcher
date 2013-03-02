@@ -5,8 +5,8 @@ Installation of the Sound Switcher Indicator
 Installation from package
 -------------------------
 
-You should always prefer the standard package distribution mechanism (via
-packages). To install the application from the my PPA:
+You should always prefer the standard package distribution mechanism (PPA). To
+install the application from my PPA:
 
   1. Add the PPA:
 
