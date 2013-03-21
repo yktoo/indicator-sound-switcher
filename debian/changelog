@@ -1,3 +1,10 @@
+indicator-sound-switcher (1.0.2-1) quantal; urgency=low
+
+  * Added headers to clearly indicate Inputs and Outputs in the menu.
+
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 01 Mar 2013 13:56:00 +0100
+
+
 indicator-sound-switcher (1.0.1-1) quantal; urgency=low
 
   * Renamed the package (removed python- from its name).

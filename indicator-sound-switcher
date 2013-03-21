@@ -19,7 +19,7 @@
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -275,7 +275,10 @@ class SoundSwitcherIndicator(object):
       item = gtk.SeparatorMenuItem()
     else:
       item = gtk.MenuItem(label)
-      item.connect("activate", activate_signal, None)
+      if activate_signal is not None:
+        item.connect("activate", activate_signal, None)
+      else:
+        item.set_sensitive(False)
     item.show()
     self.menu.append(item)
     return item
@@ -283,6 +286,8 @@ class SoundSwitcherIndicator(object):
   # Inserts an item into the indicator menu between after_item and before_item, maintaining alphabetical order of the
   # items. Returns the created item
   def menu_insert_ordered_item(self, after_item, before_item, label, user_data, activate_signal):
+    # Indent the label a little
+    label = "    " + label
     # Find out item indexes
     items = self.menu.get_children()
     idx_from = 0 if after_item is None else items.index(after_item)+1
@@ -303,9 +308,11 @@ class SoundSwitcherIndicator(object):
   # Initializes indicator menu
   def menu_setup(self):
     self._log(".menu_setup()")
-    # Add a separator after the source list
+    # Make the source list section
+    self.item_header_sources = self.menu_append_item('Inputs')
     self.item_separator_sources = self.menu_append_item()
-    # Add a separator after the sink list
+    # Make the sink list section
+    self.item_header_sinks = self.menu_append_item('Outputs')
     self.item_separator_sinks = self.menu_append_item()
     # Add static items
     self.menu_append_item('_Refresh device list', self.item_refresh)
@@ -380,7 +387,7 @@ class SoundSwitcherIndicator(object):
     self.sinks[index] = sink
     # Add an item for the sink and associate the sink with it
     sink.menu_item = self.menu_insert_ordered_item(
-      self.item_separator_sources,
+      self.item_header_sinks,
       self.item_separator_sinks,
       description,
       index,
@@ -428,7 +435,7 @@ class SoundSwitcherIndicator(object):
     self.sources[index] = source
     # Add an item for the source and associate the source with it
     source.menu_item = self.menu_insert_ordered_item(
-      None,
+      self.item_header_sources,
       self.item_separator_sources,
       description,
       index,
