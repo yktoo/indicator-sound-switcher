@@ -13,3 +13,5 @@ Installation
 ------------
 
 Please refer to the [INSTALL](INSTALL) document.
+
+For details see http://yktoo.com/software/indicatorSoundSwitcher
