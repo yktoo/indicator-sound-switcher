@@ -1,8 +1,15 @@
+indicator-sound-switcher (1.1.1-1) saucy; urgency=low
+
+  * Rebuilt to get rid of debug stuff.
+
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 08 Nov 2013 17:11:00 +0200
+
+
 indicator-sound-switcher (1.1.0-1) saucy; urgency=low
 
   * A Gtk3/GIR rewrite to make the app work in Saucy.
 
- -- Dmitry Kann <yktooo@gmail.com>  Fri, 01 Mar 2013 13:56:00 +0100
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 08 Nov 2013 15:00:00 +0200
 
 
 indicator-sound-switcher (1.0.2-1) quantal; urgency=low
