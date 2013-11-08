@@ -19,7 +19,7 @@
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.1.0"
 APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -34,8 +34,10 @@ with this program. If not, see http://www.gnu.org/licenses/'''
 
 import sys
 import threading
-import gtk
-import appindicator
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import AppIndicator3 as AppIndicator
 
 from indicator_sound_switcher.lib_pulseaudio import *
 
@@ -75,8 +77,8 @@ class SoundSwitcherIndicator(object):
   def __init__(self):
     global APP_ID, APP_ICON, APP_NAME
     # Create the indicator object
-    self.ind = appindicator.Indicator(APP_ID, APP_ICON, appindicator.CATEGORY_HARDWARE)
-    self.ind.set_status(appindicator.STATUS_ACTIVE)
+    self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
+    self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
     # Initialize PulseAudio object lists
     self.sources        = {}
     self.source_outputs = {}
@@ -86,7 +88,7 @@ class SoundSwitcherIndicator(object):
     self.item_separator_sources = None
     self.item_separator_sinks = None
     self.ignore_select_click = False
-    self.menu = gtk.Menu()
+    self.menu = Gtk.Menu()
     self.ind.set_menu(self.menu)
     self.menu_setup()
     # Initialize the PulseAudio interface
@@ -103,7 +105,7 @@ class SoundSwitcherIndicator(object):
   # Handler of about item click event
   def item_about(self, widget, buf):
     global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
-    dialog = gtk.AboutDialog()
+    dialog = Gtk.AboutDialog()
     dialog.set_name(APP_NAME)
     dialog.set_copyright('Written by Dmitry Kann')
     dialog.set_license(APP_LICENCE)
@@ -116,7 +118,7 @@ class SoundSwitcherIndicator(object):
 
   # Handler of sink selection item click event
   def item_select_sink(self, widget, buf):
-    if not self.ignore_select_click and widget.active:
+    if not self.ignore_select_click and widget.get_active():
       sink = self.sinks[buf]
       self._log("Sink selected: {}, '{}'".format(sink.index, sink.name))
       # Change the default sink
@@ -128,7 +130,7 @@ class SoundSwitcherIndicator(object):
 
   # Handler of source selection item click event
   def item_select_source(self, widget, buf):
-    if not self.ignore_select_click and widget.active:
+    if not self.ignore_select_click and widget.get_active():
       source = self.sources[buf]
       self._log("Source selected: {}, '{}'".format(source.index, source.name))
       # Change the default source
@@ -260,21 +262,21 @@ class SoundSwitcherIndicator(object):
 
   # Debug output method
   def _log(self, msg):
-    #print msg
+    print msg
     return
 
   # Main event loop
   def main(self):
     # GTK's main loop has to be thread safe and allow GIL to be lifted for other threads to run
-    gtk.gdk.threads_init()
-    gtk.main()
+    Gdk.threads_init()
+    Gtk.main()
 
   # Adds an item (if label is None then separator item) to the indicator menu. Returns the created item
   def menu_append_item(self, label=None, activate_signal=None):
     if label is None:
-      item = gtk.SeparatorMenuItem()
+      item = Gtk.SeparatorMenuItem()
     else:
-      item = gtk.MenuItem(label)
+      item = Gtk.MenuItem.new_with_mnemonic(label)
       if activate_signal is not None:
         item.connect("activate", activate_signal, None)
       else:
@@ -292,10 +294,10 @@ class SoundSwitcherIndicator(object):
     items = self.menu.get_children()
     idx_from = 0 if after_item is None else items.index(after_item)+1
     idx_to   = items.index(before_item)
-    # If there's at least one item, make it the group item for the item being added
-    group_item = None if idx_to == idx_from else items[idx_from]
+    # If there's at least one item, get the group from it
+    group = [] if idx_to == idx_from else items[idx_from].get_group()
     # Create and setup a new radio item
-    new_item = gtk.RadioMenuItem(group_item, label)
+    new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
     new_item.connect("activate", activate_signal, user_data)
     new_item.show()
     # Find an appropriate position for the item so that they are in alphabetical order
@@ -375,7 +377,7 @@ class SoundSwitcherIndicator(object):
   # Shuts down the app
   def shutdown(self):
     self.pulseaudio_shutdown()
-    gtk.main_quit()
+    Gtk.main_quit()
 
   # Registers new sink object
   def sink_add(self, index, name, description):

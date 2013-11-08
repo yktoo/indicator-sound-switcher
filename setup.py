@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='indicator-sound-switcher',
-    version='1.0.2',
+    version='1.1.0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',
