@@ -39,9 +39,23 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import AppIndicator3 as AppIndicator
 
+import numpy #!!!
+
 from indicator_sound_switcher.lib_pulseaudio import *
 
 class SoundSwitcherIndicator(object):
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Source port class
+  #---------------------------------------------------------------------------------------------------------------------
+
+  class SourcePort(object):
+
+    # Constructor
+    def __init__(self, name, description, priority):
+      self.name        = name
+      self.description = description
+      self.priority    = priority
 
   #---------------------------------------------------------------------------------------------------------------------
   # Source class
@@ -50,11 +64,24 @@ class SoundSwitcherIndicator(object):
   class Source(object):
 
     # Constructor
-    def __init__(self, index, name, description):
+    def __init__(self, index, name, description, ports):
       self.index       = index
       self.name        = name
       self.description = description
+      self.ports       = ports
       self.menu_item   = None
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Sink port class
+  #---------------------------------------------------------------------------------------------------------------------
+
+  class SinkPort(object):
+
+    # Constructor
+    def __init__(self, name, description, priority):
+      self.name        = name
+      self.description = description
+      self.priority    = priority
 
   #---------------------------------------------------------------------------------------------------------------------
   # Sink class
@@ -63,10 +90,11 @@ class SoundSwitcherIndicator(object):
   class Sink(object):
 
     # Constructor
-    def __init__(self, index, name, description):
+    def __init__(self, index, name, description, ports):
       self.index       = index
       self.name        = name
       self.description = description
+      self.ports       = ports
       self.menu_item   = None
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -235,7 +263,7 @@ class SoundSwitcherIndicator(object):
     self._log(".pacb_sink_info()")
     if struct:
       # New sink info arrived
-      self.sink_add(struct.contents.index, struct.contents.name, struct.contents.description)
+      self.sink_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.n_ports, struct.contents.ports)
 
   def pacb_sink_input_info(self, context, struct, eol, user_data):
     self._log(".pacb_sink_input_info()")
@@ -248,7 +276,7 @@ class SoundSwitcherIndicator(object):
     # Skip "sink monitor" sources
     if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
       # New source info arrived
-      self.source_add(struct.contents.index, struct.contents.name, struct.contents.description)
+      self.source_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.n_ports, struct.contents.ports)
 
   def pacb_source_output_info(self, context, struct, eol, user_data):
     self._log(".pacb_source_output_info()")
@@ -262,7 +290,7 @@ class SoundSwitcherIndicator(object):
 
   # Debug output method
   def _log(self, msg):
-    #print msg
+    print msg #!!!
     return
 
   # Main event loop
@@ -380,12 +408,21 @@ class SoundSwitcherIndicator(object):
     Gtk.main_quit()
 
   # Registers new sink object
-  def sink_add(self, index, name, description):
+  def sink_add(self, index, name, description, num_ports, ports):
     # Remove existing sink with the same index, if any
     self.sink_remove(index)
     self._log("    + Sink added: {}; '{}'".format(index, name))
+
+    # Prepare ports array
+
+
+    ports_arr = numpy.frombuffer(ports, dtype=pa_sink_port_info, count=num_ports)
+
+    sink_ports = {}
+
+
     # Create and register a new instance of Sink object
-    sink = self.Sink(index, name, description)
+    sink = self.Sink(index, name, description, sink_ports)
     self.sinks[index] = sink
     # Add an item for the sink and associate the sink with it
     sink.menu_item = self.menu_insert_ordered_item(
@@ -428,12 +465,12 @@ class SoundSwitcherIndicator(object):
     for index in self.sinks.keys(): self.sink_remove(index)
 
   # Registers new source object
-  def source_add(self, index, name, description):
+  def source_add(self, index, name, description, num_ports, ports):
     # Remove existing source with the same index, if any
     self.source_remove(index)
     self._log("    + Source added: {}; '{}'".format(index, name))
     # Create and register a new instance of Source object
-    source = self.Source(index, name, description)
+    source = self.Source(index, name, description, None) #!!!
     self.sources[index] = source
     # Add an item for the source and associate the source with it
     source.menu_item = self.menu_insert_ordered_item(
