@@ -262,7 +262,7 @@ class SoundSwitcherIndicator(object):
 
   # Debug output method
   def _log(self, msg):
-    print msg
+    #print msg
     return
 
   # Main event loop
