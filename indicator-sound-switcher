@@ -19,7 +19,7 @@
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.2.0"
 APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -38,8 +38,6 @@ import threading
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import AppIndicator3 as AppIndicator
-
-import numpy #!!!
 
 from indicator_sound_switcher.lib_pulseaudio import *
 
@@ -263,7 +261,7 @@ class SoundSwitcherIndicator(object):
     self._log(".pacb_sink_info()")
     if struct:
       # New sink info arrived
-      self.sink_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.n_ports, struct.contents.ports)
+      self.sink_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.ports)
 
   def pacb_sink_input_info(self, context, struct, eol, user_data):
     self._log(".pacb_sink_input_info()")
@@ -276,7 +274,7 @@ class SoundSwitcherIndicator(object):
     # Skip "sink monitor" sources
     if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
       # New source info arrived
-      self.source_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.n_ports, struct.contents.ports)
+      self.source_add(struct.contents.index, struct.contents.name, struct.contents.description, struct.contents.ports)
 
   def pacb_source_output_info(self, context, struct, eol, user_data):
     self._log(".pacb_source_output_info()")
@@ -408,19 +406,24 @@ class SoundSwitcherIndicator(object):
     Gtk.main_quit()
 
   # Registers new sink object
-  def sink_add(self, index, name, description, num_ports, ports):
+  def sink_add(self, index, name, description, ports):
     # Remove existing sink with the same index, if any
     self.sink_remove(index)
-    self._log("    + Sink added: {}; '{}'".format(index, name))
-
-    # Prepare ports array
-
-
-    ports_arr = numpy.frombuffer(ports, dtype=pa_sink_port_info, count=num_ports)
-
+    self._log("    + Sink[{}] added: '{}'".format(index, name))
+    # Prepare ports array: iterate through ports[] (array of pointers to structs)
     sink_ports = {}
-
-
+    if ports:
+      idx_port = 0
+      while True:
+        port_ptr = ports[idx_port]
+        # NULL pointer terminates the array
+        if port_ptr:
+          port_struct = port_ptr.contents
+          sink_ports[idx_port] = self.SinkPort(port_struct.name, port_struct.description, port_struct.priority)
+          self._log("        + Sink port[{}] added: '{}'; '{}'; {}".format(idx_port, port_struct.name, port_struct.description, port_struct.priority))
+          idx_port += 1
+        else:
+          break
     # Create and register a new instance of Sink object
     sink = self.Sink(index, name, description, sink_ports)
     self.sinks[index] = sink
@@ -436,14 +439,14 @@ class SoundSwitcherIndicator(object):
   def sink_input_add(self, index, name, sink):
     # Remove existing sink input with the same index, if any
     self.sink_input_remove(index)
-    self._log("    + Sink input added: {}; '{}' -> sink {}".format(index, name, sink))
+    self._log("    + Sink input[{}] added: '{}' -> sink {}".format(index, name, sink))
     # Register the new sink input
     self.sink_inputs[index] = name
 
   # Removes sink input object by its index (PulseAudio's sink input index)
   def sink_input_remove(self, index):
     if index in self.sink_inputs:
-      self._log("    - Sink input removed: {}; '{}'".format(index, self.sink_inputs[index]))
+      self._log("    - Sink input[{}] removed: '{}'".format(index, self.sink_inputs[index]))
       # Remove the sink input
       del self.sink_inputs[index]
 
@@ -454,7 +457,7 @@ class SoundSwitcherIndicator(object):
   # Removes sink object by its index (PulseAudio's sink index)
   def sink_remove(self, index):
     if index in self.sinks:
-      self._log("    - Sink removed: {}; '{}'".format(index, self.sinks[index].name))
+      self._log("    - Sink[{}] removed: '{}'".format(index, self.sinks[index].name))
       # Remove sink's menu item
       self.menu.remove(self.sinks[index].menu_item)
       # Also remove the sink object from sinks[]
@@ -465,12 +468,26 @@ class SoundSwitcherIndicator(object):
     for index in self.sinks.keys(): self.sink_remove(index)
 
   # Registers new source object
-  def source_add(self, index, name, description, num_ports, ports):
+  def source_add(self, index, name, description, ports):
     # Remove existing source with the same index, if any
     self.source_remove(index)
-    self._log("    + Source added: {}; '{}'".format(index, name))
+    self._log("    + Source[{}] added: '{}'".format(index, name))
+    # Prepare ports array: iterate through ports[] (array of pointers to structs)
+    source_ports = {}
+    if ports:
+      idx_port = 0
+      while True:
+        port_ptr = ports[idx_port]
+        # NULL pointer terminates the array
+        if port_ptr:
+          port_struct = port_ptr.contents
+          source_ports[idx_port] = self.SourcePort(port_struct.name, port_struct.description, port_struct.priority)
+          self._log("        + Source port[{}] added: '{}'; '{}'; {}".format(idx_port, port_struct.name, port_struct.description, port_struct.priority))
+          idx_port += 1
+        else:
+          break
     # Create and register a new instance of Source object
-    source = self.Source(index, name, description, None) #!!!
+    source = self.Source(index, name, description, source_ports)
     self.sources[index] = source
     # Add an item for the source and associate the source with it
     source.menu_item = self.menu_insert_ordered_item(
@@ -484,14 +501,14 @@ class SoundSwitcherIndicator(object):
   def source_output_add(self, index, name):
     # Remove existing source output with the same index, if any
     self.source_output_remove(index)
-    self._log("    + Source output added: {}; '{}'".format(index, name))
+    self._log("    + Source output[{}] added: '{}'".format(index, name))
     # Register the new source output
     self.source_outputs[index] = name
 
   # Removes source output object by its index (PulseAudio's source output index)
   def source_output_remove(self, index):
     if index in self.source_outputs:
-      self._log("    - Source output removed: {}; '{}'".format(index, self.source_outputs[index]))
+      self._log("    - Source output[{}] removed: '{}'".format(index, self.source_outputs[index]))
       # Remove the source output
       del self.source_outputs[index]
 
@@ -502,7 +519,7 @@ class SoundSwitcherIndicator(object):
   # Removes source object by its index (PulseAudio's source index)
   def source_remove(self, index):
     if index in self.sources:
-      self._log("    - Source removed: {}; '{}'".format(index, self.sources[index].name))
+      self._log("    - Source[{}] removed: '{}'".format(index, self.sources[index].name))
       # Remove source's menu item
       self.menu.remove(self.sources[index].menu_item)
       # Also remove the source object from sources[]
