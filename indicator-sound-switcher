@@ -35,75 +35,100 @@ with this program. If not, see http://www.gnu.org/licenses/'''
 import sys
 import threading
 
+from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import AppIndicator3 as AppIndicator
 
 from indicator_sound_switcher.lib_pulseaudio import *
 
-class SoundSwitcherIndicator(object):
+class SoundSwitcherIndicator(GObject.GObject):
 
   #---------------------------------------------------------------------------------------------------------------------
   # Generic (sink/source) port class
   #---------------------------------------------------------------------------------------------------------------------
 
-  class Port(object):
+  class Port(GObject.GObject):
+
+    #-----------------------------------
+    # is_active: defines whether the associated port is the active one for its sink/source.
+    #-----------------------------------
+
+    def get_is_active(self):
+      return self._is_active
+
+    def set_is_active(self, value):
+      self._is_active = value
+      # If activated and the owner sink/source is active too, also activate the item that corresponds to the active port
+      if value and self.menu_item and self.owner and self.owner.is_active:
+        # Inhibit the activate event
+        with self.menu_item.handler_block(self.handler_id):
+          self.menu_item.set_active(True)
+
+    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
     # Constructor
     def __init__(self, name, description, priority):
+      GObject.GObject.__init__(self)
+      self.owner       = None
       self.name        = name
       self.description = description
       self.priority    = priority
-      self.is_active   = False
       self.menu_item   = None
-      # Activate signal's handler ID (will be used for blocking the handler later)
+      # Activate signal's handler ID (will be used for inhibiting the handler later)
       self.handler_id  = None
 
-    # Activates the menu item that corresponds to the port, if any
-    def activate_menu_item(self):
-      if self.menu_item:
-        # Disable triggering of the activate event
-        with self.menu_item.handler_block(self.handler_id): self.menu_item.set_active(True)
-
   #---------------------------------------------------------------------------------------------------------------------
-  # Base PulseAudio route class (sink/source)
+  # Base class for sink and source
   #---------------------------------------------------------------------------------------------------------------------
 
-  class AudioRoute(object):
+  class BaseSinkSource(GObject.GObject):
+
+    #-----------------------------------
+    # is_active: defines whether the associated sink/source is the active (default) one.
+    #-----------------------------------
+
+    def get_is_active(self):
+      return self._is_active
+
+    def set_is_active(self, value):
+      self._is_active = value
+      # If activated, also activate the item that corresponds to the active port
+      if value:
+        for port in self.ports.values():
+          if port.is_active:
+            port.is_active = True
+            break
+
+    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
     # Constructor
     def __init__(self, index, name, description, ports):
+      GObject.GObject.__init__(self)
       self.index       = index
       self.name        = name
       self.description = description
       self.ports       = ports
-      self.is_active   = False
+      # Assign every port's owner
+      for port in self.ports.values(): port.owner = self
+      self._is_active = False
 
-    # Activates the specified port. If b_activate_menu_item == True, also activates the corresponding menu item
-    def activate_port(self, name, b_activate_menu_item):
-      # Iterate through available ports to update their activity flags
+    # Activates the specified port by its name
+    def activate_port_by_name(self, name):
       for port in self.ports.values(): port.is_active = port.name == name
-      # Also activate the port's menu item if needed
-      if b_activate_menu_item: self.activate_port_item()
-
-    # Activates the item that corresponds to the active port
-    def activate_port_item(self):
-      if self.is_active:
-        for port in self.ports.values():
-          if port.is_active: port.activate_menu_item()
 
   #---------------------------------------------------------------------------------------------------------------------
   # Source class
   #---------------------------------------------------------------------------------------------------------------------
 
-  class Source(AudioRoute):
+  class Source(BaseSinkSource):
     pass
 
   #---------------------------------------------------------------------------------------------------------------------
   # Sink class
   #---------------------------------------------------------------------------------------------------------------------
 
-  class Sink(AudioRoute):
+  class Sink(BaseSinkSource):
     pass
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -112,6 +137,7 @@ class SoundSwitcherIndicator(object):
 
   # Constructor
   def __init__(self):
+    GObject.GObject.__init__(self)
     global APP_ID, APP_ICON, APP_NAME
     # Create the indicator object
     self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
@@ -222,10 +248,9 @@ class SoundSwitcherIndicator(object):
 
     # Source
     if facility == PA_SUBSCRIPTION_EVENT_SOURCE:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE. user_data specifies whether menu item
-      # activation is needed (False if a server update will follow)
+      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
       if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        pa_operation_unref(pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, user_data))
+        pa_operation_unref(pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, None))
       elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
         self.source_remove(index)
 
@@ -238,10 +263,9 @@ class SoundSwitcherIndicator(object):
 
     # Sink
     if facility == PA_SUBSCRIPTION_EVENT_SINK:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE. user_data specifies whether menu item
-      # activation is needed (False if a server update will follow)
+      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
       if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        pa_operation_unref(pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, user_data))
+        pa_operation_unref(pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, None))
       elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
         self.sink_remove(index)
 
@@ -264,20 +288,18 @@ class SoundSwitcherIndicator(object):
   def pacb_server_info(self, context, struct, user_data):
     if struct:
       self._log(".pacb_server_info()")
-      self.activate_sink  (struct.contents.default_sink_name,   True)
-      self.activate_source(struct.contents.default_source_name, True)
+      self.activate_sink  (struct.contents.default_sink_name)
+      self.activate_source(struct.contents.default_source_name)
 
   def pacb_sink_info(self, context, struct, index, user_data):
     if struct:
-      self._log(".pacb_sink_info({})".format(user_data))
-      # User data is a flag that specifies whether menu item update is needed
+      self._log(".pacb_sink_info()")
       self.sink_info(
         struct.contents.index,
         struct.contents.name,
         struct.contents.description,
         struct.contents.ports,
-        struct.contents.active_port,
-        user_data)
+        struct.contents.active_port)
 
   def pacb_sink_input_info(self, context, struct, eol, user_data):
     if struct:
@@ -288,15 +310,13 @@ class SoundSwitcherIndicator(object):
   def pacb_source_info(self, context, struct, index, user_data):
     # Skip "sink monitor" sources
     if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
-      self._log(".pacb_source_info({})".format(user_data))
-      # User data is a flag that specifies whether menu item update is needed
+      self._log(".pacb_source_info()")
       self.source_info(
         struct.contents.index,
         struct.contents.name,
         struct.contents.description,
         struct.contents.ports,
-        struct.contents.active_port,
-        user_data)
+        struct.contents.active_port)
 
   def pacb_source_output_info(self, context, struct, eol, user_data):
     if struct:
@@ -309,7 +329,7 @@ class SoundSwitcherIndicator(object):
   #---------------------------------------------------------------------------------------------------------------------
 
   # Registers new sink object or updates existing one
-  def sink_info(self, index, name, description, ports, active_port, b_activate_menu_item):
+  def sink_info(self, index, name, description, ports, active_port):
     # If sink already exists, fetch it
     if index in self.sinks:
       self._log("    * Sink[{}] update: '{}'".format(index, name))
@@ -341,7 +361,7 @@ class SoundSwitcherIndicator(object):
         port.menu_item = self.menu_insert_ordered_item(self.item_header_sinks, self.item_separator_sinks, description + "/" + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
     # Update sink's active port
-    sink.activate_port(active_port.contents.name, b_activate_menu_item)
+    sink.activate_port_by_name(active_port.contents.name)
 
   # Removes sink object by its index (PulseAudio's sink index)
   def sink_remove(self, index):
@@ -386,7 +406,7 @@ class SoundSwitcherIndicator(object):
   #---------------------------------------------------------------------------------------------------------------------
 
   # Registers new source object or updates existing one
-  def source_info(self, index, name, description, ports, active_port, b_activate_menu_item):
+  def source_info(self, index, name, description, ports, active_port):
     # If source already exists, fetch it
     if index in self.sources:
       self._log("    * Source[{}] update: '{}'".format(index, name))
@@ -418,7 +438,7 @@ class SoundSwitcherIndicator(object):
         port.menu_item = self.menu_insert_ordered_item(self.item_header_sources, self.item_separator_sources, description + "/" + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
     # Update source's active port
-    source.activate_port(active_port.contents.name, b_activate_menu_item)
+    source.activate_port_by_name(active_port.contents.name)
 
   # Removes source object by its index (PulseAudio's source index)
   def source_remove(self, index):
@@ -467,17 +487,13 @@ class SoundSwitcherIndicator(object):
     print msg #!!!
     return
 
-  # Activates the sink with the specified name. If b_activate_menu_item == True, also updates active port's menu item
-  def activate_sink(self, name, b_activate_menu_item):
-    for sink in self.sinks.values():
-      sink.is_active = sink.name == name
-      if b_activate_menu_item and sink.is_active: sink.activate_port_item()
+  # Activates the sink by name
+  def activate_sink(self, name):
+    for sink in self.sinks.values(): sink.is_active = sink.name == name
 
-  # Activates the source with the specified name. If b_activate_menu_item == True, also updates active port's menu item
-  def activate_source(self, name, b_activate_menu_item):
-    for source in self.sources.values():
-      source.is_active = source.name == name
-      if b_activate_menu_item and source.is_active: source.activate_port_item()
+  # Activates the source by name
+  def activate_source(self, name):
+    for source in self.sources.values(): source.is_active = source.name == name
 
   # Main event loop
   def main(self):
@@ -607,11 +623,11 @@ class SoundSwitcherIndicator(object):
     self.sink_remove_all()
     self.sink_input_remove_all()
     # Sources
-    self.synchronise_op(pa_context_get_source_info_list       (self.pa_context, self._pacb_source_info,        False))
+    self.synchronise_op(pa_context_get_source_info_list       (self.pa_context, self._pacb_source_info,        None))
     # Source outputs
     self.synchronise_op(pa_context_get_source_output_info_list(self.pa_context, self._pacb_source_output_info, None))
     # Sinks
-    self.synchronise_op(pa_context_get_sink_info_list         (self.pa_context, self._pacb_sink_info,          False))
+    self.synchronise_op(pa_context_get_sink_info_list         (self.pa_context, self._pacb_sink_info,          None))
     # Sink inputs
     self.synchronise_op(pa_context_get_sink_input_info_list   (self.pa_context, self._pacb_sink_input_info,    None))
     # Server info
