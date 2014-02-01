@@ -33,7 +33,6 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/'''
 
 import sys
-import threading
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -161,8 +160,45 @@ class SoundSwitcherIndicator(GObject.GObject):
       sys.exit(1)
 
   #---------------------------------------------------------------------------------------------------------------------
-  # Menu item handlers
+  # Signal handlers
   #---------------------------------------------------------------------------------------------------------------------
+
+  # Context status change handler. Always runs on the GUI thread
+  def do_context_subscribe(self, facility, kind, index):
+    self._log("    / context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
+    # Dispatch the callback
+    # -- Source
+    if facility == PA_SUBSCRIPTION_EVENT_SOURCE:
+      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
+      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+        self.synchronise_op(pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, None))
+      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+        self.source_remove(index)
+    # -- Source output
+    elif facility == PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT:
+      if kind == PA_SUBSCRIPTION_EVENT_NEW:
+        self.synchronise_op(pa_context_get_source_output_info(self.pa_context, index, self._pacb_source_output_info, None))
+      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+        self.source_output_remove(index)
+    # -- Sink
+    elif facility == PA_SUBSCRIPTION_EVENT_SINK:
+      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
+      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+        self.synchronise_op(pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, None))
+      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+        self.sink_remove(index)
+    # -- Sink input
+    elif facility == PA_SUBSCRIPTION_EVENT_SINK_INPUT:
+      if kind == PA_SUBSCRIPTION_EVENT_NEW:
+        self.synchronise_op(pa_context_get_sink_input_info(self.pa_context, index, self._pacb_sink_input_info, None))
+      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+        self.sink_input_remove(index)
+    # -- Server
+    elif facility == PA_SUBSCRIPTION_EVENT_SERVER:
+      if kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+        self.synchronise_op(pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
+    # Prevent this method from being called again
+    return False
 
   # Handler of about item click event
   def item_about(self, widget, buf):
@@ -227,7 +263,6 @@ class SoundSwitcherIndicator(GObject.GObject):
   # Connection status callback
   def pacb_context_notify(self, context, user_data):
     ctxstate = pa_context_get_state(context)
-    self._log(".pacb_context_notify(), state {}".format(ctxstate))
     # Context connected and ready
     if ctxstate == PA_CONTEXT_READY:
       self._log("Context connected")
@@ -244,42 +279,8 @@ class SoundSwitcherIndicator(GObject.GObject):
   def pacb_context_subscribe(self, context, event_type, index, user_data):
     facility = event_type & PA_SUBSCRIPTION_EVENT_FACILITY_MASK
     kind     = event_type & PA_SUBSCRIPTION_EVENT_TYPE_MASK
-    self._log(".pacb_context_subscribe(facility: {}, kind: {})".format(facility, kind))
-
-    # Source
-    if facility == PA_SUBSCRIPTION_EVENT_SOURCE:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
-      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        pa_operation_unref(pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.source_remove(index)
-
-    # Source output
-    elif facility == PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT:
-      if kind == PA_SUBSCRIPTION_EVENT_NEW:
-        pa_operation_unref(pa_context_get_source_output_info(self.pa_context, index, self._pacb_source_output_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.source_output_remove(index)
-
-    # Sink
-    if facility == PA_SUBSCRIPTION_EVENT_SINK:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
-      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        pa_operation_unref(pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.sink_remove(index)
-
-    # Sink input
-    elif facility == PA_SUBSCRIPTION_EVENT_SINK_INPUT:
-      if kind == PA_SUBSCRIPTION_EVENT_NEW:
-        pa_operation_unref(pa_context_get_sink_input_info(self.pa_context, index, self._pacb_sink_input_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.sink_input_remove(index)
-
-    # Server
-    elif facility == PA_SUBSCRIPTION_EVENT_SERVER:
-      if kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        pa_operation_unref(pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
+    # Pass the event on to the main GUI thread
+    GObject.idle_add(self.do_context_subscribe, facility, kind, index)
 
   # Context success callback
   def pacb_context_success(self, context, c_int, user_data):
@@ -287,13 +288,11 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   def pacb_server_info(self, context, struct, user_data):
     if struct:
-      self._log(".pacb_server_info()")
       self.activate_sink  (struct.contents.default_sink_name)
       self.activate_source(struct.contents.default_source_name)
 
   def pacb_sink_info(self, context, struct, index, user_data):
     if struct:
-      self._log(".pacb_sink_info()")
       self.sink_info(
         struct.contents.index,
         struct.contents.name,
@@ -303,14 +302,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   def pacb_sink_input_info(self, context, struct, eol, user_data):
     if struct:
-      self._log(".pacb_sink_input_info()")
       # New sink input info arrived
       self.sink_input_add(struct.contents.index, struct.contents.name, struct.contents.sink)
 
   def pacb_source_info(self, context, struct, index, user_data):
     # Skip "sink monitor" sources
     if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
-      self._log(".pacb_source_info()")
       self.source_info(
         struct.contents.index,
         struct.contents.name,
@@ -320,7 +317,6 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   def pacb_source_output_info(self, context, struct, eol, user_data):
     if struct:
-      self._log(".pacb_source_output_info()")
       # New source output info arrived
       self.source_output_add(struct.contents.index, struct.contents.name)
 
@@ -484,7 +480,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   # Debug output method
   def _log(self, msg):
-    print msg #!!!
+    #print msg
     return
 
   # Activates the sink by name
@@ -497,8 +493,6 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   # Main event loop
   def main(self):
-    # GTK's main loop has to be thread safe and allow GIL to be lifted for other threads to run
-    Gdk.threads_init()
     Gtk.main()
 
   # Adds an item (if label is None then separator item) to the indicator menu. Returns the created item
@@ -580,8 +574,11 @@ class SoundSwitcherIndicator(GObject.GObject):
       self.synchronise_op(
         pa_context_subscribe(
           self.pa_context,
-          PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT | PA_SUBSCRIPTION_MASK_SERVER  |
-            PA_SUBSCRIPTION_MASK_SOURCE | PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
+          PA_SUBSCRIPTION_MASK_SINK         |
+            PA_SUBSCRIPTION_MASK_SINK_INPUT |
+            PA_SUBSCRIPTION_MASK_SERVER     |
+            PA_SUBSCRIPTION_MASK_SOURCE     |
+            PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
           self._pacb_context_success,
           None))
       pa_context_set_subscribe_callback(self.pa_context, self._pacb_context_subscribe, None);
@@ -616,7 +613,6 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   # Synchronously updates information about all PulseAudio items (sinks, sources, server etc.)
   def update_all_pa_items(self):
-    self._log(".update_all_pa_items()")
     # Remove all PA objects
     self.source_remove_all()
     self.source_output_remove_all()
