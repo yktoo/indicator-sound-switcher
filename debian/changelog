@@ -1,3 +1,12 @@
+indicator-sound-switcher (1.2.0-1) saucy; urgency=low
+
+  * Added port switching support: now the menu shows not only sources and
+    sinks, but also their ports.
+  * Improved threaded design to address race conditions.
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 02 Feb 2014 08:59:00 +0200
+
+
 indicator-sound-switcher (1.1.1-1) saucy; urgency=low
 
   * Rebuilt to get rid of debug stuff.
