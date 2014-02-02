@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 ### BEGIN LICENSE
 # Copyright (C) 2012-2013 Dmitry Kann, http://yktoo.com
 #
@@ -354,7 +355,7 @@ class SoundSwitcherIndicator(GObject.GObject):
       # Add a menu item for each sink port
       for idx_port in sink.ports.keys():
         port = sink.ports[idx_port]
-        port.menu_item = self.menu_insert_ordered_item(self.item_header_sinks, self.item_separator_sinks, description + "/" + port.description)
+        port.menu_item = self.menu_insert_ordered_item(self.item_header_sinks, self.item_separator_sinks, description + " ‣ " + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
     # Update sink's active port
     sink.activate_port_by_name(active_port.contents.name)
@@ -431,7 +432,7 @@ class SoundSwitcherIndicator(GObject.GObject):
       # Add a menu item for each source port
       for idx_port in source.ports.keys():
         port = source.ports[idx_port]
-        port.menu_item = self.menu_insert_ordered_item(self.item_header_sources, self.item_separator_sources, description + "/" + port.description)
+        port.menu_item = self.menu_insert_ordered_item(self.item_header_sources, self.item_separator_sources, description + " ‣ " + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
     # Update source's active port
     source.activate_port_by_name(active_port.contents.name)
