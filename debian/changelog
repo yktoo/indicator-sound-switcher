@@ -1,4 +1,4 @@
-indicator-sound-switcher (1.2.1-1) saucy; urgency=low
+indicator-sound-switcher (1.2.1ubuntu0-gtk3ppa0-1) saucy; urgency=low
 
   * #4: Added a fallback icon for non-standard Ubuntu themes.
   * #6: Added autostart shortcut for all users.
