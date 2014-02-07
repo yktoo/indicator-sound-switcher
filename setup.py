@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='indicator-sound-switcher',
-    version='1.2.1ubuntu0-gtk2ppa0-1',
+    version='1.2.1ubuntu0-gtk2ppa0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',
