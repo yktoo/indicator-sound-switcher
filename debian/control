@@ -13,8 +13,8 @@ Architecture: all
 Depends:
  ${misc:Depends},
  ${python:Depends},
- python-gi,
- gir1.2-appindicator3-0.1,
+ python-appindicator,
+ python-gtk2,
  libpulse0
 Description: Sound input/output selector indicator
  A simple yet usable application indicator for Ubuntu/Unity. It allows for
