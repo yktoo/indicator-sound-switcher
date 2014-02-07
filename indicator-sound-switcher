@@ -282,15 +282,20 @@ class SoundSwitcherIndicator(GObject.GObject):
     kind     = event_type & PA_SUBSCRIPTION_EVENT_TYPE_MASK
     # Pass the event on to the main GUI thread
     GObject.idle_add(self.do_context_subscribe, facility, kind, index)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   # Context success callback
   def pacb_context_success(self, context, c_int, user_data):
-    pass
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   def pacb_server_info(self, context, struct, user_data):
     if struct:
       self.activate_sink  (struct.contents.default_sink_name)
       self.activate_source(struct.contents.default_source_name)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   def pacb_sink_info(self, context, struct, index, user_data):
     if struct:
@@ -300,11 +305,15 @@ class SoundSwitcherIndicator(GObject.GObject):
         struct.contents.description,
         struct.contents.ports,
         struct.contents.active_port)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   def pacb_sink_input_info(self, context, struct, eol, user_data):
     if struct:
       # New sink input info arrived
       self.sink_input_add(struct.contents.index, struct.contents.name, struct.contents.sink)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   def pacb_source_info(self, context, struct, index, user_data):
     # Skip "sink monitor" sources
@@ -315,11 +324,15 @@ class SoundSwitcherIndicator(GObject.GObject):
         struct.contents.description,
         struct.contents.ports,
         struct.contents.active_port)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   def pacb_source_output_info(self, context, struct, eol, user_data):
     if struct:
       # New source output info arrived
       self.source_output_add(struct.contents.index, struct.contents.name)
+    # Wake up PA's thread
+    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
   #---------------------------------------------------------------------------------------------------------------------
   # Sink list related procs
@@ -540,9 +553,9 @@ class SoundSwitcherIndicator(GObject.GObject):
     self.item_header_sinks = self.menu_append_item('Outputs')
     self.item_separator_sinks = self.menu_append_item()
     # Add static items
-    self.menu_append_item('_Refresh device list',   self.item_refresh)
-    self.menu_append_item('_About',                 self.item_about)
-    self.menu_append_item('_Quit',                  self.item_quit)
+    self.menu_append_item('_Refresh', self.item_refresh)
+    self.menu_append_item('_About',   self.item_about)
+    self.menu_append_item('_Quit',    self.item_quit)
 
   # PulseAudio initialization. Returns True if succeeded
   def pulseaudio_initialize(self):
@@ -608,9 +621,17 @@ class SoundSwitcherIndicator(GObject.GObject):
   # Turns asynchronous PulseAudio operations into synchronous ones by waiting on the operation to complete.
   # Finally unreferences the operation object
   def synchronise_op(self, operation):
+    # Lock the main loop. According to the official PA documentation this ought to happen before the operation is
+    # created, but since we only have one worker thread (Gtk thread), no race for PA mainloop is expected and this
+    # should do
+    pa_threaded_mainloop_lock(self.pa_mainloop)
+    # Wait on the operation
     while pa_operation_get_state(operation) == PA_OPERATION_RUNNING:
-      pass
+      pa_threaded_mainloop_wait(self.pa_mainloop)
+    # Free the operation object
     pa_operation_unref(operation)
+    # Unlock the main loop
+    pa_threaded_mainloop_unlock(self.pa_mainloop)
 
   # Synchronously updates information about all PulseAudio items (sinks, sources, server etc.)
   def update_all_pa_items(self):
