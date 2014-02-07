@@ -1,4 +1,4 @@
-indicator-sound-switcher (1.2.2ubuntu0-gtk3ppa0-1) saucy; urgency=low
+indicator-sound-switcher (1.2.2ubuntu0-gtk2ppa0-1) saucy; urgency=low
 
   * #8: NULL pointer access when no active port available on a device
   * #10: Not possible to select a portless device (no menu item)
@@ -6,10 +6,11 @@ indicator-sound-switcher (1.2.2ubuntu0-gtk3ppa0-1) saucy; urgency=low
  -- Dmitry Kann <yktooo@gmail.com>  Fri, 18 Feb 2014 15:11:00 +0200
 
 
-indicator-sound-switcher (1.2.1ubuntu0-gtk3ppa0-1) saucy; urgency=low
+indicator-sound-switcher (1.2.1ubuntu0-gtk2ppa0-1) precise; urgency=low
 
   * #4: Added a fallback icon for non-standard Ubuntu themes.
   * #6: Added autostart shortcut for all users.
+  * Backported with Gtk+2 support for Precise, Quantal and Raring.
 
  -- Dmitry Kann <yktooo@gmail.com>  Fri, 07 Feb 2014 12:00:00 +0200
 
