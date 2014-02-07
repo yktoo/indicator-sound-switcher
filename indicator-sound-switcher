@@ -34,10 +34,9 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/'''
 
 import sys
-
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import AppIndicator3 as AppIndicator
+import gtk as Gtk
+import appindicator as AppIndicator
+import gobject as GObject
 
 from indicator_sound_switcher.lib_pulseaudio import *
 
@@ -61,8 +60,9 @@ class SoundSwitcherIndicator(GObject.GObject):
       # If activated and the owner sink/source is active too, also activate the item that corresponds to the active port
       if value and self.menu_item and self.owner and self.owner.is_active:
         # Inhibit the activate event
-        with self.menu_item.handler_block(self.handler_id):
-          self.menu_item.set_active(True)
+        self.menu_item.handler_block(self.handler_id)
+        self.menu_item.set_active(True)
+        self.menu_item.handler_unblock(self.handler_id)
 
     is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
@@ -141,8 +141,8 @@ class SoundSwitcherIndicator(GObject.GObject):
     GObject.GObject.__init__(self)
     global APP_ID, APP_ICON, APP_NAME
     # Create the indicator object
-    self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
-    self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+    self.ind = AppIndicator.Indicator(APP_ID, APP_ICON, AppIndicator.CATEGORY_HARDWARE)
+    self.ind.set_status(AppIndicator.STATUS_ACTIVE)
     # Initialize PulseAudio object lists and references
     self.sources        = {}
     self.source_outputs = {}
@@ -529,7 +529,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     if label is None:
       item = Gtk.SeparatorMenuItem()
     else:
-      item = Gtk.MenuItem.new_with_mnemonic(label)
+      item = Gtk.MenuItem(label)
       if activate_signal is not None:
         item.connect("activate", activate_signal, None)
       else:
@@ -548,9 +548,9 @@ class SoundSwitcherIndicator(GObject.GObject):
     idx_from = 0 if after_item is None else items.index(after_item)+1
     idx_to   = items.index(before_item)
     # If there's at least one item, get the group from it
-    group = [] if idx_to == idx_from else items[idx_from].get_group()
+    group = None if idx_to == idx_from else items[idx_from]
     # Create and setup a new radio item
-    new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
+    new_item = Gtk.RadioMenuItem(group, label)
     new_item.show()
     # Find an appropriate position for the item so that they are in alphabetical order
     i = idx_from
