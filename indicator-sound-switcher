@@ -506,6 +506,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
   # Main event loop
   def main(self):
+    Gtk.gdk.threads_init()
     Gtk.main()
 
   # Adds an item (if label is None then separator item) to the indicator menu. Returns the created item
