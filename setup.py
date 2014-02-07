@@ -18,5 +18,6 @@ setup(
         ('/etc/xdg/autostart',                           ['indicator-sound-switcher.desktop']),
         ('/usr/share/icons/ubuntu-mono-dark/status/22',  ['icons/ubuntu-mono-dark/indicator-sound-switcher.svg']),
         ('/usr/share/icons/ubuntu-mono-light/status/22', ['icons/ubuntu-mono-light/indicator-sound-switcher.svg']),
+        ('/usr/share/icons/hicolor/22x22/status',        ['icons/default/indicator-sound-switcher.svg']),
     ]
 )
