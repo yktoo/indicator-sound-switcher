@@ -74,6 +74,7 @@ class SoundSwitcherIndicator(GObject.GObject):
       self.description = description
       self.priority    = priority
       self.menu_item   = None
+      self._is_active  = False
       # Activate signal's handler ID (will be used for inhibiting the handler later)
       self.handler_id  = None
 
