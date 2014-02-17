@@ -369,8 +369,9 @@ class SoundSwitcherIndicator(GObject.GObject):
         port = sink.ports[idx_port]
         port.menu_item = self.menu_insert_ordered_item(self.item_header_sinks, self.item_separator_sinks, description + " ‣ " + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
-    # Update sink's active port
-    sink.activate_port_by_name(active_port.contents.name)
+    # Update sink's active port, if there's any
+    if active_port:
+      sink.activate_port_by_name(active_port.contents.name)
 
   # Removes sink object by its index (PulseAudio's sink index)
   def sink_remove(self, index):
@@ -446,8 +447,9 @@ class SoundSwitcherIndicator(GObject.GObject):
         port = source.ports[idx_port]
         port.menu_item = self.menu_insert_ordered_item(self.item_header_sources, self.item_separator_sources, description + " ‣ " + port.description)
         port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
-    # Update source's active port
-    source.activate_port_by_name(active_port.contents.name)
+    # Update source's active port, if there's any
+    if active_port:
+      source.activate_port_by_name(active_port.contents.name)
 
   # Removes source object by its index (PulseAudio's source index)
   def source_remove(self, index):
