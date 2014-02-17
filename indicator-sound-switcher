@@ -54,7 +54,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     #-----------------------------------
 
     def get_is_active(self):
-      return self._is_active
+      return self._is_active or self._is_dummy # A dummy port is considered "always active"
 
     def set_is_active(self, value):
       self._is_active = value
@@ -75,6 +75,7 @@ class SoundSwitcherIndicator(GObject.GObject):
       self.priority    = priority
       self.menu_item   = None
       self._is_active  = False
+      self._is_dummy   = description is None
       # Activate signal's handler ID (will be used for inhibiting the handler later)
       self.handler_id  = None
 
@@ -365,7 +366,7 @@ class SoundSwitcherIndicator(GObject.GObject):
           else:
             break
       # If there's no port on this sink, create a dummy one
-      if not sink_ports: sink_ports[-1] = self.Port("Dummy", "Dummy port", -1)
+      if not sink_ports: sink_ports[-1] = self.Port("dummy", None, -1)
       # Create and register a new instance of Sink object
       sink = self.Sink(index, name, description, sink_ports)
       self.sinks[index] = sink
@@ -448,7 +449,7 @@ class SoundSwitcherIndicator(GObject.GObject):
           else:
             break
       # If there's no port on this source, create a dummy one
-      if not source_ports: source_ports[-1] = self.Port("Dummy", "Dummy port", -1)
+      if not source_ports: source_ports[-1] = self.Port("dummy", None, -1)
       # Create and register a new instance of Source object
       source = self.Source(index, name, description, source_ports)
       self.sources[index] = source
