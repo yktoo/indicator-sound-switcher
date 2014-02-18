@@ -1,3 +1,11 @@
+indicator-sound-switcher (1.2.2ubuntu0-gtk3ppa0-1) saucy; urgency=low
+
+  * #8: NULL pointer access when no active port available on a device
+  * #10: Not possible to select a portless device (no menu item)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 18 Feb 2014 15:11:00 +0200
+
+
 indicator-sound-switcher (1.2.1ubuntu0-gtk3ppa0-1) saucy; urgency=low
 
   * #4: Added a fallback icon for non-standard Ubuntu themes.
