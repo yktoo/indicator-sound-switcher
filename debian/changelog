@@ -1,4 +1,4 @@
-indicator-sound-switcher (1.2.2ubuntu0-gtk2ppa0-1) saucy; urgency=low
+indicator-sound-switcher (1.2.2ubuntu0-gtk2ppa0-1) precise; urgency=low
 
   * #8: NULL pointer access when no active port available on a device
   * #10: Not possible to select a portless device (no menu item)
