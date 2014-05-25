@@ -206,7 +206,7 @@ class SoundSwitcherIndicator(GObject.GObject):
   def item_about(self, widget, buf):
     global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
     dialog = Gtk.AboutDialog()
-    dialog.set_name(APP_NAME)
+    dialog.set_program_name(APP_NAME)
     dialog.set_copyright('Written by Dmitry Kann')
     dialog.set_license(APP_LICENCE)
     dialog.set_version(APP_VERSION)
