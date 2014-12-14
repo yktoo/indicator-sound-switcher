@@ -79,8 +79,8 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Activate signal's handler ID (will be used for inhibiting the handler later)
             self.handler_id  = None
 
-    class BaseSinkSource(GObject.GObject):
-        """Base class for sink and source."""
+    class Stream(GObject.GObject):
+        """Base class for sink and source. Call it Stream to be consistent with Gnome Sound Panel."""
 
         def get_is_active(self):
             """is_active: defines whether the associated sink/source is the active (default) one."""
@@ -114,11 +114,11 @@ class SoundSwitcherIndicator(GObject.GObject):
             for port in self.ports.values():
                 port.is_active = port.name == name
 
-    class Source(BaseSinkSource):
+    class Source(Stream):
         """Source class."""
         pass
 
-    class Sink(BaseSinkSource):
+    class Sink(Stream):
         """Sink class."""
         pass
 
