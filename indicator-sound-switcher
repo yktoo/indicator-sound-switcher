@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-### BEGIN LICENSE
-# Copyright (C) 2012-2013 Dmitry Kann, http://yktoo.com
-#
-# This program is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License version 3, as published
-# by the Free Software Foundation.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranties of
-# MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
-# PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with this program.  If not, see <http://www.gnu.org/licenses/>.
-### END LICENSE
+"""
+Copyright (C) 2012-2014 Dmitry Kann, http://yktoo.com
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License version 3, as published
+by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranties of
+MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 # Global definitions
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -41,631 +41,736 @@ from gi.repository import AppIndicator3 as AppIndicator
 
 from indicator_sound_switcher.lib_pulseaudio import *
 
+
 class SoundSwitcherIndicator(GObject.GObject):
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Generic (sink/source) port class
-  #---------------------------------------------------------------------------------------------------------------------
+    logging = False
 
-  class Port(GObject.GObject):
+    class Port(GObject.GObject):
+        """Generic (sink/source) port class."""
 
-    #-----------------------------------
-    # is_active: defines whether the associated port is the active one for its sink/source.
-    #-----------------------------------
+        def get_is_active(self):
+            """is_active: defines whether the associated port is the active one for its sink/source."""
+            return self._is_active or self._is_dummy  # A dummy port is considered "always active"
 
-    def get_is_active(self):
-      return self._is_active or self._is_dummy # A dummy port is considered "always active"
+        def set_is_active(self, value):
+            self._is_active = value
 
-    def set_is_active(self, value):
-      self._is_active = value
-      # If activated and the owner sink/source is active too, also activate the item that corresponds to the active port
-      if value and self.menu_item and self.owner and self.owner.is_active:
-        # Inhibit the activate event
-        with self.menu_item.handler_block(self.handler_id):
-          self.menu_item.set_active(True)
+            # If activated and the owner sink/source is active too, also activate the item that corresponds to the
+            # active port
+            if value and self.menu_item and self.owner and self.owner.is_active:
+                # Inhibit the activate event
+                with self.menu_item.handler_block(self.handler_id):
+                    self.menu_item.set_active(True)
 
-    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
+        is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-    # Constructor
-    def __init__(self, name, description, priority):
-      GObject.GObject.__init__(self)
-      self.owner       = None
-      self.name        = name
-      self.description = description
-      self.priority    = priority
-      self.menu_item   = None
-      self._is_active  = False
-      self._is_dummy   = description is None
-      # Activate signal's handler ID (will be used for inhibiting the handler later)
-      self.handler_id  = None
+        def __init__(self, name, description, priority):
+            """Constructor."""
+            GObject.GObject.__init__(self)
+            self.owner       = None
+            self.name        = name
+            self.description = description
+            self.priority    = priority
+            self.menu_item   = None
+            self._is_active  = False
+            self._is_dummy   = description is None
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Base class for sink and source
-  #---------------------------------------------------------------------------------------------------------------------
+            # Activate signal's handler ID (will be used for inhibiting the handler later)
+            self.handler_id  = None
 
-  class BaseSinkSource(GObject.GObject):
+    class BaseSinkSource(GObject.GObject):
+        """Base class for sink and source."""
 
-    #-----------------------------------
-    # is_active: defines whether the associated sink/source is the active (default) one.
-    #-----------------------------------
+        def get_is_active(self):
+            """is_active: defines whether the associated sink/source is the active (default) one."""
+            return self._is_active
 
-    def get_is_active(self):
-      return self._is_active
+        def set_is_active(self, value):
+            self._is_active = value
+            # If activated, also activate the item that corresponds to the active port
+            if value:
+                for port in self.ports.values():
+                    if port.is_active:
+                        port.is_active = True
+                        break
 
-    def set_is_active(self, value):
-      self._is_active = value
-      # If activated, also activate the item that corresponds to the active port
-      if value:
-        for port in self.ports.values():
-          if port.is_active:
-            port.is_active = True
-            break
+        is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
+        # Constructor
+        def __init__(self, index, name, description, ports):
+            GObject.GObject.__init__(self)
+            self.index       = index
+            self.name        = name
+            self.description = description
+            self.ports       = ports
+            # Assign every port's owner
+            for port in self.ports.values():
+                port.owner = self
+            self._is_active = False
 
-    # Constructor
-    def __init__(self, index, name, description, ports):
-      GObject.GObject.__init__(self)
-      self.index       = index
-      self.name        = name
-      self.description = description
-      self.ports       = ports
-      # Assign every port's owner
-      for port in self.ports.values(): port.owner = self
-      self._is_active = False
+        # Activates the specified port by its name
+        def activate_port_by_name(self, name):
+            for port in self.ports.values():
+                port.is_active = port.name == name
 
-    # Activates the specified port by its name
-    def activate_port_by_name(self, name):
-      for port in self.ports.values(): port.is_active = port.name == name
+    class Source(BaseSinkSource):
+        """Source class."""
+        pass
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Source class
-  #---------------------------------------------------------------------------------------------------------------------
+    class Sink(BaseSinkSource):
+        """Sink class."""
+        pass
 
-  class Source(BaseSinkSource):
-    pass
+    def __init__(self):
+        """Constructor."""
+        GObject.GObject.__init__(self)
+        global APP_ID, APP_ICON, APP_NAME
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Sink class
-  #---------------------------------------------------------------------------------------------------------------------
+        # Create the indicator object
+        self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
+        self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
-  class Sink(BaseSinkSource):
-    pass
+        # Initialize PulseAudio object lists and references
+        self.sources        = {}
+        self.source_outputs = {}
+        self.sinks          = {}
+        self.sink_inputs    = {}
+        self._pacb_context_notify     = None
+        self._pacb_context_subscribe  = None
+        self._pacb_context_success    = None
+        self._pacb_server_info        = None
+        self._pacb_sink_info          = None
+        self._pacb_sink_input_info    = None
+        self._pacb_source_info        = None
+        self._pacb_source_output_info = None
+        self.pa_context               = None
+        self.pa_context_connected     = False
+        self.pa_context_failed        = False
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Builtin overrides
-  #---------------------------------------------------------------------------------------------------------------------
+        # Create the menu
+        self.item_header_sources    = None
+        self.item_separator_sources = None
+        self.item_header_sinks      = None
+        self.item_separator_sinks   = None
+        self.menu = Gtk.Menu()
+        self.ind.set_menu(self.menu)
+        self.menu_setup()
 
-  # Constructor
-  def __init__(self):
-    GObject.GObject.__init__(self)
-    global APP_ID, APP_ICON, APP_NAME
-    # Create the indicator object
-    self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
-    self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-    # Initialize PulseAudio object lists and references
-    self.sources        = {}
-    self.source_outputs = {}
-    self.sinks          = {}
-    self.sink_inputs    = {}
-    # Create the menu
-    self.item_separator_sources = None
-    self.item_separator_sinks   = None
-    self.menu = Gtk.Menu()
-    self.ind.set_menu(self.menu)
-    self.menu_setup()
-    # Initialize the PulseAudio interface
-    self.pa_mainloop = None
-    self.pa_mainloop_api = None
-    if not self.pulseaudio_initialize():
-      self.pulseaudio_shutdown()
-      sys.exit(1)
+        # Initialize the PulseAudio interface
+        self.pa_mainloop = None
+        self.pa_mainloop_api = None
+        if not self.pulseaudio_initialize():
+            self.pulseaudio_shutdown()
+            sys.exit(1)
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Signal handlers
-  #---------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+    # Signal handlers
+    # ------------------------------------------------------------------------------------------------------------------
 
-  # Context status change handler. Always runs on the GUI thread
-  def do_context_subscribe(self, facility, kind, index):
-    self._log("    / context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
-    # Dispatch the callback
-    # -- Source
-    if facility == PA_SUBSCRIPTION_EVENT_SOURCE:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
-      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        self.synchronise_op(pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.source_remove(index)
-    # -- Source output
-    elif facility == PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT:
-      if kind == PA_SUBSCRIPTION_EVENT_NEW:
-        self.synchronise_op(pa_context_get_source_output_info(self.pa_context, index, self._pacb_source_output_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.source_output_remove(index)
-    # -- Sink
-    elif facility == PA_SUBSCRIPTION_EVENT_SINK:
-      # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
-      if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        self.synchronise_op(pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
-        self.sink_remove(index)
-    # -- Sink input
-    elif facility == PA_SUBSCRIPTION_EVENT_SINK_INPUT:
-      if kind == PA_SUBSCRIPTION_EVENT_NEW:
-        self.synchronise_op(pa_context_get_sink_input_info(self.pa_context, index, self._pacb_sink_input_info, None))
-      elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+    def do_context_subscribe(self, facility, kind, index):
+        """Context status change handler. Always runs on the GUI thread."""
+        self._log("    / context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
+
+        # Dispatch the callback
+        # -- Source
+        if facility == PA_SUBSCRIPTION_EVENT_SOURCE:
+            # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
+            if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+                self.synchronise_op(
+                    pa_context_get_source_info_by_index(self.pa_context, index, self._pacb_source_info, None))
+            elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+                self.source_remove(index)
+
+        # -- Source output
+        elif facility == PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT:
+            if kind == PA_SUBSCRIPTION_EVENT_NEW:
+                self.synchronise_op(
+                    pa_context_get_source_output_info(self.pa_context, index, self._pacb_source_output_info, None))
+            elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+                self.source_output_remove(index)
+
+        # -- Sink
+        elif facility == PA_SUBSCRIPTION_EVENT_SINK:
+            # Active port change events are fired as PA_SUBSCRIPTION_EVENT_CHANGE
+            if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+                self.synchronise_op(
+                    pa_context_get_sink_info_by_index(self.pa_context, index, self._pacb_sink_info, None))
+            elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+                self.sink_remove(index)
+
+        # -- Sink input
+        elif facility == PA_SUBSCRIPTION_EVENT_SINK_INPUT:
+            if kind == PA_SUBSCRIPTION_EVENT_NEW:
+                self.synchronise_op(
+                    pa_context_get_sink_input_info(self.pa_context, index, self._pacb_sink_input_info, None))
+            elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+                self.sink_input_remove(index)
+
+        # -- Server
+        elif facility == PA_SUBSCRIPTION_EVENT_SERVER:
+            if kind == PA_SUBSCRIPTION_EVENT_CHANGE:
+                self.synchronise_op(pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
+
+        # Prevent this method from being called again
+        return False
+
+    @staticmethod
+    def item_about(widget, buf):
+        """Handler of about item click event."""
+        global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
+        dialog = Gtk.AboutDialog()
+        dialog.set_program_name(APP_NAME)
+        dialog.set_copyright('Written by Dmitry Kann')
+        dialog.set_license(APP_LICENCE)
+        dialog.set_version(APP_VERSION)
+        dialog.set_website('http://yktoo.com')
+        dialog.set_website_label('yktoo.com')
+        dialog.set_logo_icon_name(APP_ICON)
+        dialog.connect("response", lambda x, y: dialog.destroy())
+        dialog.run()
+
+    def item_quit(self, widget, buf):
+        """Terminates the app."""
+        self.shutdown()
+
+    def item_refresh(self, widget, buf):
+        """Handler of refresh item click event."""
+        self.update_all_pa_items()
+
+    def item_select_sink(self, widget, buf):
+        """Handler of sink selection item click event."""
+        if widget.get_active():
+            # Fetch indexes from the buf[] tuple
+            idx_sink = buf[0]
+            idx_port = buf[1]
+            sink = self.sinks[idx_sink]
+            self._log("Sink[{}].port[{}] selected".format(idx_sink, idx_port))
+
+            # Change the default sink
+            self.synchronise_op(
+                pa_context_set_default_sink(self.pa_context, sink.name, self._pacb_context_success, None))
+
+            # Change the active port, if it's not a dummy one
+            if idx_port >= 0:
+                pa_context_set_sink_port_by_index(
+                    self.pa_context, idx_sink, sink.ports[idx_port].name, self._pacb_context_success, None)
+
+            # Move all active sink inputs to the selected sink
+            for idx in self.sink_inputs.keys():
+                self.synchronise_op(
+                    pa_context_move_sink_input_by_index(
+                        self.pa_context, idx, idx_sink, self._pacb_context_success, None))
+
+    def item_select_source(self, widget, buf):
+        """Handler of source selection item click event."""
+        if widget.get_active():
+            # Fetch indexes from the buf[] tuple
+            idx_source = buf[0]
+            idx_port   = buf[1]
+            source = self.sources[idx_source]
+            self._log("Source[{}].port[{}] selected".format(idx_source, idx_port))
+
+            # Change the default source
+            self.synchronise_op(
+                pa_context_set_default_source(self.pa_context, source.name, self._pacb_context_success, None))
+
+            # Change the active port, if it's not a dummy one
+            if idx_port >= 0:
+                pa_context_set_source_port_by_index(
+                    self.pa_context, idx_source, source.ports[idx_port].name, self._pacb_context_success, None)
+
+            # Move all active source outputs to the selected source
+            for idx in self.source_outputs.keys():
+                self.synchronise_op(
+                    pa_context_move_source_output_by_index(
+                        self.pa_context, idx, source.index, self._pacb_context_success, None))
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # PulseAudio callbacks
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def pacb_context_notify(self, context, user_data):
+        """Connection status callback."""
+        ctxstate = pa_context_get_state(context)
+
+        # Context connected and ready
+        if ctxstate == PA_CONTEXT_READY:
+            self._log("Context connected")
+            self.pa_context_connected = True
+
+        # Context connection failed
+        elif ctxstate == PA_CONTEXT_FAILED:
+            self._log("Context failed")
+            print "ERROR: PulseAudio connection failed"
+            self.pa_context_failed = True
+
+        # Context connection ended - end the mainloop
+        elif ctxstate == PA_CONTEXT_TERMINATED:
+            self._log("Context terminated")
+
+    def pacb_context_subscribe(self, context, event_type, index, user_data):
+        """Context subscription callback."""
+        facility = event_type & PA_SUBSCRIPTION_EVENT_FACILITY_MASK
+        kind     = event_type & PA_SUBSCRIPTION_EVENT_TYPE_MASK
+
+        # Pass the event on to the main GUI thread
+        GObject.idle_add(self.do_context_subscribe, facility, kind, index)
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_context_success(self, context, c_int, user_data):
+        """Context success callback."""
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_server_info(self, context, struct, user_data):
+        """Server info callback."""
+        if struct:
+            self.activate_sink  (struct.contents.default_sink_name)
+            self.activate_source(struct.contents.default_source_name)
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_sink_info(self, context, struct, index, user_data):
+        """Sink info callback."""
+        if struct:
+            self.sink_info(
+                struct.contents.index,
+                struct.contents.name,
+                struct.contents.description,
+                struct.contents.ports,
+                struct.contents.active_port)
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_sink_input_info(self, context, struct, eol, user_data):
+        """Sink input info callback."""
+        if struct:
+            # New sink input info arrived
+            self.sink_input_add(struct.contents.index, struct.contents.name, struct.contents.sink)
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_source_info(self, context, struct, index, user_data):
+        """Source info callback."""
+        # Skip "sink monitor" sources
+        if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
+            self.source_info(
+                struct.contents.index,
+                struct.contents.name,
+                struct.contents.description,
+                struct.contents.ports,
+                struct.contents.active_port)
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    def pacb_source_output_info(self, context, struct, eol, user_data):
+        """Source output info callback."""
+        if struct:
+            # New source output info arrived
+            self.source_output_add(struct.contents.index, struct.contents.name)
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Sink list related procs
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def sink_info(self, index, name, description, ports, active_port):
+        """Registers new sink object or updates existing one."""
+        # If sink already exists, fetch it
+        if index in self.sinks:
+            self._log("    * Sink[{}] update: '{}'".format(index, name))
+            sink = self.sinks[index]
+
+        # Otherwise register a new sink object
+        else:
+            self._log("    + Sink[{}] addition: '{}'".format(index, name))
+
+            # Prepare ports array: iterate through ports[] (array of pointers to structs)
+            sink_ports = {}
+            if ports:
+                idx_port = 0
+                while True:
+                    port_ptr = ports[idx_port]
+                    # NULL pointer terminates the array
+                    if port_ptr:
+                        port_struct = port_ptr.contents
+                        port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
+                        sink_ports[idx_port] = port
+                        self._log(
+                            "        + Sink port[{}] added: '{}'; '{}'; {}".format(
+                                idx_port, port_struct.name, port_struct.description, port_struct.priority))
+                        idx_port += 1
+                    else:
+                        break
+
+            # If there's no port on this sink, create a dummy one
+            if not sink_ports:
+                sink_ports[-1] = self.Port("dummy", None, -1)
+
+            # Create and register a new instance of Sink object
+            sink = self.Sink(index, name, description, sink_ports)
+            self.sinks[index] = sink
+
+            # Add a menu item for each sink port
+            for idx_port in sink.ports.keys():
+                port = sink.ports[idx_port]
+                port.menu_item = self.menu_insert_ordered_item(
+                    self.item_header_sinks,
+                    self.item_separator_sinks,
+                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
+                port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
+
+        # Update sink's active port, if there's any
+        if active_port:
+            sink.activate_port_by_name(active_port.contents.name)
+
+    def sink_remove(self, index):
+        """Removes sink object by its index (PulseAudio's sink index)."""
+        if index in self.sinks:
+            sink = self.sinks[index]
+            self._log("    - Sink[{}] removed: '{}'".format(index, sink.name))
+
+            # Remove all sink ports' menu items
+            for port in sink.ports.values():
+                if port.menu_item:
+                    self.menu.remove(port.menu_item)
+
+            # Also remove the sink object from sinks[]
+            del self.sinks[index]
+
+    def sink_remove_all(self):
+        """Removes all sink objects."""
+        for index in self.sinks.keys():
+            self.sink_remove(index)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Sink input list related procs
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def sink_input_add(self, index, name, sink):
+        """Registers new sink input object or updates an existing one."""
+        # Remove existing sink input with the same index, if any
         self.sink_input_remove(index)
-    # -- Server
-    elif facility == PA_SUBSCRIPTION_EVENT_SERVER:
-      if kind == PA_SUBSCRIPTION_EVENT_CHANGE:
-        self.synchronise_op(pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
-    # Prevent this method from being called again
-    return False
+        self._log("    + Sink input[{}] added: '{}' -> sink {}".format(index, name, sink))
 
-  # Handler of about item click event
-  def item_about(self, widget, buf):
-    global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
-    dialog = Gtk.AboutDialog()
-    dialog.set_program_name(APP_NAME)
-    dialog.set_copyright('Written by Dmitry Kann')
-    dialog.set_license(APP_LICENCE)
-    dialog.set_version(APP_VERSION)
-    dialog.set_website('http://yktoo.com')
-    dialog.set_website_label('yktoo.com')
-    dialog.set_logo_icon_name(APP_ICON)
-    dialog.connect("response", lambda x,y: dialog.destroy())
-    dialog.run()
+        # Register the new sink input
+        self.sink_inputs[index] = name
 
-  # Terminates the app
-  def item_quit(self, widget, buf):
-    self.shutdown()
+    def sink_input_remove(self, index):
+        """Removes sink input object by its index (PulseAudio's sink input index)."""
+        if index in self.sink_inputs:
+            self._log("    - Sink input[{}] removed: '{}'".format(index, self.sink_inputs[index]))
 
-  # Handler of refresh item click event
-  def item_refresh(self, widget, buf):
-    self.update_all_pa_items()
+            # Remove the sink input
+            del self.sink_inputs[index]
 
-  # Handler of sink selection item click event
-  def item_select_sink(self, widget, buf):
-    if widget.get_active():
-      # Fetch indexes from the buf[] tuple
-      idx_sink = buf[0]
-      idx_port = buf[1]
-      sink = self.sinks[idx_sink]
-      self._log("Sink[{}].port[{}] selected".format(idx_sink, idx_port))
-      # Change the default sink
-      self.synchronise_op(pa_context_set_default_sink(self.pa_context, sink.name, self._pacb_context_success, None))
-      # Change the active port, if it's not a dummy one
-      if idx_port>=0:
-        pa_context_set_sink_port_by_index(self.pa_context, idx_sink, sink.ports[idx_port].name, self._pacb_context_success, None)
-      # Move all active sink inputs to the selected sink
-      for idx in self.sink_inputs.keys():
+    def sink_input_remove_all(self):
+        """Removes all sink inputs."""
+        for index in self.sink_inputs.keys():
+            self.sink_input_remove(index)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Source list related procs
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def source_info(self, index, name, description, ports, active_port):
+        """Registers new source object or updates existing one."""
+        # If source already exists, fetch it
+        if index in self.sources:
+            self._log("    * Source[{}] update: '{}'".format(index, name))
+            source = self.sources[index]
+
+        # Otherwise register a new source object
+        else:
+            self._log("    + Source[{}] addition: '{}'".format(index, name))
+            # Prepare ports array: iterate through ports[] (array of pointers to structs)
+            source_ports = {}
+            if ports:
+                idx_port = 0
+                while True:
+                    port_ptr = ports[idx_port]
+                    # NULL pointer terminates the array
+                    if port_ptr:
+                        port_struct = port_ptr.contents
+                        port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
+                        source_ports[idx_port] = port
+                        self._log(
+                            "        + Source port[{}] added: '{}'; '{}'; {}".format(
+                                idx_port, port_struct.name, port_struct.description, port_struct.priority))
+                        idx_port += 1
+                    else:
+                        break
+
+            # If there's no port on this source, create a dummy one
+            if not source_ports:
+                source_ports[-1] = self.Port("dummy", None, -1)
+
+            # Create and register a new instance of Source object
+            source = self.Source(index, name, description, source_ports)
+            self.sources[index] = source
+
+            # Add a menu item for each source port
+            for idx_port in source.ports.keys():
+                port = source.ports[idx_port]
+                port.menu_item = self.menu_insert_ordered_item(
+                    self.item_header_sources,
+                    self.item_separator_sources,
+                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
+                port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
+
+        # Update source's active port, if there's any
+        if active_port:
+            source.activate_port_by_name(active_port.contents.name)
+
+    def source_remove(self, index):
+        """Removes source object by its index (PulseAudio's source index)."""
+        if index in self.sources:
+            source = self.sources[index]
+            self._log("    - Source[{}] removed: '{}'".format(index, source.name))
+
+            # Remove all source ports' menu items
+            for port in source.ports.values():
+                if port.menu_item:
+                    self.menu.remove(port.menu_item)
+
+            # Also remove the source object from sources[]
+            del self.sources[index]
+
+    def source_remove_all(self):
+        """Removes all source objects."""
+        for index in self.sources.keys():
+            self.source_remove(index)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Source output list related procs
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def source_output_add(self, index, name):
+        """Registers new source output object or updates an existing one."""
+        # Remove existing source output with the same index, if any
+        self.source_output_remove(index)
+        self._log("    + Source output[{}] added: '{}'".format(index, name))
+
+        # Register the new source output
+        self.source_outputs[index] = name
+
+    def source_output_remove(self, index):
+        """Removes source output object by its index (PulseAudio's source output index)."""
+        if index in self.source_outputs:
+            self._log("    - Source output[{}] removed: '{}'".format(index, self.source_outputs[index]))
+
+            # Remove the source output
+            del self.source_outputs[index]
+
+    def source_output_remove_all(self):
+        """Removes all source outputs."""
+        for index in self.source_outputs.keys():
+            self.source_output_remove(index)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Other methods
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Debug output method
+    @staticmethod
+    def _log(msg):
+        if SoundSwitcherIndicator.logging:
+            print msg
+
+    def activate_sink(self, name):
+        """Activates the sink by name."""
+        for sink in self.sinks.values():
+            sink.is_active = sink.name == name
+
+    def activate_source(self, name):
+        """Activates the source by name."""
+        for source in self.sources.values():
+            source.is_active = source.name == name
+
+    @staticmethod
+    def main():
+        """Main event loop."""
+        Gtk.main()
+
+    def menu_append_item(self, label=None, activate_signal=None):
+        """Adds an item (if label is None then separator item) to the indicator menu. Returns the created item."""
+        if label is None:
+            item = Gtk.SeparatorMenuItem()
+        else:
+            item = Gtk.MenuItem.new_with_mnemonic(label)
+            if activate_signal is not None:
+                item.connect("activate", activate_signal, None)
+            else:
+                item.set_sensitive(False)
+        item.show()
+        self.menu.append(item)
+        return item
+
+    def menu_insert_ordered_item(self, after_item, before_item, label):
+        """Inserts a new menu item into the menu between after_item and before_item, maintaining  alphabetical order of
+        the items.
+
+        :returns Created item.
+        """
+        # Indent the label a little
+        label = "    " + label
+
+        # Find out item indexes
+        items = self.menu.get_children()
+        idx_from = 0 if after_item is None else items.index(after_item) + 1
+        idx_to   = items.index(before_item)
+
+        # If there's at least one item, get the group from it
+        group = [] if idx_to == idx_from else items[idx_from].get_group()
+
+        # Create and setup a new radio item
+        new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
+        new_item.show()
+
+        # Find an appropriate position for the item so that they are in alphabetical order
+        i = idx_from
+        while (i < idx_to) and (label >= items[i].get_label()):
+            i += 1
+
+        # Insert the item
+        self.menu.insert(new_item, i)
+        return new_item
+
+    def menu_setup(self):
+        """Initializes indicator menu."""
+        # Make the source list section
+        self.item_header_sources = self.menu_append_item('Inputs')
+        self.item_separator_sources = self.menu_append_item()
+
+        # Make the sink list section
+        self.item_header_sinks = self.menu_append_item('Outputs')
+        self.item_separator_sinks = self.menu_append_item()
+
+        # Add static items
+        self.menu_append_item('_Refresh', self.item_refresh)
+        self.menu_append_item('_About',   self.item_about)
+        self.menu_append_item('_Quit',    self.item_quit)
+
+    def pulseaudio_initialize(self):
+        """PulseAudio initialization. Returns True if succeeded."""
+        # Setup the callbacks
+        self._pacb_context_notify     = pa_context_notify_cb_t    (self.pacb_context_notify)
+        self._pacb_context_subscribe  = pa_context_subscribe_cb_t (self.pacb_context_subscribe)
+        self._pacb_context_success    = pa_context_success_cb_t   (self.pacb_context_success)
+        self._pacb_server_info        = pa_server_info_cb_t       (self.pacb_server_info)
+        self._pacb_sink_info          = pa_sink_info_cb_t         (self.pacb_sink_info)
+        self._pacb_sink_input_info    = pa_sink_input_info_cb_t   (self.pacb_sink_input_info)
+        self._pacb_source_info        = pa_source_info_cb_t       (self.pacb_source_info)
+        self._pacb_source_output_info = pa_source_output_info_cb_t(self.pacb_source_output_info)
+
+        # Create PulseAudio's main loop
+        self.pa_mainloop = pa_threaded_mainloop_new()
+        self.pa_mainloop_api = pa_threaded_mainloop_get_api(self.pa_mainloop)
+
+        # Create and connect PulseAudio context
+        self.pa_context = pa_context_new(self.pa_mainloop_api, APP_NAME)
+        self.pa_context_connected = False
+        self.pa_context_failed    = False
+        pa_context_set_state_callback(self.pa_context, self._pacb_context_notify, None)
+        pa_context_connect(self.pa_context, None, 0, None)
+
+        # Start the main loop
+        pa_threaded_mainloop_start(self.pa_mainloop)
+
+        # Wait until the context is connected or failed
+        while not (self.pa_context_connected or self.pa_context_failed):
+            pass
+
+        if self.pa_context_connected:
+            # Update PulseAudio environment info
+            self.update_all_pa_items()
+
+            # Subscribe to context-specific daemon state changes
+            self.synchronise_op(
+                pa_context_subscribe(
+                    self.pa_context,
+                    PA_SUBSCRIPTION_MASK_SINK       |
+                    PA_SUBSCRIPTION_MASK_SINK_INPUT |
+                    PA_SUBSCRIPTION_MASK_SERVER     |
+                    PA_SUBSCRIPTION_MASK_SOURCE     |
+                    PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
+                    self._pacb_context_success,
+                    None))
+            pa_context_set_subscribe_callback(self.pa_context, self._pacb_context_subscribe, None)
+        return self.pa_context_connected
+
+    def pulseaudio_shutdown(self):
+        """PulseAudio shutdown."""
+        # Disconnect and free the context
+        if self.pa_context_connected:
+            pa_context_disconnect(self.pa_context)
+            self.pa_context_connected = False
+        if self.pa_context is not None:
+            pa_context_unref(self.pa_context)
+            self.pa_context = None
+
+        # Stop main loop thread
+        if self.pa_mainloop is not None:
+            pa_threaded_mainloop_stop(self.pa_mainloop)
+            pa_threaded_mainloop_free(self.pa_mainloop)
+            self.pa_mainloop = None
+
+    def shutdown(self):
+        """Shuts down the app."""
+        self.pulseaudio_shutdown()
+        Gtk.main_quit()
+
+    def synchronise_op(self, operation):
+        """Turns asynchronous PulseAudio operations into synchronous ones by waiting on the operation to complete.
+        Finally unreferences the operation object.
+        """
+        # Lock the main loop. According to the official PA documentation this ought to happen before the operation is
+        # created, but since we only have one worker thread (Gtk thread), no race for PA mainloop is expected and this
+        # should do
+        pa_threaded_mainloop_lock(self.pa_mainloop)
+
+        # Wait on the operation
+        while pa_operation_get_state(operation) == PA_OPERATION_RUNNING:
+            pa_threaded_mainloop_wait(self.pa_mainloop)
+
+        # Free the operation object
+        pa_operation_unref(operation)
+
+        # Unlock the main loop
+        pa_threaded_mainloop_unlock(self.pa_mainloop)
+
+    def update_all_pa_items(self):
+        """Synchronously updates information about all PulseAudio items (sinks, sources, server etc.)."""
+        # Remove all PA objects
+        self.source_remove_all()
+        self.source_output_remove_all()
+        self.sink_remove_all()
+        self.sink_input_remove_all()
+
+        # Sources
         self.synchronise_op(
-          pa_context_move_sink_input_by_index(self.pa_context, idx, idx_sink, self._pacb_context_success, None))
-
-  # Handler of source selection item click event
-  def item_select_source(self, widget, buf):
-    if widget.get_active():
-      # Fetch indexes from the buf[] tuple
-      idx_source = buf[0]
-      idx_port   = buf[1]
-      source = self.sources[idx_source]
-      self._log("Source[{}].port[{}] selected".format(idx_source, idx_port))
-      # Change the default source
-      self.synchronise_op(pa_context_set_default_source(self.pa_context, source.name, self._pacb_context_success, None))
-      # Change the active port, if it's not a dummy one
-      if idx_port>=0:
-        pa_context_set_source_port_by_index(self.pa_context, idx_source, source.ports[idx_port].name, self._pacb_context_success, None)
-      # Move all active source outputs to the selected source
-      for idx in self.source_outputs.keys():
+            pa_context_get_source_info_list       (self.pa_context, self._pacb_source_info,        None))
+        # Source outputs
         self.synchronise_op(
-          pa_context_move_source_output_by_index(self.pa_context, idx, source.index, self._pacb_context_success, None))
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # PulseAudio callbacks
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Connection status callback
-  def pacb_context_notify(self, context, user_data):
-    ctxstate = pa_context_get_state(context)
-    # Context connected and ready
-    if ctxstate == PA_CONTEXT_READY:
-      self._log("Context connected")
-      self.pa_context_connected = True
-    # Context connection failed
-    elif ctxstate == PA_CONTEXT_FAILED:
-      self._log("Context failed")
-      print "ERROR: PulseAudio connection failed"
-      self.pa_context_failed = True
-    # Context connection ended - end the mainloop
-    elif ctxstate == PA_CONTEXT_TERMINATED:
-      self._log("Context terminated")
-
-  def pacb_context_subscribe(self, context, event_type, index, user_data):
-    facility = event_type & PA_SUBSCRIPTION_EVENT_FACILITY_MASK
-    kind     = event_type & PA_SUBSCRIPTION_EVENT_TYPE_MASK
-    # Pass the event on to the main GUI thread
-    GObject.idle_add(self.do_context_subscribe, facility, kind, index)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  # Context success callback
-  def pacb_context_success(self, context, c_int, user_data):
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  def pacb_server_info(self, context, struct, user_data):
-    if struct:
-      self.activate_sink  (struct.contents.default_sink_name)
-      self.activate_source(struct.contents.default_source_name)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  def pacb_sink_info(self, context, struct, index, user_data):
-    if struct:
-      self.sink_info(
-        struct.contents.index,
-        struct.contents.name,
-        struct.contents.description,
-        struct.contents.ports,
-        struct.contents.active_port)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  def pacb_sink_input_info(self, context, struct, eol, user_data):
-    if struct:
-      # New sink input info arrived
-      self.sink_input_add(struct.contents.index, struct.contents.name, struct.contents.sink)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  def pacb_source_info(self, context, struct, index, user_data):
-    # Skip "sink monitor" sources
-    if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
-      self.source_info(
-        struct.contents.index,
-        struct.contents.name,
-        struct.contents.description,
-        struct.contents.ports,
-        struct.contents.active_port)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  def pacb_source_output_info(self, context, struct, eol, user_data):
-    if struct:
-      # New source output info arrived
-      self.source_output_add(struct.contents.index, struct.contents.name)
-    # Wake up PA's thread
-    pa_threaded_mainloop_signal(self.pa_mainloop, 0)
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Sink list related procs
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Registers new sink object or updates existing one
-  def sink_info(self, index, name, description, ports, active_port):
-    # If sink already exists, fetch it
-    if index in self.sinks:
-      self._log("    * Sink[{}] update: '{}'".format(index, name))
-      sink = self.sinks[index]
-    # Otherwise register a new sink object
-    else:
-      self._log("    + Sink[{}] addition: '{}'".format(index, name))
-      # Prepare ports array: iterate through ports[] (array of pointers to structs)
-      sink_ports = {}
-      if ports:
-        idx_port = 0
-        while True:
-          port_ptr = ports[idx_port]
-          # NULL pointer terminates the array
-          if port_ptr:
-            port_struct = port_ptr.contents
-            port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
-            sink_ports[idx_port] = port
-            self._log("        + Sink port[{}] added: '{}'; '{}'; {}".format(idx_port, port_struct.name, port_struct.description, port_struct.priority))
-            idx_port += 1
-          else:
-            break
-      # If there's no port on this sink, create a dummy one
-      if not sink_ports: sink_ports[-1] = self.Port("dummy", None, -1)
-      # Create and register a new instance of Sink object
-      sink = self.Sink(index, name, description, sink_ports)
-      self.sinks[index] = sink
-      # Add a menu item for each sink port
-      for idx_port in sink.ports.keys():
-        port = sink.ports[idx_port]
-        port.menu_item = self.menu_insert_ordered_item(
-          self.item_header_sinks,
-          self.item_separator_sinks,
-          description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
-        port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
-    # Update sink's active port, if there's any
-    if active_port:
-      sink.activate_port_by_name(active_port.contents.name)
-
-  # Removes sink object by its index (PulseAudio's sink index)
-  def sink_remove(self, index):
-    if index in self.sinks:
-      sink = self.sinks[index]
-      self._log("    - Sink[{}] removed: '{}'".format(index, sink.name))
-      # Remove all sink ports' menu items
-      for port in sink.ports.values():
-        if port.menu_item: self.menu.remove(port.menu_item)
-      # Also remove the sink object from sinks[]
-      del self.sinks[index]
-
-  # Removes all sink objects
-  def sink_remove_all(self):
-    for index in self.sinks.keys(): self.sink_remove(index)
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Sink input list related procs
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Registers new sink input object or updates an existing one
-  def sink_input_add(self, index, name, sink):
-    # Remove existing sink input with the same index, if any
-    self.sink_input_remove(index)
-    self._log("    + Sink input[{}] added: '{}' -> sink {}".format(index, name, sink))
-    # Register the new sink input
-    self.sink_inputs[index] = name
-
-  # Removes sink input object by its index (PulseAudio's sink input index)
-  def sink_input_remove(self, index):
-    if index in self.sink_inputs:
-      self._log("    - Sink input[{}] removed: '{}'".format(index, self.sink_inputs[index]))
-      # Remove the sink input
-      del self.sink_inputs[index]
-
-  # Removes all sink inputs
-  def sink_input_remove_all(self):
-    for index in self.sink_inputs.keys(): self.sink_input_remove(index)
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Source list related procs
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Registers new source object or updates existing one
-  def source_info(self, index, name, description, ports, active_port):
-    # If source already exists, fetch it
-    if index in self.sources:
-      self._log("    * Source[{}] update: '{}'".format(index, name))
-      source = self.sources[index]
-    # Otherwise register a new source object
-    else:
-      self._log("    + Source[{}] addition: '{}'".format(index, name))
-      # Prepare ports array: iterate through ports[] (array of pointers to structs)
-      source_ports = {}
-      if ports:
-        idx_port = 0
-        while True:
-          port_ptr = ports[idx_port]
-          # NULL pointer terminates the array
-          if port_ptr:
-            port_struct = port_ptr.contents
-            port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
-            source_ports[idx_port] = port
-            self._log("        + Source port[{}] added: '{}'; '{}'; {}".format(idx_port, port_struct.name, port_struct.description, port_struct.priority))
-            idx_port += 1
-          else:
-            break
-      # If there's no port on this source, create a dummy one
-      if not source_ports: source_ports[-1] = self.Port("dummy", None, -1)
-      # Create and register a new instance of Source object
-      source = self.Source(index, name, description, source_ports)
-      self.sources[index] = source
-      # Add a menu item for each source port
-      for idx_port in source.ports.keys():
-        port = source.ports[idx_port]
-        port.menu_item = self.menu_insert_ordered_item(
-          self.item_header_sources,
-          self.item_separator_sources,
-          description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
-        port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
-    # Update source's active port, if there's any
-    if active_port:
-      source.activate_port_by_name(active_port.contents.name)
-
-  # Removes source object by its index (PulseAudio's source index)
-  def source_remove(self, index):
-    if index in self.sources:
-      source = self.sources[index]
-      self._log("    - Source[{}] removed: '{}'".format(index, source.name))
-      # Remove all source ports' menu items
-      for port in source.ports.values():
-        if port.menu_item: self.menu.remove(port.menu_item)
-      # Also remove the source object from sources[]
-      del self.sources[index]
-
-  # Removes all source objects
-  def source_remove_all(self):
-    for index in self.sources.keys(): self.source_remove(index)
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Source output list related procs
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Registers new source output object or updates an existing one
-  def source_output_add(self, index, name):
-    # Remove existing source output with the same index, if any
-    self.source_output_remove(index)
-    self._log("    + Source output[{}] added: '{}'".format(index, name))
-    # Register the new source output
-    self.source_outputs[index] = name
-
-  # Removes source output object by its index (PulseAudio's source output index)
-  def source_output_remove(self, index):
-    if index in self.source_outputs:
-      self._log("    - Source output[{}] removed: '{}'".format(index, self.source_outputs[index]))
-      # Remove the source output
-      del self.source_outputs[index]
-
-  # Removes all source outputs
-  def source_output_remove_all(self):
-    for index in self.source_outputs.keys(): self.source_output_remove(index)
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Other methods
-  #---------------------------------------------------------------------------------------------------------------------
-
-  # Debug output method
-  def _log(self, msg):
-    #print msg
-    return
-
-  # Activates the sink by name
-  def activate_sink(self, name):
-    for sink in self.sinks.values(): sink.is_active = sink.name == name
-
-  # Activates the source by name
-  def activate_source(self, name):
-    for source in self.sources.values(): source.is_active = source.name == name
-
-  # Main event loop
-  def main(self):
-    Gtk.main()
-
-  # Adds an item (if label is None then separator item) to the indicator menu. Returns the created item
-  def menu_append_item(self, label=None, activate_signal=None):
-    if label is None:
-      item = Gtk.SeparatorMenuItem()
-    else:
-      item = Gtk.MenuItem.new_with_mnemonic(label)
-      if activate_signal is not None:
-        item.connect("activate", activate_signal, None)
-      else:
-        item.set_sensitive(False)
-    item.show()
-    self.menu.append(item)
-    return item
-
-  # Inserts a new menu item into the menu between after_item and before_item, maintaining  alphabetical order of the
-  # items. Returns the created item
-  def menu_insert_ordered_item(self, after_item, before_item, label):
-    # Indent the label a little
-    label = "    " + label
-    # Find out item indexes
-    items = self.menu.get_children()
-    idx_from = 0 if after_item is None else items.index(after_item)+1
-    idx_to   = items.index(before_item)
-    # If there's at least one item, get the group from it
-    group = [] if idx_to == idx_from else items[idx_from].get_group()
-    # Create and setup a new radio item
-    new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
-    new_item.show()
-    # Find an appropriate position for the item so that they are in alphabetical order
-    i = idx_from
-    while (i < idx_to) and (label >= items[i].get_label()): i += 1
-    # Insert the item
-    self.menu.insert(new_item, i)
-    return new_item
-
-  # Initializes indicator menu
-  def menu_setup(self):
-    # Make the source list section
-    self.item_header_sources = self.menu_append_item('Inputs')
-    self.item_separator_sources = self.menu_append_item()
-    # Make the sink list section
-    self.item_header_sinks = self.menu_append_item('Outputs')
-    self.item_separator_sinks = self.menu_append_item()
-    # Add static items
-    self.menu_append_item('_Refresh', self.item_refresh)
-    self.menu_append_item('_About',   self.item_about)
-    self.menu_append_item('_Quit',    self.item_quit)
-
-  # PulseAudio initialization. Returns True if succeeded
-  def pulseaudio_initialize(self):
-    # Setup the callbacks
-    self._pacb_context_notify     = pa_context_notify_cb_t    (self.pacb_context_notify)
-    self._pacb_context_subscribe  = pa_context_subscribe_cb_t (self.pacb_context_subscribe)
-    self._pacb_context_success    = pa_context_success_cb_t   (self.pacb_context_success)
-    self._pacb_server_info        = pa_server_info_cb_t       (self.pacb_server_info)
-    self._pacb_sink_info          = pa_sink_info_cb_t         (self.pacb_sink_info)
-    self._pacb_sink_input_info    = pa_sink_input_info_cb_t   (self.pacb_sink_input_info)
-    self._pacb_source_info        = pa_source_info_cb_t       (self.pacb_source_info)
-    self._pacb_source_output_info = pa_source_output_info_cb_t(self.pacb_source_output_info)
-    # Create PulseAudio's main loop
-    self.pa_mainloop = pa_threaded_mainloop_new()
-    self.pa_mainloop_api = pa_threaded_mainloop_get_api(self.pa_mainloop)
-    # Create and connect PulseAudio context
-    self.pa_context = pa_context_new(self.pa_mainloop_api, APP_NAME)
-    self.pa_context_connected = False
-    self.pa_context_failed    = False
-    pa_context_set_state_callback(self.pa_context, self._pacb_context_notify, None)
-    pa_context_connect(self.pa_context, None, 0, None)
-    # Start the main loop
-    pa_threaded_mainloop_start(self.pa_mainloop)
-    # Wait until the context is connected or failed
-    while not (self.pa_context_connected or self.pa_context_failed): pass
-    if self.pa_context_connected:
-      # Update PulseAudio environment info
-      self.update_all_pa_items()
-      # Subscribe to context-specific daemon state changes
-      self.synchronise_op(
-        pa_context_subscribe(
-          self.pa_context,
-          PA_SUBSCRIPTION_MASK_SINK         |
-            PA_SUBSCRIPTION_MASK_SINK_INPUT |
-            PA_SUBSCRIPTION_MASK_SERVER     |
-            PA_SUBSCRIPTION_MASK_SOURCE     |
-            PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
-          self._pacb_context_success,
-          None))
-      pa_context_set_subscribe_callback(self.pa_context, self._pacb_context_subscribe, None);
-    return self.pa_context_connected
-
-  # PulseAudio shutdown
-  def pulseaudio_shutdown(self):
-    # Disconnect and free the context
-    if self.pa_context_connected:
-      pa_context_disconnect(self.pa_context)
-      self.pa_context_connected = False
-    if self.pa_context is not None:
-      pa_context_unref(self.pa_context)
-      self.pa_context = None
-    # Stop main loop thread
-    if self.pa_mainloop is not None:
-      pa_threaded_mainloop_stop(self.pa_mainloop)
-      pa_threaded_mainloop_free(self.pa_mainloop)
-      self.pa_mainloop = None
-
-  # Shuts down the app
-  def shutdown(self):
-    self.pulseaudio_shutdown()
-    Gtk.main_quit()
-
-  # Turns asynchronous PulseAudio operations into synchronous ones by waiting on the operation to complete.
-  # Finally unreferences the operation object
-  def synchronise_op(self, operation):
-    # Lock the main loop. According to the official PA documentation this ought to happen before the operation is
-    # created, but since we only have one worker thread (Gtk thread), no race for PA mainloop is expected and this
-    # should do
-    pa_threaded_mainloop_lock(self.pa_mainloop)
-    # Wait on the operation
-    while pa_operation_get_state(operation) == PA_OPERATION_RUNNING:
-      pa_threaded_mainloop_wait(self.pa_mainloop)
-    # Free the operation object
-    pa_operation_unref(operation)
-    # Unlock the main loop
-    pa_threaded_mainloop_unlock(self.pa_mainloop)
-
-  # Synchronously updates information about all PulseAudio items (sinks, sources, server etc.)
-  def update_all_pa_items(self):
-    # Remove all PA objects
-    self.source_remove_all()
-    self.source_output_remove_all()
-    self.sink_remove_all()
-    self.sink_input_remove_all()
-    # Sources
-    self.synchronise_op(pa_context_get_source_info_list       (self.pa_context, self._pacb_source_info,        None))
-    # Source outputs
-    self.synchronise_op(pa_context_get_source_output_info_list(self.pa_context, self._pacb_source_output_info, None))
-    # Sinks
-    self.synchronise_op(pa_context_get_sink_info_list         (self.pa_context, self._pacb_sink_info,          None))
-    # Sink inputs
-    self.synchronise_op(pa_context_get_sink_input_info_list   (self.pa_context, self._pacb_sink_input_info,    None))
-    # Server info
-    self.synchronise_op(pa_context_get_server_info            (self.pa_context, self._pacb_server_info,        None))
+            pa_context_get_source_output_info_list(self.pa_context, self._pacb_source_output_info, None))
+        # Sinks
+        self.synchronise_op(
+            pa_context_get_sink_info_list         (self.pa_context, self._pacb_sink_info,          None))
+        # Sink inputs
+        self.synchronise_op(
+            pa_context_get_sink_input_info_list   (self.pa_context, self._pacb_sink_input_info,    None))
+        # Server info
+        self.synchronise_op(
+            pa_context_get_server_info            (self.pa_context, self._pacb_server_info,        None))
 
 if __name__ == "__main__":
-  indicator = SoundSwitcherIndicator()
-  indicator.main()
+    indicator = SoundSwitcherIndicator()
+    indicator.main()
