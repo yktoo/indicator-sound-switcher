@@ -2,3 +2,4 @@ build/
 dist/
 .idea/
 MANIFEST
+*.pyc
