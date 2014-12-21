@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from distutils.core import setup
 
 setup(
     name='indicator-sound-switcher',
-    version='1.2.2ubuntu0-gtk3ppa0',
+    version='1.2.3ubuntu0-gtk3ppa0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',

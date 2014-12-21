@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
-Copyright (C) 2012-2014 Dmitry Kann, http://yktoo.com
+Copyright (C) 2012-2015 Dmitry Kann, http://yktoo.com
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
@@ -21,7 +20,7 @@ APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
 APP_VERSION = "1.2.3"
-APP_LICENCE = '''This program is free software: you can redistribute it and/or modify it
+APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
 
@@ -31,7 +30,7 @@ MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
 PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along
-with this program. If not, see http://www.gnu.org/licenses/'''
+with this program. If not, see http://www.gnu.org/licenses/"""
 
 import sys
 
@@ -53,7 +52,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             """is_active: defines whether the associated port is the active one for its sink/source."""
             return self._is_active or self._is_dummy  # A dummy port is considered "always active"
 
-        def set_is_active(self, value):
+        def set_is_active(self, value: bool):
             self._is_active = value
 
             # If activated and the owner sink/source is active too, also activate the item that corresponds to the
@@ -65,7 +64,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-        def __init__(self, name, description, priority):
+        def __init__(self, name: str, description, priority: int):
             """Constructor."""
             GObject.GObject.__init__(self)
             self.owner       = None
@@ -86,7 +85,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             """is_active: defines whether the associated sink/source is the active (default) one."""
             return self._is_active
 
-        def set_is_active(self, value):
+        def set_is_active(self, value: bool):
             self._is_active = value
             # If activated, also activate the item that corresponds to the active port
             if value:
@@ -98,7 +97,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
         # Constructor
-        def __init__(self, index, name, description, ports):
+        def __init__(self, index: int, name: str, description: str, ports: dict):
             GObject.GObject.__init__(self)
             self.index       = index
             self.name        = name
@@ -110,7 +109,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             self._is_active = False
 
         # Activates the specified port by its name
-        def activate_port_by_name(self, name):
+        def activate_port_by_name(self, name: str):
             for port in self.ports.values():
                 port.is_active = port.name == name
 
@@ -168,7 +167,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Signal handlers
     # ------------------------------------------------------------------------------------------------------------------
 
-    def do_context_subscribe(self, facility, kind, index):
+    def do_context_subscribe(self, facility: int, kind: int, index: int) -> bool:
         """Context status change handler. Always runs on the GUI thread."""
         self._log("    / context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
 
@@ -227,7 +226,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         dialog.set_website('http://yktoo.com')
         dialog.set_website_label('yktoo.com')
         dialog.set_logo_icon_name(APP_ICON)
-        dialog.connect("response", lambda x, y: dialog.destroy())
+        dialog.connect('response', lambda x, y: dialog.destroy())
         dialog.run()
 
     def item_quit(self, widget, buf):
@@ -249,12 +248,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Change the default sink
             self.synchronise_op(
-                pa_context_set_default_sink(self.pa_context, sink.name, self._pacb_context_success, None))
+                pa_context_set_default_sink(self.pa_context, sink.name.encode(), self._pacb_context_success, None))
 
             # Change the active port, if it's not a dummy one
             if idx_port >= 0:
                 pa_context_set_sink_port_by_index(
-                    self.pa_context, idx_sink, sink.ports[idx_port].name, self._pacb_context_success, None)
+                    self.pa_context, idx_sink, sink.ports[idx_port].name.encode(), self._pacb_context_success, None)
 
             # Move all active sink inputs to the selected sink
             for idx in self.sink_inputs.keys():
@@ -262,7 +261,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                     pa_context_move_sink_input_by_index(
                         self.pa_context, idx, idx_sink, self._pacb_context_success, None))
 
-    def item_select_source(self, widget, buf):
+    def item_select_source(self, widget, buf: tuple):
         """Handler of source selection item click event."""
         if widget.get_active():
             # Fetch indexes from the buf[] tuple
@@ -273,12 +272,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Change the default source
             self.synchronise_op(
-                pa_context_set_default_source(self.pa_context, source.name, self._pacb_context_success, None))
+                pa_context_set_default_source(self.pa_context, source.name.encode(), self._pacb_context_success, None))
 
             # Change the active port, if it's not a dummy one
             if idx_port >= 0:
                 pa_context_set_source_port_by_index(
-                    self.pa_context, idx_source, source.ports[idx_port].name, self._pacb_context_success, None)
+                    self.pa_context, idx_source, source.ports[idx_port].name.encode(), self._pacb_context_success, None)
 
             # Move all active source outputs to the selected source
             for idx in self.source_outputs.keys():
@@ -302,7 +301,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Context connection failed
         elif ctxstate == PA_CONTEXT_FAILED:
             self._log("Context failed")
-            print "ERROR: PulseAudio connection failed"
+            print("ERROR: PulseAudio connection failed")
             self.pa_context_failed = True
 
         # Context connection ended - end the mainloop
@@ -328,8 +327,8 @@ class SoundSwitcherIndicator(GObject.GObject):
     def pacb_server_info(self, context, struct, user_data):
         """Server info callback."""
         if struct:
-            self.activate_sink  (struct.contents.default_sink_name)
-            self.activate_source(struct.contents.default_source_name)
+            self.activate_sink  (struct.contents.default_sink_name.decode())
+            self.activate_source(struct.contents.default_source_name.decode())
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
@@ -338,8 +337,8 @@ class SoundSwitcherIndicator(GObject.GObject):
         if struct:
             self.sink_info(
                 struct.contents.index,
-                struct.contents.name,
-                struct.contents.description,
+                struct.contents.name.decode(),
+                struct.contents.description.decode(),
                 struct.contents.ports,
                 struct.contents.active_port)
 
@@ -350,7 +349,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Sink input info callback."""
         if struct:
             # New sink input info arrived
-            self.sink_input_add(struct.contents.index, struct.contents.name, struct.contents.sink)
+            self.sink_input_add(struct.contents.index, struct.contents.name.decode(), struct.contents.sink)
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -361,8 +360,8 @@ class SoundSwitcherIndicator(GObject.GObject):
         if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
             self.source_info(
                 struct.contents.index,
-                struct.contents.name,
-                struct.contents.description,
+                struct.contents.name.decode(),
+                struct.contents.description.decode(),
                 struct.contents.ports,
                 struct.contents.active_port)
 
@@ -373,7 +372,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Source output info callback."""
         if struct:
             # New source output info arrived
-            self.source_output_add(struct.contents.index, struct.contents.name)
+            self.source_output_add(struct.contents.index, struct.contents.name.decode())
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -382,7 +381,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Sink list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def sink_info(self, index, name, description, ports, active_port):
+    def sink_info(self, index: int, name: str, description: str, ports: list, active_port):
         """Registers new sink object or updates existing one."""
         # If sink already exists, fetch it
         if index in self.sinks:
@@ -402,11 +401,13 @@ class SoundSwitcherIndicator(GObject.GObject):
                     # NULL pointer terminates the array
                     if port_ptr:
                         port_struct = port_ptr.contents
-                        port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
+                        port = self.Port(
+                            port_struct.name.decode(), port_struct.description.decode(), port_struct.priority)
                         sink_ports[idx_port] = port
                         self._log(
                             "        + Sink port[{}] added: '{}'; '{}'; {}".format(
-                                idx_port, port_struct.name, port_struct.description, port_struct.priority))
+                                idx_port, port_struct.name.decode(), port_struct.description.decode(),
+                                port_struct.priority))
                         idx_port += 1
                     else:
                         break
@@ -430,9 +431,9 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Update sink's active port, if there's any
         if active_port:
-            sink.activate_port_by_name(active_port.contents.name)
+            sink.activate_port_by_name(active_port.contents.name.decode())
 
-    def sink_remove(self, index):
+    def sink_remove(self, index: int):
         """Removes sink object by its index (PulseAudio's sink index)."""
         if index in self.sinks:
             sink = self.sinks[index]
@@ -448,14 +449,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def sink_remove_all(self):
         """Removes all sink objects."""
-        for index in self.sinks.keys():
+        for index in list(self.sinks.keys()):
             self.sink_remove(index)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Sink input list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def sink_input_add(self, index, name, sink):
+    def sink_input_add(self, index: int, name: str, sink: int):
         """Registers new sink input object or updates an existing one."""
         # Remove existing sink input with the same index, if any
         self.sink_input_remove(index)
@@ -464,7 +465,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Register the new sink input
         self.sink_inputs[index] = name
 
-    def sink_input_remove(self, index):
+    def sink_input_remove(self, index: int):
         """Removes sink input object by its index (PulseAudio's sink input index)."""
         if index in self.sink_inputs:
             self._log("    - Sink input[{}] removed: '{}'".format(index, self.sink_inputs[index]))
@@ -474,14 +475,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def sink_input_remove_all(self):
         """Removes all sink inputs."""
-        for index in self.sink_inputs.keys():
+        for index in list(self.sink_inputs.keys()):
             self.sink_input_remove(index)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Source list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def source_info(self, index, name, description, ports, active_port):
+    def source_info(self, index: int, name: str, description: str, ports: list, active_port):
         """Registers new source object or updates existing one."""
         # If source already exists, fetch it
         if index in self.sources:
@@ -500,18 +501,20 @@ class SoundSwitcherIndicator(GObject.GObject):
                     # NULL pointer terminates the array
                     if port_ptr:
                         port_struct = port_ptr.contents
-                        port = self.Port(port_struct.name, port_struct.description, port_struct.priority)
+                        port = self.Port(
+                            port_struct.name.decode(), port_struct.description.decode(), port_struct.priority)
                         source_ports[idx_port] = port
                         self._log(
                             "        + Source port[{}] added: '{}'; '{}'; {}".format(
-                                idx_port, port_struct.name, port_struct.description, port_struct.priority))
+                                idx_port, port_struct.name.decode(), port_struct.description.decode(),
+                                port_struct.priority))
                         idx_port += 1
                     else:
                         break
 
             # If there's no port on this source, create a dummy one
             if not source_ports:
-                source_ports[-1] = self.Port("dummy", None, -1)
+                source_ports[-1] = self.Port('dummy', None, -1)
 
             # Create and register a new instance of Source object
             source = self.Source(index, name, description, source_ports)
@@ -528,9 +531,9 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Update source's active port, if there's any
         if active_port:
-            source.activate_port_by_name(active_port.contents.name)
+            source.activate_port_by_name(active_port.contents.name.decode())
 
-    def source_remove(self, index):
+    def source_remove(self, index: int):
         """Removes source object by its index (PulseAudio's source index)."""
         if index in self.sources:
             source = self.sources[index]
@@ -546,14 +549,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def source_remove_all(self):
         """Removes all source objects."""
-        for index in self.sources.keys():
+        for index in list(self.sources.keys()):
             self.source_remove(index)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Source output list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def source_output_add(self, index, name):
+    def source_output_add(self, index: int, name: str):
         """Registers new source output object or updates an existing one."""
         # Remove existing source output with the same index, if any
         self.source_output_remove(index)
@@ -562,7 +565,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Register the new source output
         self.source_outputs[index] = name
 
-    def source_output_remove(self, index):
+    def source_output_remove(self, index: int):
         """Removes source output object by its index (PulseAudio's source output index)."""
         if index in self.source_outputs:
             self._log("    - Source output[{}] removed: '{}'".format(index, self.source_outputs[index]))
@@ -572,7 +575,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def source_output_remove_all(self):
         """Removes all source outputs."""
-        for index in self.source_outputs.keys():
+        for index in list(self.source_outputs.keys()):
             self.source_output_remove(index)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -581,16 +584,16 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     # Debug output method
     @staticmethod
-    def _log(msg):
+    def _log(msg: str):
         if SoundSwitcherIndicator.logging:
-            print msg
+            print(msg)
 
-    def activate_sink(self, name):
+    def activate_sink(self, name: str):
         """Activates the sink by name."""
         for sink in self.sinks.values():
             sink.is_active = sink.name == name
 
-    def activate_source(self, name):
+    def activate_source(self, name: str):
         """Activates the source by name."""
         for source in self.sources.values():
             source.is_active = source.name == name
@@ -600,7 +603,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Main event loop."""
         Gtk.main()
 
-    def menu_append_item(self, label=None, activate_signal=None):
+    def menu_append_item(self, label: str=None, activate_signal=None):
         """Adds an item (if label is None then separator item) to the indicator menu. Returns the created item."""
         if label is None:
             item = Gtk.SeparatorMenuItem()
@@ -614,7 +617,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.menu.append(item)
         return item
 
-    def menu_insert_ordered_item(self, after_item, before_item, label):
+    def menu_insert_ordered_item(self, after_item, before_item, label: str):
         """Inserts a new menu item into the menu between after_item and before_item, maintaining  alphabetical order of
         the items.
 
@@ -676,7 +679,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.pa_mainloop_api = pa_threaded_mainloop_get_api(self.pa_mainloop)
 
         # Create and connect PulseAudio context
-        self.pa_context = pa_context_new(self.pa_mainloop_api, APP_NAME)
+        self.pa_context = pa_context_new(self.pa_mainloop_api, APP_NAME.encode())
         self.pa_context_connected = False
         self.pa_context_failed    = False
         pa_context_set_state_callback(self.pa_context, self._pacb_context_notify, None)
