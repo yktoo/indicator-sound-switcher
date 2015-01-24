@@ -43,7 +43,7 @@ from indicator_sound_switcher.lib_pulseaudio import *
 
 class SoundSwitcherIndicator(GObject.GObject):
 
-    logging = False
+    logging = True #!!!
 
     class Port(GObject.GObject):
         """Generic (sink/source) port class."""
@@ -131,10 +131,12 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
         # Initialize PulseAudio object lists and references
+        self.cards          = {}
         self.sources        = {}
         self.source_outputs = {}
         self.sinks          = {}
         self.sink_inputs    = {}
+        self._pacb_card_info          = None
         self._pacb_context_notify     = None
         self._pacb_context_subscribe  = None
         self._pacb_context_success    = None
@@ -205,6 +207,14 @@ class SoundSwitcherIndicator(GObject.GObject):
                     pa_context_get_sink_input_info(self.pa_context, index, self._pacb_sink_input_info, None))
             elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
                 self.sink_input_remove(index)
+
+        # -- Card
+        elif facility == PA_SUBSCRIPTION_EVENT_CARD:
+            if kind == PA_SUBSCRIPTION_EVENT_NEW:
+                self.synchronise_op(
+                    pa_context_get_card_info_by_index(self.pa_context, index, self._pacb_card_info, None))
+            elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
+                self.card_remove(index)
 
         # -- Server
         elif facility == PA_SUBSCRIPTION_EVENT_SERVER:
@@ -288,6 +298,15 @@ class SoundSwitcherIndicator(GObject.GObject):
     # ------------------------------------------------------------------------------------------------------------------
     # PulseAudio callbacks
     # ------------------------------------------------------------------------------------------------------------------
+
+    def pacb_card_info(self, context, struct, eol, user_data):
+        """Card callback."""
+        if struct:
+            # New card info arrived
+            self.card_add(struct.contents.index, struct.contents.name.decode(), struct.contents.driver.decode())
+
+        # Wake up PA's thread
+        pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
     def pacb_context_notify(self, context, user_data):
         """Connection status callback."""
@@ -376,6 +395,32 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Card list related procs
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def card_add(self, index: int, name: str, driver: str):
+        """Registers new card object or updates an existing one."""
+        # Remove existing card with the same index, if any
+        self.card_remove(index)
+        self._log("    + Card[{}] added: '{}' -> driver {}".format(index, name, driver))
+
+        # Register the new card
+        self.cards[index] = name
+
+    def card_remove(self, index: int):
+        """Removes card object by its index (PulseAudio's card index)."""
+        if index in self.cards:
+            self._log("    - Card[{}] removed: '{}'".format(index, self.cards[index]))
+
+            # Remove the card
+            del self.cards[index]
+
+    def card_remove_all(self):
+        """Removes all cards."""
+        for index in list(self.cards.keys()):
+            self.card_remove(index)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Sink list related procs
@@ -665,6 +710,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def pulseaudio_initialize(self):
         """PulseAudio initialization. Returns True if succeeded."""
         # Setup the callbacks
+        self._pacb_card_info          = pa_card_info_cb_t         (self.pacb_card_info)
         self._pacb_context_notify     = pa_context_notify_cb_t    (self.pacb_context_notify)
         self._pacb_context_subscribe  = pa_context_subscribe_cb_t (self.pacb_context_subscribe)
         self._pacb_context_success    = pa_context_success_cb_t   (self.pacb_context_success)
@@ -753,11 +799,15 @@ class SoundSwitcherIndicator(GObject.GObject):
     def update_all_pa_items(self):
         """Synchronously updates information about all PulseAudio items (sinks, sources, server etc.)."""
         # Remove all PA objects
+        self.card_remove_all()
         self.source_remove_all()
         self.source_output_remove_all()
         self.sink_remove_all()
         self.sink_input_remove_all()
 
+        # Cards
+        self.synchronise_op(
+            pa_context_get_card_info_list         (self.pa_context, self._pacb_card_info,          None))
         # Sources
         self.synchronise_op(
             pa_context_get_source_info_list       (self.pa_context, self._pacb_source_info,        None))
