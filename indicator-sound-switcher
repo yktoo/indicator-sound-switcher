@@ -113,6 +113,9 @@ class SoundSwitcherIndicator(GObject.GObject):
       # Assign every port's owner
       for port in self.ports.values(): port.owner = self
       self._is_active = False
+      # Keep a "device" name too: for example for "alsa_output.pci-0000_00_03.0.hdmi-stereo" keep "pci-0000_00_03"
+      parts = name.split(".")
+      self.device = parts[1] if len(parts)>=2 else None
 
     # Activates the specified port by its name
     def activate_port_by_name(self, name):
@@ -139,6 +142,8 @@ class SoundSwitcherIndicator(GObject.GObject):
   # Constructor
   def __init__(self):
     GObject.GObject.__init__(self)
+    # Attempt to change both sink and sources at the same time? This is the default value (menu item starts checked/unchecked)
+    self.sink_source_lock = True
     global APP_ID, APP_ICON, APP_NAME
     # Create the indicator object
     self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
@@ -202,6 +207,11 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Prevent this method from being called again
     return False
 
+  # Handler for the lock/unlock button
+  def item_lock_unlock(self, widget, buf):
+    self.sink_source_lock = not self.sink_source_lock
+    self.menu_item_lock_unlock.set_active(self.sink_source_lock)
+
   # Handler of about item click event
   def item_about(self, widget, buf):
     global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
@@ -224,12 +234,29 @@ class SoundSwitcherIndicator(GObject.GObject):
   def item_refresh(self, widget, buf):
     self.update_all_pa_items()
 
+  # Find a related sink or source: When a sink (resp. source) is selected, its corresponding
+  # source (resp. sink) is normally activated too
+  def find_related(self, channels, obj):
+    for ix,sinksource in channels.iteritems():
+      if sinksource.device==obj.device:
+        self._log("Found related sink/source:\n\t  '{}'\n\t->'{}'".format(obj.name, sinksource.name))
+        return sinksource
+    return None
+
   # Handler of sink selection item click event
   def item_select_sink(self, widget, buf):
     if widget.get_active():
       # Fetch indexes from the buf[] tuple
       idx_sink = buf[0]
       idx_port = buf[1]
+      self.select_sink_impl(idx_sink, idx_port)
+      if self.sink_source_lock:
+        rel_source = self.find_related(self.sources, self.sinks[idx_sink])
+        if rel_source is not None:
+          self.select_source_impl(rel_source.index, 0)
+
+  # Implementation for selecting a sink
+  def select_sink_impl(self, idx_sink, idx_port):
       sink = self.sinks[idx_sink]
       self._log("Sink[{}].port[{}] selected".format(idx_sink, idx_port))
       # Change the default sink
@@ -248,6 +275,14 @@ class SoundSwitcherIndicator(GObject.GObject):
       # Fetch indexes from the buf[] tuple
       idx_source = buf[0]
       idx_port   = buf[1]
+      self.select_source_impl(idx_source, idx_port)
+      if self.sink_source_lock:
+        rel_sink = self.find_related(self.sinks, self.sources[idx_source])
+        if rel_sink is not None:
+          self.select_sink_impl(rel_sink.index, 0)
+
+  # Implementation for selecting a source
+  def select_source_impl(self, idx_source, idx_port):
       source = self.sources[idx_source]
       self._log("Source[{}].port[{}] selected".format(idx_source, idx_port))
       # Change the default source
@@ -525,11 +560,16 @@ class SoundSwitcherIndicator(GObject.GObject):
     Gtk.main()
 
   # Adds an item (if label is None then separator item) to the indicator menu. Returns the created item
-  def menu_append_item(self, label=None, activate_signal=None):
+  def menu_append_item(self, label=None, activate_signal=None, checked=None):
     if label is None:
       item = Gtk.SeparatorMenuItem()
     else:
-      item = Gtk.MenuItem.new_with_mnemonic(label)
+      if checked==None:
+        item = Gtk.MenuItem.new_with_mnemonic(label)
+      else:
+        item = Gtk.CheckMenuItem.new_with_mnemonic(label)
+        item.set_active(checked)
+        print "menuitem starts active? ", checked
       if activate_signal is not None:
         item.connect("activate", activate_signal, None)
       else:
@@ -568,6 +608,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     self.item_header_sinks = self.menu_append_item('Outputs')
     self.item_separator_sinks = self.menu_append_item()
     # Add static items
+    self.menu_item_lock_unlock = self.menu_append_item('_Change sink and source together', self.item_lock_unlock, self.sink_source_lock)
     self.menu_append_item('_Refresh', self.item_refresh)
     self.menu_append_item('_About',   self.item_about)
     self.menu_append_item('_Quit',    self.item_quit)
