@@ -34,6 +34,7 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/'''
 
 import sys
+import os
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -219,6 +220,19 @@ class SoundSwitcherIndicator(GObject.GObject):
   # Terminates the app
   def item_quit(self, widget, buf):
     self.shutdown()
+    
+  #FIXME
+  # Enables DLNA
+  def dlna_toggled(self):
+    if (self.dlna.get_label() == "_Enable DLNA") :
+      os.system('%s &' % 'pulseaudio-dlna')
+      self.dlna.set_label("_Disable DLNA")
+    else:
+      os.system('kill -TERM `pidof pulseaudio-dlna`')
+      self.dlna.set_label("_Enable DLNA")
+     
+  def item_dlna(self, widget, buf):
+    self.dlna_toggled()
 
   # Handler of refresh item click event
   def item_refresh(self, widget, buf):
@@ -568,6 +582,8 @@ class SoundSwitcherIndicator(GObject.GObject):
     self.item_header_sinks = self.menu_append_item('Outputs')
     self.item_separator_sinks = self.menu_append_item()
     # Add static items
+    #FIXME
+    self.dlna = self.menu_append_item('_Enable DLNA', self.item_dlna)
     self.menu_append_item('_Refresh', self.item_refresh)
     self.menu_append_item('_About',   self.item_about)
     self.menu_append_item('_Quit',    self.item_quit)
