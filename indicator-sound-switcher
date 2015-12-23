@@ -387,7 +387,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         port.menu_item = self.menu_insert_ordered_item(
           self.item_header_sinks,
           self.item_separator_sinks,
-          ((port.description) if idx_port >= 0 else description))
+          description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
         port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
     # Update sink's active port, if there's any
     if active_port:
@@ -470,7 +470,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         port.menu_item = self.menu_insert_ordered_item(
           self.item_header_sources,
           self.item_separator_sources,
-          ((port.description) if idx_port >= 0 else description))
+          description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
         port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
     # Update source's active port, if there's any
     if active_port:
