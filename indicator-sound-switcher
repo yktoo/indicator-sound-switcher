@@ -34,8 +34,13 @@ with this program. If not, see http://www.gnu.org/licenses/"""
 
 import sys
 
+from gi import require_version
 from gi.repository import GObject
+
+require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
+require_version('AppIndicator3', '0.1')
 from gi.repository import AppIndicator3 as AppIndicator
 
 from indicator_sound_switcher.lib_pulseaudio import *
@@ -303,7 +308,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Card callback."""
         if struct:
             # New card info arrived
-            self.card_add(struct.contents.index, struct.contents.name.decode(), struct.contents.driver.decode())
+            self.card_add(struct.contents.index, struct.contents.name.decode(), struct.contents.driver.decode(), struct.contents.n_profiles, struct.contents.profiles, struct.contents.active_profile.contents)
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -400,11 +405,19 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Card list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def card_add(self, index: int, name: str, driver: str):
+    def card_add(self, index: int, name: str, driver: str, n_profiles: int, profiles: list, active_profile):
         """Registers new card object or updates an existing one."""
         # Remove existing card with the same index, if any
         self.card_remove(index)
-        self._log("    + Card[{}] added: '{}' -> driver {}".format(index, name, driver))
+        self._log(
+            "    + Card[{}] added: '{}' -> driver {}; active profile: '{}' ({})".format(
+                index, name, driver, active_profile.name.decode(), active_profile.description.decode()))
+        idx_port = 0
+        while idx_port < n_profiles:
+            profile = profiles[idx_port]
+            self._log("        * Profile #{}: '{}' ({}), priority {}".format(
+                idx_port, profile.name.decode(), profile.description.decode(), profile.priority))
+            idx_port += 1
 
         # Register the new card
         self.cards[index] = name
