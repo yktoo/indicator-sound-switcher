@@ -4,8 +4,7 @@
 
 from ctypes import *
 
-_libraries = {}
-_libraries['libpulse.so.0'] = CDLL('libpulse.so.0')
+_libraries = {'libpulse.so.0': CDLL('libpulse.so.0')}
 STRING = c_char_p
 
 
@@ -241,6 +240,11 @@ PA_CHANNEL_POSITION_AUX10 = 22
 PA_SEEK_RELATIVE = 0
 PA_SAMPLE_S16LE = 3
 PA_IO_EVENT_NULL = 0
+PA_DIRECTION_OUTPUT = 1
+PA_DIRECTION_INPUT = 2
+PA_PORT_AVAILABLE_UNKNOWN = 0
+PA_PORT_AVAILABLE_NO = 1
+PA_PORT_AVAILABLE_YES = 2
 
 # values for enumeration 'pa_channel_position'
 pa_channel_position = c_int # enum
@@ -597,6 +601,7 @@ pa_sink_port_info._fields_ = [
     ('name', STRING),
     ('description', STRING),
     ('priority', uint32_t),
+    ('available', c_int),
 ]
 class pa_sink_info(Structure):
     pass
@@ -678,6 +683,7 @@ pa_source_port_info._fields_ = [
     ('name', STRING),
     ('description', STRING),
     ('priority', uint32_t),
+    ('available', c_int),
 ]
 class pa_source_info(Structure):
     pass
@@ -810,6 +816,30 @@ pa_card_profile_info._fields_ = [
     ('n_sources', uint32_t),
     ('priority', uint32_t),
 ]
+class pa_card_profile_info2(Structure):
+    pass
+pa_card_profile_info2._fields_ = [
+    ('name', STRING),
+    ('description', STRING),
+    ('n_sinks', uint32_t),
+    ('n_sources', uint32_t),
+    ('priority', uint32_t),
+    ('available', c_int),
+]
+class pa_card_port_info(Structure):
+    pass
+pa_card_port_info._fields_ = [
+    ('name', STRING),
+    ('description', STRING),
+    ('priority', uint32_t),
+    ('available', c_int),
+    ('direction', c_int),
+    ('n_profiles', uint32_t),
+    ('profiles', POINTER(POINTER(pa_card_profile_info))),
+    ('proplist', POINTER(pa_proplist)),
+    ('latency_offset', int64_t),
+    ('profiles2', POINTER(POINTER(pa_card_profile_info2))),
+]
 class pa_card_info(Structure):
     pass
 pa_card_info._fields_ = [
@@ -821,6 +851,10 @@ pa_card_info._fields_ = [
     ('profiles', POINTER(pa_card_profile_info)),
     ('active_profile', POINTER(pa_card_profile_info)),
     ('proplist', POINTER(pa_proplist)),
+    ('n_ports', uint32_t),
+    ('ports', POINTER(POINTER(pa_card_port_info))),
+    ('profiles2', POINTER(POINTER(pa_card_profile_info2))),
+    ('active_profile2', POINTER(pa_card_profile_info2)),
 ]
 pa_card_info_cb_t = CFUNCTYPE(None, POINTER(pa_context), POINTER(pa_card_info), c_int, c_void_p)
 pa_context_get_card_info_by_index = _libraries['libpulse.so.0'].pa_context_get_card_info_by_index
@@ -1931,6 +1965,9 @@ __all__ = ['pa_context_set_name',
            'pa_io_event_cb_t', 'pa_mainloop_get_api',
            'PA_CHANNEL_MAP_DEF_MAX', 'pa_usec_to_bytes',
            'PA_ERR_VERSION', 'pa_stream_prebuf', 'PA_IO_EVENT_NULL',
+           'PA_DIRECTION_OUTPUT', 'PA_DIRECTION_INPUT',
+           'PA_PORT_AVAILABLE_UNKNOWN', 'PA_PORT_AVAILABLE_NO',
+           'PA_PORT_AVAILABLE_YES',
            'PA_OPERATION_RUNNING', 'PA_CHANNEL_POSITION_LEFT',
            'pa_cvolume_min', 'PA_CHANNEL_POSITION_RIGHT',
            'PA_SINK_INVALID_STATE', 'PA_SUBSCRIPTION_EVENT_SINK',

@@ -1,8 +1,11 @@
-indicator-sound-switcher (1.2.3ubuntu0-gtk3ppa0-1) saucy; urgency=low
+indicator-sound-switcher (2.0.1ubuntu0-1) xenial; urgency=low
 
   * Codebase converted for Python 3
+  * Dropped support for Gtk2 and Ubuntu prior to 14.10 Utopic
+  * Requires PulseAudio 5.0+
+  * Support for profiles (under dev)
 
- -- Dmitry Kann <yktooo@gmail.com>  Sun, 21 Dec 2014 20:13:00 +0100
+ -- Dmitry Kann <yktooo@gmail.com>  Fri, 23 Sep 2016 17:43:00 +0100
 
 
 indicator-sound-switcher (1.2.2ubuntu0-gtk3ppa0-1) saucy; urgency=low

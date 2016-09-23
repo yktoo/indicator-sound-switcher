@@ -15,6 +15,7 @@ Depends:
  ${python:Depends},
  python-gi,
  gir1.2-appindicator3-0.1,
+ pulseaudio (>=1:5.0),
  libpulse0
 Description: Sound input/output selector indicator
  A simple yet usable application indicator for Ubuntu/Unity. It allows for

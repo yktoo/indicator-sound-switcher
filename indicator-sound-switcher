@@ -19,7 +19,7 @@ with this program.  If not, see <http://www.gnu.org/licenses/>.
 APP_ID      = "indicator-sound-switcher"
 APP_NAME    = "Sound Switcher Indicator"
 APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "1.2.3"
+APP_VERSION = "2.0.1"
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -46,6 +46,9 @@ from gi.repository import AppIndicator3 as AppIndicator
 from indicator_sound_switcher.lib_pulseaudio import *
 
 
+YESNO = {False: 'No', True: 'Yes'}
+
+
 class SoundSwitcherIndicator(GObject.GObject):
 
     logging = True #!!!
@@ -69,13 +72,15 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-        def __init__(self, name: str, description, priority: int):
+        def __init__(self, name: str, description, priority: int, available: bool, direction: int):
             """Constructor."""
             GObject.GObject.__init__(self)
             self.owner       = None
             self.name        = name
             self.description = description
             self.priority    = priority
+            self.available   = available
+            self.direction   = direction
             self.menu_item   = None
             self._is_active  = False
             self._is_dummy   = description is None
@@ -101,13 +106,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-        # Constructor
-        def __init__(self, index: int, name: str, description: str, ports: dict):
+        def __init__(self, index: int, name: str, description: str, ports: dict, card_index: int):
+            """Constructor."""
             GObject.GObject.__init__(self)
             self.index       = index
             self.name        = name
             self.description = description
             self.ports       = ports
+            self.card_index  = card_index
             # Assign every port's owner
             for port in self.ports.values():
                 port.owner = self
@@ -125,6 +131,31 @@ class SoundSwitcherIndicator(GObject.GObject):
     class Sink(Stream):
         """Sink class."""
         pass
+
+    class CardProfile(GObject.GObject):
+        """Card profile class."""
+
+        def __init__(self, name: str, description: str, num_sinks: int, num_sources: int, priority: int, is_active: bool):
+            """Constructor."""
+            GObject.GObject.__init__(self)
+            self.name        = name
+            self.description = description
+            self.num_sinks   = num_sinks
+            self.num_sources = num_sources
+            self.priority    = priority
+            self.is_active   = is_active
+
+    class Card(GObject.GObject):
+        """Card class."""
+
+        def __init__(self, index: int, name: str, driver: str, profiles: list, ports: dict):
+            """Constructor."""
+            GObject.GObject.__init__(self)
+            self.index    = index
+            self.name     = name
+            self.driver   = driver
+            self.profiles = profiles
+            self.ports    = ports
 
     def __init__(self):
         """Constructor."""
@@ -215,7 +246,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # -- Card
         elif facility == PA_SUBSCRIPTION_EVENT_CARD:
-            if kind == PA_SUBSCRIPTION_EVENT_NEW:
+            if kind == PA_SUBSCRIPTION_EVENT_NEW or kind == PA_SUBSCRIPTION_EVENT_CHANGE:
                 self.synchronise_op(
                     pa_context_get_card_info_by_index(self.pa_context, index, self._pacb_card_info, None))
             elif kind == PA_SUBSCRIPTION_EVENT_REMOVE:
@@ -229,10 +260,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Prevent this method from being called again
         return False
 
-    @staticmethod
-    def item_about(widget, buf):
+    def item_about(self, widget, buf):
         """Handler of about item click event."""
         global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
+        self._log('.item_about()')
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
         dialog.set_copyright('Written by Dmitry Kann')
@@ -246,14 +277,17 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def item_quit(self, widget, buf):
         """Terminates the app."""
+        self._log('.item_quit()')
         self.shutdown()
 
     def item_refresh(self, widget, buf):
         """Handler of refresh item click event."""
+        self._log('.item_refresh()')
         self.update_all_pa_items()
 
     def item_select_sink(self, widget, buf):
         """Handler of sink selection item click event."""
+        self._log('.item_select_sink()')
         if widget.get_active():
             # Fetch indexes from the buf[] tuple
             idx_sink = buf[0]
@@ -278,6 +312,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def item_select_source(self, widget, buf: tuple):
         """Handler of source selection item click event."""
+        self._log('.item_select_source()')
         if widget.get_active():
             # Fetch indexes from the buf[] tuple
             idx_source = buf[0]
@@ -308,7 +343,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Card callback."""
         if struct:
             # New card info arrived
-            self.card_add(struct.contents.index, struct.contents.name.decode(), struct.contents.driver.decode(), struct.contents.n_profiles, struct.contents.profiles, struct.contents.active_profile.contents)
+            self.card_info(struct.contents)
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -359,12 +394,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def pacb_sink_info(self, context, struct, index, user_data):
         """Sink info callback."""
         if struct:
-            self.sink_info(
-                struct.contents.index,
-                struct.contents.name.decode(),
-                struct.contents.description.decode(),
-                struct.contents.ports,
-                struct.contents.active_port)
+            self.sink_info(struct.contents)
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -382,12 +412,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Source info callback."""
         # Skip "sink monitor" sources
         if struct and (struct.contents.monitor_of_sink == PA_INVALID_INDEX):
-            self.source_info(
-                struct.contents.index,
-                struct.contents.name.decode(),
-                struct.contents.description.decode(),
-                struct.contents.ports,
-                struct.contents.active_port)
+            self.source_info(struct.contents)
 
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
@@ -405,29 +430,86 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Card list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def card_add(self, index: int, name: str, driver: str, n_profiles: int, profiles: list, active_profile):
+    def card_info(self, data):
         """Registers new card object or updates an existing one."""
-        # Remove existing card with the same index, if any
-        self.card_remove(index)
-        self._log(
-            "    + Card[{}] added: '{}' -> driver {}; active profile: '{}' ({})".format(
-                index, name, driver, active_profile.name.decode(), active_profile.description.decode()))
-        idx_port = 0
-        while idx_port < n_profiles:
-            profile = profiles[idx_port]
-            self._log("        * Profile #{}: '{}' ({}), priority {}".format(
-                idx_port, profile.name.decode(), profile.description.decode(), profile.priority))
-            idx_port += 1
+        # Fetch properties from the data struct
+        index         = data.index
+        name          = data.name.decode()
+        act_prof_name = data.active_profile.contents.name.decode()
 
-        # Register the new card
-        self.cards[index] = name
+        # If card already exists, fetch it
+        if index in self.cards:
+            self._log("    * Card[{}] updated: '{}'".format(index, name))
+            card = self.cards[index]
+
+            # Update active profile
+            for profile in card.profiles:
+                profile.is_active = profile.name == act_prof_name
+                if profile.is_active:
+                    self._log("        * Activated profile: '{}' ({})".format(profile.name, profile.description))
+
+        # Otherwise register a new card object
+        else:
+            self._log("    + Card[{}] added: '{}'".format(index, name))
+
+            # Prepare profiles array: iterate through profiles[]
+            card_profiles = []
+            idx_profile = 0
+            while idx_profile < data.n_profiles:
+                profile_data = data.profiles[idx_profile]
+                profile_name = profile_data.name.decode()
+                profile = self.CardProfile(
+                    profile_name,
+                    profile_data.description.decode(),
+                    profile_data.n_sinks,
+                    profile_data.n_sources,
+                    profile_data.priority,
+                    profile_name == act_prof_name)
+                card_profiles.append(profile)
+                self._log(
+                    "        + Card profile added #{}: '{}' ({}), {} sinks, {} sources, priority {}{}".format(
+                        idx_profile, profile_name, profile.description, profile.num_sinks, profile.num_sources,
+                        profile.priority, ' -- Active' if profile.is_active else ''))
+                idx_profile += 1
+
+            # Prepare ports array: iterate through ports[] (array of pointers to structs)
+            card_ports = {}
+            if data.ports:
+                idx_port = 0
+                while True:
+                    port_ptr = data.ports[idx_port]
+                    # NULL pointer terminates the array
+                    if port_ptr:
+                        port_struct = port_ptr.contents
+                        port = self.Port(
+                            port_struct.name.decode(),
+                            port_struct.description.decode(),
+                            port_struct.priority,
+                            port_struct.available != PA_PORT_AVAILABLE_NO,
+                            port_struct.direction)
+                        card_ports[idx_port] = port
+                        self._log(
+                            "        + Card port[{}] added: '{}' ({}); priority: {}; direction: {}; available: {}"
+                            .format(
+                                idx_port, port.name, port.description, port.priority, port.direction,
+                                YESNO[port.available]))
+                        idx_port += 1
+                    else:
+                        break
+
+            # Create a new card object
+            card = self.Card(index, name, data.driver.decode(), card_profiles, card_ports)
+
+            # Register the new card
+            self.cards[index] = card
 
     def card_remove(self, index: int):
         """Removes card object by its index (PulseAudio's card index)."""
         if index in self.cards:
-            self._log("    - Card[{}] removed: '{}'".format(index, self.cards[index]))
+            card = self.cards[index]
+            self._log("    - Card[{}] removed: '{}'".format(index, card.name))
 
-            # Remove the card
+            # Remove the card object
             del self.cards[index]
 
     def card_remove_all(self):
@@ -439,43 +521,51 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Sink list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def sink_info(self, index: int, name: str, description: str, ports: list, active_port):
+    def sink_info(self, data):
         """Registers new sink object or updates existing one."""
+        # Fetch properties from the data struct
+        index       = data.index
+        name        = data.name.decode()
+        description = data.description.decode()
+
         # If sink already exists, fetch it
         if index in self.sinks:
-            self._log("    * Sink[{}] update: '{}'".format(index, name))
+            self._log("    * Sink[{}] updated: '{}', card {}".format(index, name, data.card))
             sink = self.sinks[index]
 
         # Otherwise register a new sink object
         else:
-            self._log("    + Sink[{}] addition: '{}'".format(index, name))
+            self._log("    + Sink[{}] added: '{}', card {}".format(index, name, data.card))
 
             # Prepare ports array: iterate through ports[] (array of pointers to structs)
             sink_ports = {}
-            if ports:
+            if data.ports:
                 idx_port = 0
                 while True:
-                    port_ptr = ports[idx_port]
+                    port_ptr = data.ports[idx_port]
                     # NULL pointer terminates the array
                     if port_ptr:
                         port_struct = port_ptr.contents
                         port = self.Port(
-                            port_struct.name.decode(), port_struct.description.decode(), port_struct.priority)
+                            port_struct.name.decode(),
+                            port_struct.description.decode(),
+                            port_struct.priority,
+                            port_struct.available != PA_PORT_AVAILABLE_NO,
+                            PA_DIRECTION_OUTPUT)
                         sink_ports[idx_port] = port
                         self._log(
-                            "        + Sink port[{}] added: '{}'; '{}'; {}".format(
-                                idx_port, port_struct.name.decode(), port_struct.description.decode(),
-                                port_struct.priority))
+                            "        + Sink port[{}] added: '{}' ({}); priority: {}; available: {}".format(
+                                idx_port, port.name, port.description, port.priority, YESNO[port.available]))
                         idx_port += 1
                     else:
                         break
 
-            # If there's no port on this sink, create a dummy one
+            # If there's no port on this sink (most likely Bluetooth), create a dummy one
             if not sink_ports:
-                sink_ports[-1] = self.Port("dummy", None, -1)
+                sink_ports[-1] = self.Port("dummy", None, -1, True, PA_DIRECTION_OUTPUT)
 
             # Create and register a new instance of Sink object
-            sink = self.Sink(index, name, description, sink_ports)
+            sink = self.Sink(index, name, description, sink_ports, data.card)
             self.sinks[index] = sink
 
             # Add a menu item for each sink port
@@ -488,8 +578,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                 port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
 
         # Update sink's active port, if there's any
-        if active_port:
-            sink.activate_port_by_name(active_port.contents.name.decode())
+        if data.active_port:
+            port_name = data.active_port.contents.name.decode()
+            self._log("        * Activate port '{}'".format(port_name))
+            sink.activate_port_by_name(port_name)
 
     def sink_remove(self, index: int):
         """Removes sink object by its index (PulseAudio's sink index)."""
@@ -540,42 +632,50 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Source list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def source_info(self, index: int, name: str, description: str, ports: list, active_port):
+    def source_info(self, data):
         """Registers new source object or updates existing one."""
+        # Fetch properties from the data struct
+        index       = data.index
+        name        = data.name.decode()
+        description = data.description.decode()
+
         # If source already exists, fetch it
         if index in self.sources:
-            self._log("    * Source[{}] update: '{}'".format(index, name))
+            self._log("    * Source[{}] updated: '{}', card {}".format(index, name, data.card))
             source = self.sources[index]
 
         # Otherwise register a new source object
         else:
-            self._log("    + Source[{}] addition: '{}'".format(index, name))
+            self._log("    + Source[{}] added: '{}', card {}".format(index, name, data.card))
             # Prepare ports array: iterate through ports[] (array of pointers to structs)
             source_ports = {}
-            if ports:
+            if data.ports:
                 idx_port = 0
                 while True:
-                    port_ptr = ports[idx_port]
+                    port_ptr = data.ports[idx_port]
                     # NULL pointer terminates the array
                     if port_ptr:
                         port_struct = port_ptr.contents
                         port = self.Port(
-                            port_struct.name.decode(), port_struct.description.decode(), port_struct.priority)
+                            port_struct.name.decode(),
+                            port_struct.description.decode(),
+                            port_struct.priority,
+                            port_struct.available != PA_PORT_AVAILABLE_NO,
+                            PA_DIRECTION_INPUT)
                         source_ports[idx_port] = port
                         self._log(
-                            "        + Source port[{}] added: '{}'; '{}'; {}".format(
-                                idx_port, port_struct.name.decode(), port_struct.description.decode(),
-                                port_struct.priority))
+                            "        + Source port[{}] added: '{}' ({}); priority: {}; available: {}".format(
+                                idx_port, port.name, port.description, port.priority, YESNO[port.available]))
                         idx_port += 1
                     else:
                         break
 
-            # If there's no port on this source, create a dummy one
+            # If there's no port on this source (most likely Bluetooth), create a dummy one
             if not source_ports:
-                source_ports[-1] = self.Port('dummy', None, -1)
+                source_ports[-1] = self.Port('dummy', None, -1, True, PA_DIRECTION_INPUT)
 
             # Create and register a new instance of Source object
-            source = self.Source(index, name, description, source_ports)
+            source = self.Source(index, name, description, source_ports, data.card)
             self.sources[index] = source
 
             # Add a menu item for each source port
@@ -588,8 +688,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                 port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
 
         # Update source's active port, if there's any
-        if active_port:
-            source.activate_port_by_name(active_port.contents.name.decode())
+        if data.active_port:
+            port_name = data.active_port.contents.name.decode()
+            self._log("        * Activate port '{}'".format(port_name))
+            source.activate_port_by_name(port_name)
 
     def source_remove(self, index: int):
         """Removes source object by its index (PulseAudio's source index)."""
@@ -759,6 +861,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.synchronise_op(
                 pa_context_subscribe(
                     self.pa_context,
+                    PA_SUBSCRIPTION_MASK_CARD       |
                     PA_SUBSCRIPTION_MASK_SINK       |
                     PA_SUBSCRIPTION_MASK_SINK_INPUT |
                     PA_SUBSCRIPTION_MASK_SERVER     |
