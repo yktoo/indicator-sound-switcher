@@ -221,7 +221,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
             return found_stream, found_port
 
-        def __init__(self, index: int, name: str, driver: str, profiles: list, ports: dict, proplist):
+        def __init__(self, index: int, name: str, driver: str, profiles: dict, ports: dict, proplist):
             """Constructor."""
             GObject.GObject.__init__(self)
             self.index    = index
@@ -410,8 +410,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # If no matching port on that stream, we need to switch profile first
             if stream_port is None:
-                pass
-                # TODO
+                self.card_switch_profile(port)
 
             # Switching output
             if port.is_output:
@@ -547,21 +546,20 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Card list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def card_fetch_profiles(self, num_profiles: int, pa_profiles: list, active_profile_name: str) -> list:
+    def card_fetch_profiles(self, num_profiles: int, pa_profiles: list, active_profile_name: str) -> dict:
         """Extracts card profiles from a PA data structure and returns them as a list of CardProfile objects."""
-        profiles = []
+        profiles = {}
         idx = 0
         while idx < num_profiles:
             pa_profile = pa_profiles[idx]
             profile_name = pa_profile.name.decode()
-            profiles.append(
-                self.CardProfile(
-                    profile_name,
-                    pa_profile.description.decode(),
-                    pa_profile.n_sinks,
-                    pa_profile.n_sources,
-                    pa_profile.priority,
-                    profile_name == active_profile_name))
+            profiles[profile_name] = self.CardProfile(
+                profile_name,
+                pa_profile.description.decode(),
+                pa_profile.n_sinks,
+                pa_profile.n_sources,
+                pa_profile.priority,
+                profile_name == active_profile_name)
             idx += 1
         return profiles
 
@@ -577,17 +575,13 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
                 pa_port = port_ptr.contents
                 port_name = pa_port.name.decode()
-
-                # Prepare a list with names of profiles that support the port
-                profiles = [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)]
-
                 ports[port_name] = self.Port(
                     port_name,
                     pa_port.description.decode(),
                     pa_port.priority,
                     pa_port.available != PA_PORT_AVAILABLE_NO,
                     pa_port.direction,
-                    profiles)
+                    [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)])
                 idx += 1
         return ports
 
@@ -619,7 +613,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             card = self.cards[index]
 
             # Update active profile
-            for profile in card.profiles:
+            for profile in card.profiles.values():
                 profile.is_active = profile.name == act_prof_name
                 if profile.is_active:
                     self._log("        * Activated profile: '{}' ({})".format(profile.name, profile.description))
@@ -641,7 +635,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Prepare profiles array
             card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
             if self.logging:
-                for profile in card_profiles:
+                for profile in card_profiles.values():
                     self._log(
                         "        + Card profile added: '{}' ({}), {} sinks, {} sources, priority {}{}".format(
                             profile.name, profile.description, profile.num_sinks, profile.num_sources, profile.priority,
@@ -691,6 +685,28 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Updates the is_active state for ports on all cards."""
         for card in self.cards.values():
             card.update_port_activity(self.sources, self.sinks)
+
+    def card_switch_profile(self, port):
+        """Finds the most appropriate profile for the given card port and activates it on its card."""
+        card = port.owner_card
+
+        # Compile a list of profiles supporting the port
+        profiles = {pname: card.profiles[pname] for pname in port.profiles if pname in card.profiles}
+
+        # Pick the one with max priority
+        max_prio_profile = max(profiles.values(), key=lambda k: k.priority)
+        self._log(
+            "* Switch card[{}] to profile '{}' with priority {}".format(
+                card.index, max_prio_profile.name, max_prio_profile.priority))
+
+        # Switch the profile
+        self.synchronise_op(
+            pa_context_set_card_profile_by_index(
+                self.pa_context,
+                card.index,
+                max_prio_profile.name.encode(),
+                self._pacb_context_success,
+                None))
 
     # ------------------------------------------------------------------------------------------------------------------
     # Sink list related procs
