@@ -430,12 +430,54 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Card list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
+    def fetch_card_profiles(self, num_profiles: int, pa_profiles: list, active_profile_name: str) -> list:
+        """Extracts card profiles from a PA data structure and returns them as a list of CardProfile objects."""
+        profiles = []
+        idx = 0
+        while idx < num_profiles:
+            pa_profile = pa_profiles[idx]
+            profile_name = pa_profile.name.decode()
+            profiles.append(
+                self.CardProfile(
+                    profile_name,
+                    pa_profile.description.decode(),
+                    pa_profile.n_sinks,
+                    pa_profile.n_sources,
+                    pa_profile.priority,
+                    profile_name == active_profile_name))
+            idx += 1
+        return profiles
+
+    def fetch_card_ports(self, pa_ports: list) -> dict:
+        """Extracts card ports from a PA data structure and returns them as a dict of Port objects, indexed by name."""
+        ports = {}
+        if pa_ports:
+            idx = 0
+            while True:
+                port_ptr = pa_ports[idx]
+                # NULL pointer terminates the array
+                if not port_ptr:
+                    break
+                pa_port = port_ptr.contents
+                port_name = pa_port.name.decode()
+                ports[port_name] = self.Port(
+                    port_name,
+                    pa_port.description.decode(),
+                    pa_port.priority,
+                    pa_port.available != PA_PORT_AVAILABLE_NO,
+                    pa_port.direction)
+                idx += 1
+        return ports
+
     def card_info(self, data):
         """Registers new card object or updates an existing one."""
         # Fetch properties from the data struct
         index         = data.index
         name          = data.name.decode()
         act_prof_name = data.active_profile.contents.name.decode()
+
+        # Prepare ports array
+        card_ports = self.fetch_card_ports(data.ports)
 
         # If card already exists, fetch it
         if index in self.cards:
@@ -448,54 +490,34 @@ class SoundSwitcherIndicator(GObject.GObject):
                 if profile.is_active:
                     self._log("        * Activated profile: '{}' ({})".format(profile.name, profile.description))
 
+            # Update port availability
+            for new_port in card_ports.values():
+                if new_port.name in card.ports:
+                    port = card.ports[new_port.name]
+                    if port.available != new_port.available:
+                        port.available = new_port.available
+                        self._log(
+                            "        * Port is made {}available: '{}' ({})".format(
+                                '' if port.available else 'un', port.name, port.description))
+
         # Otherwise register a new card object
         else:
             self._log("    + Card[{}] added: '{}'".format(index, name))
 
-            # Prepare profiles array: iterate through profiles[]
-            card_profiles = []
-            idx_profile = 0
-            while idx_profile < data.n_profiles:
-                profile_data = data.profiles[idx_profile]
-                profile_name = profile_data.name.decode()
-                profile = self.CardProfile(
-                    profile_name,
-                    profile_data.description.decode(),
-                    profile_data.n_sinks,
-                    profile_data.n_sources,
-                    profile_data.priority,
-                    profile_name == act_prof_name)
-                card_profiles.append(profile)
-                self._log(
-                    "        + Card profile added #{}: '{}' ({}), {} sinks, {} sources, priority {}{}".format(
-                        idx_profile, profile_name, profile.description, profile.num_sinks, profile.num_sources,
-                        profile.priority, ' -- Active' if profile.is_active else ''))
-                idx_profile += 1
-
-            # Prepare ports array: iterate through ports[] (array of pointers to structs)
-            card_ports = {}
-            if data.ports:
-                idx_port = 0
-                while True:
-                    port_ptr = data.ports[idx_port]
-                    # NULL pointer terminates the array
-                    if port_ptr:
-                        port_struct = port_ptr.contents
-                        port = self.Port(
-                            port_struct.name.decode(),
-                            port_struct.description.decode(),
-                            port_struct.priority,
-                            port_struct.available != PA_PORT_AVAILABLE_NO,
-                            port_struct.direction)
-                        card_ports[idx_port] = port
-                        self._log(
-                            "        + Card port[{}] added: '{}' ({}); priority: {}; direction: {}; available: {}"
-                            .format(
-                                idx_port, port.name, port.description, port.priority, port.direction,
-                                YESNO[port.available]))
-                        idx_port += 1
-                    else:
-                        break
+            # Prepare profiles array
+            card_profiles = self.fetch_card_profiles(data.n_profiles, data.profiles, act_prof_name)
+            if self.logging:
+                for profile in card_profiles:
+                    self._log(
+                        "        + Card profile added: '{}' ({}), {} sinks, {} sources, priority {}{}".format(
+                            profile.name, profile.description, profile.num_sinks, profile.num_sources, profile.priority,
+                            ' -- Active' if profile.is_active else ''))
+            # Log ports
+            if self.logging:
+                for port in card_ports.values():
+                    self._log(
+                        "        + Card port added: '{}' ({}); priority: {}; direction: {}; available: {}"
+                        .format(port.name, port.description, port.priority, port.direction, YESNO[port.available]))
 
             # Create a new card object
             card = self.Card(index, name, data.driver.decode(), card_profiles, card_ports)
