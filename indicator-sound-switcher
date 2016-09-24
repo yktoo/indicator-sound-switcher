@@ -58,7 +58,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         def get_is_active(self):
             """is_active: defines whether the associated port is the active one for its sink/source."""
-            return self._is_active or self._is_dummy  # A dummy port is considered "always active"
+            return self._is_active or self.is_dummy  # A dummy port is considered "always active"
 
         def set_is_active(self, value: bool):
             self._is_active = value
@@ -83,7 +83,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.direction   = direction
             self.menu_item   = None
             self._is_active  = False
-            self._is_dummy   = description is None
+            self.is_dummy    = description is None
 
             # Activate signal's handler ID (will be used for inhibiting the handler later)
             self.handler_id  = None
@@ -148,7 +148,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     class Card(GObject.GObject):
         """Card class."""
 
-        def __init__(self, index: int, name: str, driver: str, profiles: list, ports: dict):
+        def __init__(self, index: int, name: str, driver: str, profiles: list, ports: dict, proplist):
             """Constructor."""
             GObject.GObject.__init__(self)
             self.index    = index
@@ -156,6 +156,11 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.driver   = driver
             self.profiles = profiles
             self.ports    = ports
+            self.proplist = proplist
+
+        def get_property_str(self, name: str) -> str:
+            """Returns value of a property by its name as a string."""
+            return pa_proplist_gets(self.proplist, name.encode()).decode()
 
     def __init__(self):
         """Constructor."""
@@ -519,17 +524,39 @@ class SoundSwitcherIndicator(GObject.GObject):
                         "        + Card port added: '{}' ({}); priority: {}; direction: {}; available: {}"
                         .format(port.name, port.description, port.priority, port.direction, YESNO[port.available]))
 
+            # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
+            if not card_ports:
+                card_ports['#dummy_out'] = self.Port('#dummy_out', None, -1, True, PA_DIRECTION_OUTPUT)
+                card_ports['#dummy_in']  = self.Port('#dummy_in',  None, -1, True, PA_DIRECTION_INPUT)
+
             # Create a new card object
-            card = self.Card(index, name, data.driver.decode(), card_profiles, card_ports)
+            card = self.Card(index, name, data.driver.decode(), card_profiles, card_ports, data.proplist.contents)
 
             # Register the new card
             self.cards[index] = card
+
+            # Add a menu item for each card port
+            for idx_port in card.ports.keys():
+                port = card.ports[idx_port]
+                is_out = port.direction == PA_DIRECTION_OUTPUT
+                port.menu_item = self.menu_insert_ordered_item(
+                    self.item_header_sinks    if is_out else self.item_header_sources,
+                    self.item_separator_sinks if is_out else self.item_separator_sources,
+                    '#' + card.get_property_str('device.description') +
+                        ('' if port.is_dummy else ' ‣ ' + port.description))
+                port.handler_id = port.menu_item.connect(
+                    'activate', self.item_select_sink if is_out else self.item_select_source, (index, idx_port))
 
     def card_remove(self, index: int):
         """Removes card object by its index (PulseAudio's card index)."""
         if index in self.cards:
             card = self.cards[index]
             self._log("    - Card[{}] removed: '{}'".format(index, card.name))
+
+            # Remove all card ports' menu items
+            for port in card.ports.values():
+                if port.menu_item:
+                    self.menu.remove(port.menu_item)
 
             # Remove the card object
             del self.cards[index]
@@ -602,7 +629,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Update sink's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activate port '{}'".format(port_name))
+            self._log("        * Activated port '{}'".format(port_name))
             sink.activate_port_by_name(port_name)
 
     def sink_remove(self, index: int):
@@ -712,7 +739,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Update source's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activate port '{}'".format(port_name))
+            self._log("        * Activated port '{}'".format(port_name))
             source.activate_port_by_name(port_name)
 
     def source_remove(self, index: int):
