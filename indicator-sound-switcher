@@ -72,18 +72,34 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-        def __init__(self, name: str, description, priority: int, available: bool, direction: int):
+        def get_is_available(self):
+            """is_available: defines whether the associated port is the available for the user."""
+            return self._is_available or self.is_dummy  # A dummy port is considered "always available"
+
+        def set_is_available(self, value: bool):
+            self._is_available = value
+
+            # Show or hide the corresponding menu item
+            if self.menu_item:
+                if value:
+                    self.menu_item.show()
+                else:
+                    self.menu_item.hide()
+
+        is_available = GObject.property(type=bool, default=False, getter=get_is_available, setter=set_is_available)
+
+        def __init__(self, name: str, description, priority: int, is_available: bool, direction: int):
             """Constructor."""
             GObject.GObject.__init__(self)
-            self.owner       = None
-            self.name        = name
-            self.description = description
-            self.priority    = priority
-            self.available   = available
-            self.direction   = direction
-            self.menu_item   = None
-            self._is_active  = False
-            self.is_dummy    = description is None
+            self.owner         = None
+            self.name          = name
+            self.description   = description
+            self.priority      = priority
+            self._is_available = is_available
+            self.direction     = direction
+            self.menu_item     = None
+            self._is_active    = False
+            self.is_dummy      = description is None
 
             # Activate signal's handler ID (will be used for inhibiting the handler later)
             self.handler_id  = None
@@ -499,11 +515,11 @@ class SoundSwitcherIndicator(GObject.GObject):
             for new_port in card_ports.values():
                 if new_port.name in card.ports:
                     port = card.ports[new_port.name]
-                    if port.available != new_port.available:
-                        port.available = new_port.available
+                    if port.is_available != new_port.is_available:
+                        port.is_available = new_port.is_available
                         self._log(
                             "        * Port is made {}available: '{}' ({})".format(
-                                '' if port.available else 'un', port.name, port.description))
+                                '' if port.is_available else 'un', port.name, port.description))
 
         # Otherwise register a new card object
         else:
@@ -522,7 +538,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                 for port in card_ports.values():
                     self._log(
                         "        + Card port added: '{}' ({}); priority: {}; direction: {}; available: {}"
-                        .format(port.name, port.description, port.priority, port.direction, YESNO[port.available]))
+                        .format(port.name, port.description, port.priority, port.direction, YESNO[port.is_available]))
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
@@ -543,7 +559,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                     self.item_header_sinks    if is_out else self.item_header_sources,
                     self.item_separator_sinks if is_out else self.item_separator_sources,
                     '#' + card.get_property_str('device.description') +
-                        ('' if port.is_dummy else ' ‣ ' + port.description))
+                        ('' if port.is_dummy else ' ‣ ' + port.description),
+                    port.is_available)
                 port.handler_id = port.menu_item.connect(
                     'activate', self.item_select_sink if is_out else self.item_select_source, (index, idx_port))
 
@@ -604,7 +621,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                         sink_ports[idx_port] = port
                         self._log(
                             "        + Sink port[{}] added: '{}' ({}); priority: {}; available: {}".format(
-                                idx_port, port.name, port.description, port.priority, YESNO[port.available]))
+                                idx_port, port.name, port.description, port.priority, YESNO[port.is_available]))
                         idx_port += 1
                     else:
                         break
@@ -623,7 +640,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                 port.menu_item = self.menu_insert_ordered_item(
                     self.item_header_sinks,
                     self.item_separator_sinks,
-                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
+                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""),
+                    True)
                 port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
 
         # Update sink's active port, if there's any
@@ -714,7 +732,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                         source_ports[idx_port] = port
                         self._log(
                             "        + Source port[{}] added: '{}' ({}); priority: {}; available: {}".format(
-                                idx_port, port.name, port.description, port.priority, YESNO[port.available]))
+                                idx_port, port.name, port.description, port.priority, YESNO[port.is_available]))
                         idx_port += 1
                     else:
                         break
@@ -733,7 +751,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                 port.menu_item = self.menu_insert_ordered_item(
                     self.item_header_sources,
                     self.item_separator_sources,
-                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""))
+                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""),
+                    True)
                 port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
 
         # Update source's active port, if there's any
@@ -826,7 +845,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.menu.append(item)
         return item
 
-    def menu_insert_ordered_item(self, after_item, before_item, label: str):
+    def menu_insert_ordered_item(self, after_item, before_item, label: str, show: bool):
         """Inserts a new menu item into the menu between after_item and before_item, maintaining  alphabetical order of
         the items.
 
@@ -845,7 +864,8 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Create and setup a new radio item
         new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
-        new_item.show()
+        if show:
+            new_item.show()
 
         # Find an appropriate position for the item so that they are in alphabetical order
         i = idx_from
