@@ -53,19 +53,22 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     logging = True #!!!
 
+    # ==================================================================================================================
+    # Port
+    # ==================================================================================================================
+
     class Port(GObject.GObject):
         """Generic (sink/source) port class."""
 
         def get_is_active(self):
             """is_active: defines whether the associated port is the active one for its sink/source."""
-            return self._is_active or self.is_dummy  # A dummy port is considered "always active"
+            return self._is_active
 
         def set_is_active(self, value: bool):
             self._is_active = value
 
-            # If activated and the owner sink/source is active too, also activate the item that corresponds to the
-            # active port
-            if value and self.menu_item and self.owner and self.owner.is_active:
+            # If activated, also activate the item that corresponds to the port
+            if self.is_active and self.menu_item:
                 # Inhibit the activate event
                 with self.menu_item.handler_block(self.handler_id):
                     self.menu_item.set_active(True)
@@ -81,28 +84,45 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Show or hide the corresponding menu item
             if self.menu_item:
-                if value:
+                if self.is_available:
                     self.menu_item.show()
                 else:
                     self.menu_item.hide()
 
         is_available = GObject.property(type=bool, default=False, getter=get_is_available, setter=set_is_available)
 
-        def __init__(self, name: str, description, priority: int, is_available: bool, direction: int):
+        def __init__(self, name: str, description, priority: int, is_available: bool, direction: int, profiles):
             """Constructor."""
             GObject.GObject.__init__(self)
-            self.owner         = None
             self.name          = name
             self.description   = description
             self.priority      = priority
             self._is_available = is_available
             self.direction     = direction
+            self.profiles      = profiles
+
+            # Initialise other properties
+            self.owner_stream  = None
+            self.onwer_card    = None
             self.menu_item     = None
             self._is_active    = False
-            self.is_dummy      = description is None
+
+            # Initialise derived properties
+            self.is_dummy  = description is None
+            self.is_output = direction == PA_DIRECTION_OUTPUT
 
             # Activate signal's handler ID (will be used for inhibiting the handler later)
             self.handler_id  = None
+
+        def get_menu_item_title(self):
+            """Returns the title to be used with menu item."""
+            return \
+                (self.owner_card.description if self.owner_card else '(unknown device)') + \
+                ('' if self.is_dummy else ' ‣ ' + self.description)
+
+    # ==================================================================================================================
+    # Stream (base class for Sink and Source)
+    # ==================================================================================================================
 
     class Stream(GObject.GObject):
         """Base class for sink and source. Call it Stream to be consistent with Gnome Sound Panel."""
@@ -130,23 +150,36 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.description = description
             self.ports       = ports
             self.card_index  = card_index
-            # Assign every port's owner
+            self._is_active  = False
+
+            # Assign every port's owner_stream
             for port in self.ports.values():
-                port.owner = self
-            self._is_active = False
+                port.owner_stream = self
 
         # Activates the specified port by its name
         def activate_port_by_name(self, name: str):
             for port in self.ports.values():
                 port.is_active = port.name == name
 
+    # ==================================================================================================================
+    # Source
+    # ==================================================================================================================
+
     class Source(Stream):
         """Source class."""
         pass
 
+    # ==================================================================================================================
+    # Sink
+    # ==================================================================================================================
+
     class Sink(Stream):
         """Sink class."""
         pass
+
+    # ==================================================================================================================
+    # CardProfile
+    # ==================================================================================================================
 
     class CardProfile(GObject.GObject):
         """Card profile class."""
@@ -161,8 +194,32 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.priority    = priority
             self.is_active   = is_active
 
+    # ==================================================================================================================
+    # Card
+    # ==================================================================================================================
+
     class Card(GObject.GObject):
         """Card class."""
+
+        @staticmethod
+        def find_stream_port(card_port, sources: dict, sinks: dict):
+            """Tries to find a sink/source port that corresponds to the given card port.
+            :param card_port: Card port to find a matching port for
+            :param sources: List of all sources to search in case the port is an input
+            :param sinks: List of all sinks to search in case the port is an output
+            :returns tuple containing stream (or None) and its port (or None)
+            """
+            found_stream = found_port = None
+            # Try to find a sink/source for this card (by matching card index)
+            streams = sinks if card_port.is_output else sources
+            for stream in streams.values():
+                if stream.card_index == card_port.owner_card.index:
+                    found_stream = stream
+                    # Found the stream. Try to find a corresponding stream's port (with the matching port name)
+                    if card_port.name in stream.ports:
+                        found_port = stream.ports[card_port.name]
+                    break
+            return found_stream, found_port
 
         def __init__(self, index: int, name: str, driver: str, profiles: list, ports: dict, proplist):
             """Constructor."""
@@ -174,9 +231,36 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.ports    = ports
             self.proplist = proplist
 
+            # Initialise derived properties
+            self.description = self.get_property_str("device.description")
+
+            # Assign every port's owner_card
+            for port in self.ports.values():
+                port.owner_card = self
+
         def get_property_str(self, name: str) -> str:
             """Returns value of a property by its name as a string."""
             return pa_proplist_gets(self.proplist, name.encode()).decode()
+
+        def update_port_activity(self, sources: dict, sinks: dict):
+            """Updates the is_active state of every port on the card, according to the state of the related sink/source
+            port, if any.
+            """
+            for port in self.ports.values():
+                # Try to find a sink/source port for this port
+                stream, stream_port = self.find_stream_port(port, sources, sinks)
+
+                # Update the port object (this will also update the menu item). A port is active if it's mapped to an
+                # active stream and is dummy or its corresponding stream's port is active
+                port.is_active = \
+                    stream is not None and \
+                    stream.is_active and \
+                    stream_port is not None and \
+                    (port.is_dummy or stream_port.is_active)
+
+    # ==================================================================================================================
+    # SoundSwitcherIndicator's stuff
+    # ==================================================================================================================
 
     def __init__(self):
         """Constructor."""
@@ -207,10 +291,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.pa_context_failed        = False
 
         # Create the menu
-        self.item_header_sources    = None
-        self.item_separator_sources = None
-        self.item_header_sinks      = None
-        self.item_separator_sinks   = None
+        self.item_header_inputs     = None
+        self.item_separator_inputs  = None
+        self.item_header_outputs    = None
+        self.item_separator_outputs = None
         self.menu = Gtk.Menu()
         self.ind.set_menu(self.menu)
         self.menu_setup()
@@ -228,7 +312,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def do_context_subscribe(self, facility: int, kind: int, index: int) -> bool:
         """Context status change handler. Always runs on the GUI thread."""
-        self._log("    / context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
+        self._log("/ context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
 
         # Dispatch the callback
         # -- Source
@@ -306,55 +390,63 @@ class SoundSwitcherIndicator(GObject.GObject):
         self._log('.item_refresh()')
         self.update_all_pa_items()
 
-    def item_select_sink(self, widget, buf):
+    def item_select_port(self, widget, buf):
         """Handler of sink selection item click event."""
-        self._log('.item_select_sink()')
         if widget.get_active():
-            # Fetch indexes from the buf[] tuple
-            idx_sink = buf[0]
-            idx_port = buf[1]
-            sink = self.sinks[idx_sink]
-            self._log("Sink[{}].port[{}] selected".format(idx_sink, idx_port))
+            # Fetch data from the buf tuple
+            idx_card, port_name = buf
 
-            # Change the default sink
-            self.synchronise_op(
-                pa_context_set_default_sink(self.pa_context, sink.name.encode(), self._pacb_context_success, None))
+            # Find the card and its port
+            card = self.cards[idx_card]
+            port = card.ports[port_name]
+            self._log("# Card[{}].port('{}') selected".format(idx_card, port.name))
 
-            # Change the active port, if it's not a dummy one
-            if idx_port >= 0:
-                pa_context_set_sink_port_by_index(
-                    self.pa_context, idx_sink, sink.ports[idx_port].name.encode(), self._pacb_context_success, None)
+            # Try to find a matching stream and its port
+            stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
 
-            # Move all active sink inputs to the selected sink
-            for idx in self.sink_inputs.keys():
+            # If no stream found, that's an error
+            if stream is None:
+                raise LookupError("ERROR: failed to map card[{}].port('{}') to a stream".format(idx_card, port_name))
+
+            # If no matching port on that stream, we need to switch profile first
+            if stream_port is None:
+                pass
+                # TODO
+
+            # Switching output
+            if port.is_output:
+                # Change the default sink
                 self.synchronise_op(
-                    pa_context_move_sink_input_by_index(
-                        self.pa_context, idx, idx_sink, self._pacb_context_success, None))
+                    pa_context_set_default_sink(self.pa_context, stream.name.encode(), self._pacb_context_success, None))
 
-    def item_select_source(self, widget, buf: tuple):
-        """Handler of source selection item click event."""
-        self._log('.item_select_source()')
-        if widget.get_active():
-            # Fetch indexes from the buf[] tuple
-            idx_source = buf[0]
-            idx_port   = buf[1]
-            source = self.sources[idx_source]
-            self._log("Source[{}].port[{}] selected".format(idx_source, idx_port))
+                # Change the active port, if it's not a dummy one
+                if not port.is_dummy:
+                    pa_context_set_sink_port_by_index(
+                        self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None)
 
-            # Change the default source
-            self.synchronise_op(
-                pa_context_set_default_source(self.pa_context, source.name.encode(), self._pacb_context_success, None))
+                # Move all active sink inputs to the selected sink
+                for idx in self.sink_inputs.keys():
+                    self.synchronise_op(
+                        pa_context_move_sink_input_by_index(
+                            self.pa_context, idx, stream.index, self._pacb_context_success, None))
 
-            # Change the active port, if it's not a dummy one
-            if idx_port >= 0:
-                pa_context_set_source_port_by_index(
-                    self.pa_context, idx_source, source.ports[idx_port].name.encode(), self._pacb_context_success, None)
-
-            # Move all active source outputs to the selected source
-            for idx in self.source_outputs.keys():
+            # Switching input
+            else:
+                # Change the default source
                 self.synchronise_op(
-                    pa_context_move_source_output_by_index(
-                        self.pa_context, idx, source.index, self._pacb_context_success, None))
+                    pa_context_set_default_source(
+                        self.pa_context, stream.name.encode(), self._pacb_context_success, None))
+
+                # Change the active port, if it's not a dummy one
+                if not port.is_dummy:
+                    pa_context_set_source_port_by_index(
+                        self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None)
+
+                # Move all active source outputs to the selected source
+                for idx in self.source_outputs.keys():
+                    self.synchronise_op(
+                        pa_context_move_source_output_by_index(
+                            self.pa_context, idx, stream.index, self._pacb_context_success, None))
 
     # ------------------------------------------------------------------------------------------------------------------
     # PulseAudio callbacks
@@ -409,6 +501,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         if struct:
             self.activate_sink  (struct.contents.default_sink_name.decode())
             self.activate_source(struct.contents.default_source_name.decode())
+
+        # Schedule a port status update on the main GUI thread
+        GObject.idle_add(self.card_update_all_ports_activity)
+
         # Wake up PA's thread
         pa_threaded_mainloop_signal(self.pa_mainloop, 0)
 
@@ -451,7 +547,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Card list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
-    def fetch_card_profiles(self, num_profiles: int, pa_profiles: list, active_profile_name: str) -> list:
+    def card_fetch_profiles(self, num_profiles: int, pa_profiles: list, active_profile_name: str) -> list:
         """Extracts card profiles from a PA data structure and returns them as a list of CardProfile objects."""
         profiles = []
         idx = 0
@@ -469,7 +565,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             idx += 1
         return profiles
 
-    def fetch_card_ports(self, pa_ports: list) -> dict:
+    def card_fetch_ports(self, pa_ports: list) -> dict:
         """Extracts card ports from a PA data structure and returns them as a dict of Port objects, indexed by name."""
         ports = {}
         if pa_ports:
@@ -481,14 +577,31 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
                 pa_port = port_ptr.contents
                 port_name = pa_port.name.decode()
+
+                # Prepare a list with names of profiles that support the port
+                profiles = [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)]
+
                 ports[port_name] = self.Port(
                     port_name,
                     pa_port.description.decode(),
                     pa_port.priority,
                     pa_port.available != PA_PORT_AVAILABLE_NO,
-                    pa_port.direction)
+                    pa_port.direction,
+                    profiles)
                 idx += 1
         return ports
+
+    def card_create_menu_items(self, card):
+        """Inserts menu items for the given card."""
+        for port in card.ports.values():
+            # Create a menu item and save it in the port object
+            port.menu_item = self.menu_insert_ordered_item(
+                self.item_header_outputs    if port.is_output else self.item_header_inputs,
+                self.item_separator_outputs if port.is_output else self.item_separator_inputs,
+                port.get_menu_item_title(),
+                port.is_available)
+            # Bind a click handler
+            port.handler_id = port.menu_item.connect('activate', self.item_select_port, (card.index, port.name))
 
     def card_info(self, data):
         """Registers new card object or updates an existing one."""
@@ -498,7 +611,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         act_prof_name = data.active_profile.contents.name.decode()
 
         # Prepare ports array
-        card_ports = self.fetch_card_ports(data.ports)
+        card_ports = self.card_fetch_ports(data.ports)
 
         # If card already exists, fetch it
         if index in self.cards:
@@ -526,7 +639,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             self._log("    + Card[{}] added: '{}'".format(index, name))
 
             # Prepare profiles array
-            card_profiles = self.fetch_card_profiles(data.n_profiles, data.profiles, act_prof_name)
+            card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
             if self.logging:
                 for profile in card_profiles:
                     self._log(
@@ -539,30 +652,21 @@ class SoundSwitcherIndicator(GObject.GObject):
                     self._log(
                         "        + Card port added: '{}' ({}); priority: {}; direction: {}; available: {}"
                         .format(port.name, port.description, port.priority, port.direction, YESNO[port.is_available]))
+                    if port.profiles:
+                        for port_profile_name in port.profiles:
+                            self._log("            . Supported profile: '{}'".format(port_profile_name))
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
-                card_ports['#dummy_out'] = self.Port('#dummy_out', None, -1, True, PA_DIRECTION_OUTPUT)
-                card_ports['#dummy_in']  = self.Port('#dummy_in',  None, -1, True, PA_DIRECTION_INPUT)
+                card_ports['#dummy_out'] = self.Port('#dummy_out', None, -1, True, PA_DIRECTION_OUTPUT, None)
+                card_ports['#dummy_in']  = self.Port('#dummy_in',  None, -1, True, PA_DIRECTION_INPUT, None)
 
-            # Create a new card object
-            card = self.Card(index, name, data.driver.decode(), card_profiles, card_ports, data.proplist.contents)
-
-            # Register the new card
-            self.cards[index] = card
+            # Create and register a new card object
+            self.cards[index] = card = self.Card(
+                index, name, data.driver.decode(), card_profiles, card_ports, data.proplist.contents)
 
             # Add a menu item for each card port
-            for idx_port in card.ports.keys():
-                port = card.ports[idx_port]
-                is_out = port.direction == PA_DIRECTION_OUTPUT
-                port.menu_item = self.menu_insert_ordered_item(
-                    self.item_header_sinks    if is_out else self.item_header_sources,
-                    self.item_separator_sinks if is_out else self.item_separator_sources,
-                    '#' + card.get_property_str('device.description') +
-                        ('' if port.is_dummy else ' ‣ ' + port.description),
-                    port.is_available)
-                port.handler_id = port.menu_item.connect(
-                    'activate', self.item_select_sink if is_out else self.item_select_source, (index, idx_port))
+            self.card_create_menu_items(card)
 
     def card_remove(self, index: int):
         """Removes card object by its index (PulseAudio's card index)."""
@@ -582,6 +686,11 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Removes all cards."""
         for index in list(self.cards.keys()):
             self.card_remove(index)
+
+    def card_update_all_ports_activity(self):
+        """Updates the is_active state for ports on all cards."""
+        for card in self.cards.values():
+            card.update_port_activity(self.sources, self.sinks)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Sink list related procs
@@ -617,38 +726,28 @@ class SoundSwitcherIndicator(GObject.GObject):
                             port_struct.description.decode(),
                             port_struct.priority,
                             port_struct.available != PA_PORT_AVAILABLE_NO,
-                            PA_DIRECTION_OUTPUT)
-                        sink_ports[idx_port] = port
+                            PA_DIRECTION_OUTPUT,
+                            None)
+                        sink_ports[port.name] = port
                         self._log(
-                            "        + Sink port[{}] added: '{}' ({}); priority: {}; available: {}".format(
-                                idx_port, port.name, port.description, port.priority, YESNO[port.is_available]))
+                            "        + Sink port added: '{}' ({}); priority: {}; available: {}".format(
+                                port.name, port.description, port.priority, YESNO[port.is_available]))
                         idx_port += 1
                     else:
                         break
-
-            # If there's no port on this sink (most likely Bluetooth), create a dummy one
-            if not sink_ports:
-                sink_ports[-1] = self.Port("dummy", None, -1, True, PA_DIRECTION_OUTPUT)
 
             # Create and register a new instance of Sink object
             sink = self.Sink(index, name, description, sink_ports, data.card)
             self.sinks[index] = sink
 
-            # Add a menu item for each sink port
-            for idx_port in sink.ports.keys():
-                port = sink.ports[idx_port]
-                port.menu_item = self.menu_insert_ordered_item(
-                    self.item_header_sinks,
-                    self.item_separator_sinks,
-                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""),
-                    True)
-                port.handler_id = port.menu_item.connect("activate", self.item_select_sink, (index, idx_port))
-
         # Update sink's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activated port '{}'".format(port_name))
+            self._log("        * Activated sink port '{}'".format(port_name))
             sink.activate_port_by_name(port_name)
+
+            # Update all card ports
+            self.card_update_all_ports_activity()
 
     def sink_remove(self, index: int):
         """Removes sink object by its index (PulseAudio's sink index)."""
@@ -728,38 +827,28 @@ class SoundSwitcherIndicator(GObject.GObject):
                             port_struct.description.decode(),
                             port_struct.priority,
                             port_struct.available != PA_PORT_AVAILABLE_NO,
-                            PA_DIRECTION_INPUT)
-                        source_ports[idx_port] = port
+                            PA_DIRECTION_INPUT,
+                            None)
+                        source_ports[port.name] = port
                         self._log(
-                            "        + Source port[{}] added: '{}' ({}); priority: {}; available: {}".format(
-                                idx_port, port.name, port.description, port.priority, YESNO[port.is_available]))
+                            "        + Source port added: '{}' ({}); priority: {}; available: {}".format(
+                                port.name, port.description, port.priority, YESNO[port.is_available]))
                         idx_port += 1
                     else:
                         break
-
-            # If there's no port on this source (most likely Bluetooth), create a dummy one
-            if not source_ports:
-                source_ports[-1] = self.Port('dummy', None, -1, True, PA_DIRECTION_INPUT)
 
             # Create and register a new instance of Source object
             source = self.Source(index, name, description, source_ports, data.card)
             self.sources[index] = source
 
-            # Add a menu item for each source port
-            for idx_port in source.ports.keys():
-                port = source.ports[idx_port]
-                port.menu_item = self.menu_insert_ordered_item(
-                    self.item_header_sources,
-                    self.item_separator_sources,
-                    description + ((" ‣ " + port.description) if idx_port >= 0 else ""),
-                    True)
-                port.handler_id = port.menu_item.connect("activate", self.item_select_source, (index, idx_port))
-
         # Update source's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activated port '{}'".format(port_name))
+            self._log("        * Activated source port '{}'".format(port_name))
             source.activate_port_by_name(port_name)
+
+            # Update all card ports
+            self.card_update_all_ports_activity()
 
     def source_remove(self, index: int):
         """Removes source object by its index (PulseAudio's source index)."""
@@ -817,12 +906,14 @@ class SoundSwitcherIndicator(GObject.GObject):
             print(msg)
 
     def activate_sink(self, name: str):
-        """Activates the sink by name."""
+        """Activates a sink by name."""
+        self._log("* Activated sink: '{}'".format(name))
         for sink in self.sinks.values():
             sink.is_active = sink.name == name
 
     def activate_source(self, name: str):
-        """Activates the source by name."""
+        """Activates a source by name."""
+        self._log("* Activated source: '{}'".format(name))
         for source in self.sources.values():
             source.is_active = source.name == name
 
@@ -879,12 +970,12 @@ class SoundSwitcherIndicator(GObject.GObject):
     def menu_setup(self):
         """Initializes indicator menu."""
         # Make the source list section
-        self.item_header_sources = self.menu_append_item('Inputs')
-        self.item_separator_sources = self.menu_append_item()
+        self.item_header_inputs = self.menu_append_item('Inputs')
+        self.item_separator_inputs = self.menu_append_item()
 
         # Make the sink list section
-        self.item_header_sinks = self.menu_append_item('Outputs')
-        self.item_separator_sinks = self.menu_append_item()
+        self.item_header_outputs = self.menu_append_item('Outputs')
+        self.item_separator_outputs = self.menu_append_item()
 
         # Add static items
         self.menu_append_item('_Refresh', self.item_refresh)
