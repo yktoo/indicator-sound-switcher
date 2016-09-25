@@ -33,6 +33,7 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/"""
 
 import sys
+import logging
 
 from gi import require_version
 from gi.repository import GObject
@@ -49,9 +50,22 @@ from indicator_sound_switcher.lib_pulseaudio import *
 YESNO = {False: 'No', True: 'Yes'}
 
 
-class SoundSwitcherIndicator(GObject.GObject):
+def _parse_cmd_line():
+    """Parse command line arguments. Currently only sets up logging."""
+    # Check command line arguments
+    lvl = logging.WARNING
+    for arg in sys.argv:
+        if arg == '-v':
+            lvl = logging.INFO
+            break
+        elif arg == '-vv':
+            lvl = logging.DEBUG
+            break
+    # Set up logging options
+    logging.basicConfig(level=lvl, format='%(levelname).3s %(message)s')
 
-    logging = True #!!!
+
+class SoundSwitcherIndicator(GObject.GObject):
 
     # ==================================================================================================================
     # Port
@@ -265,7 +279,6 @@ class SoundSwitcherIndicator(GObject.GObject):
     def __init__(self):
         """Constructor."""
         GObject.GObject.__init__(self)
-        global APP_ID, APP_ICON, APP_NAME
 
         # Create the indicator object
         self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
@@ -312,7 +325,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def do_context_subscribe(self, facility: int, kind: int, index: int) -> bool:
         """Context status change handler. Always runs on the GUI thread."""
-        self._log("/ context_subscribe(facility: {}, kind: {}, index: {})".format(facility, kind, index))
+        logging.debug('.do_context_subscribe(facility: %d, kind: %d, index: %d)', facility, kind, index)
 
         # Dispatch the callback
         # -- Source
@@ -367,8 +380,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def item_about(self, widget, buf):
         """Handler of about item click event."""
-        global APP_NAME, APP_ICON, APP_VERSION, APP_LICENCE
-        self._log('.item_about()')
+        logging.debug('.item_about()')
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
         dialog.set_copyright('Written by Dmitry Kann')
@@ -382,12 +394,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def item_quit(self, widget, buf):
         """Terminates the app."""
-        self._log('.item_quit()')
+        logging.debug('.item_quit()')
         self.shutdown()
 
     def item_refresh(self, widget, buf):
         """Handler of refresh item click event."""
-        self._log('.item_refresh()')
+        logging.debug('.item_refresh()')
         self.update_all_pa_items()
 
     def item_select_port(self, widget, buf):
@@ -399,14 +411,15 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Find the card and its port
             card = self.cards[idx_card]
             port = card.ports[port_name]
-            self._log("# Card[{}].port('{}') selected".format(idx_card, port.name))
+            logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
 
             # Try to find a matching stream and its port
             stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
 
             # If no stream found, that's an error
             if stream is None:
-                raise LookupError("ERROR: failed to map card[{}].port('{}') to a stream".format(idx_card, port_name))
+                logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
+                return
 
             # If no matching port on that stream, we need to switch profile first
             if stream_port is None:
@@ -466,18 +479,17 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Context connected and ready
         if ctxstate == PA_CONTEXT_READY:
-            self._log("Context connected")
             self.pa_context_connected = True
+            logging.info('Context connected')
 
         # Context connection failed
         elif ctxstate == PA_CONTEXT_FAILED:
-            self._log("Context failed")
-            print("ERROR: PulseAudio connection failed")
             self.pa_context_failed = True
+            logging.critical('Context failed')
 
         # Context connection ended - end the mainloop
         elif ctxstate == PA_CONTEXT_TERMINATED:
-            self._log("Context terminated")
+            logging.info('Context terminated')
 
     def pacb_context_subscribe(self, context, event_type, index, user_data):
         """Context subscription callback."""
@@ -609,14 +621,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # If card already exists, fetch it
         if index in self.cards:
-            self._log("    * Card[{}] updated: '{}'".format(index, name))
+            logging.debug('  * Card[%d] updated', index)
             card = self.cards[index]
 
             # Update active profile
             for profile in card.profiles.values():
                 profile.is_active = profile.name == act_prof_name
                 if profile.is_active:
-                    self._log("        * Activated profile: '{}' ({})".format(profile.name, profile.description))
+                    logging.debug('    * Activated profile: `%s` (`%s`)', profile.name, profile.description)
 
             # Update port availability
             for new_port in card_ports.values():
@@ -624,31 +636,30 @@ class SoundSwitcherIndicator(GObject.GObject):
                     port = card.ports[new_port.name]
                     if port.is_available != new_port.is_available:
                         port.is_available = new_port.is_available
-                        self._log(
-                            "        * Port is made {}available: '{}' ({})".format(
-                                '' if port.is_available else 'un', port.name, port.description))
+                        logging.debug(
+                            '    * Port is made %savailable: `%s` (`%s`)',
+                            '' if port.is_available else 'un', port.name, port.description)
 
         # Otherwise register a new card object
         else:
-            self._log("    + Card[{}] added: '{}'".format(index, name))
+            logging.debug('  + Card[%d] added: `%s`', index, name)
 
             # Prepare profiles array
             card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
-            if self.logging:
-                for profile in card_profiles.values():
-                    self._log(
-                        "        + Card profile added: '{}' ({}), {} sinks, {} sources, priority {}{}".format(
-                            profile.name, profile.description, profile.num_sinks, profile.num_sources, profile.priority,
-                            ' -- Active' if profile.is_active else ''))
+            # Log profiles
+            for profile in card_profiles.values():
+                logging.debug(
+                    '    + Card profile added: `%s` (`%s`), %d sinks, %d sources, priority: %d%s',
+                    profile.name, profile.description, profile.num_sinks, profile.num_sources, profile.priority,
+                    ' -- Active' if profile.is_active else '')
             # Log ports
-            if self.logging:
-                for port in card_ports.values():
-                    self._log(
-                        "        + Card port added: '{}' ({}); priority: {}; direction: {}; available: {}"
-                        .format(port.name, port.description, port.priority, port.direction, YESNO[port.is_available]))
-                    if port.profiles:
-                        for port_profile_name in port.profiles:
-                            self._log("            . Supported profile: '{}'".format(port_profile_name))
+            for port in card_ports.values():
+                logging.debug(
+                    '    + Card port added: `%s` (`%s`); priority: %d; direction: %d; available: %s',
+                    port.name, port.description, port.priority, port.direction, YESNO[port.is_available])
+                if port.profiles:
+                    for port_profile_name in port.profiles:
+                        logging.debug('      . Supported profile: `%s`', port_profile_name)
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
@@ -666,7 +677,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Removes card object by its index (PulseAudio's card index)."""
         if index in self.cards:
             card = self.cards[index]
-            self._log("    - Card[{}] removed: '{}'".format(index, card.name))
+            logging.debug('  - Card[%d] removed: `%s`', index, card.name)
 
             # Remove all card ports' menu items
             for port in card.ports.values():
@@ -695,9 +706,9 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Pick the one with max priority
         max_prio_profile = max(profiles.values(), key=lambda k: k.priority)
-        self._log(
-            "* Switch card[{}] to profile '{}' with priority {}".format(
-                card.index, max_prio_profile.name, max_prio_profile.priority))
+        logging.debug(
+            '* Switch card[%d] to profile `%s` with priority %d',
+            card.index, max_prio_profile.name, max_prio_profile.priority)
 
         # Switch the profile
         self.synchronise_op(
@@ -721,12 +732,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # If sink already exists, fetch it
         if index in self.sinks:
-            self._log("    * Sink[{}] updated: '{}', card {}".format(index, name, data.card))
+            logging.debug('  * Sink[%d] updated: `%s`, card %d', index, name, data.card)
             sink = self.sinks[index]
 
         # Otherwise register a new sink object
         else:
-            self._log("    + Sink[{}] added: '{}', card {}".format(index, name, data.card))
+            logging.debug('  + Sink[%d] added: `%s`, card %d', index, name, data.card)
 
             # Prepare ports array: iterate through ports[] (array of pointers to structs)
             sink_ports = {}
@@ -745,9 +756,9 @@ class SoundSwitcherIndicator(GObject.GObject):
                             PA_DIRECTION_OUTPUT,
                             None)
                         sink_ports[port.name] = port
-                        self._log(
-                            "        + Sink port added: '{}' ({}); priority: {}; available: {}".format(
-                                port.name, port.description, port.priority, YESNO[port.is_available]))
+                        logging.debug(
+                            '    + Sink port added: `%s` (`%s`); priority: %d; available: %s',
+                            port.name, port.description, port.priority, YESNO[port.is_available])
                         idx_port += 1
                     else:
                         break
@@ -759,7 +770,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Update sink's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activated sink port '{}'".format(port_name))
+            logging.debug('    * Activated sink port `%s`', port_name)
             sink.activate_port_by_name(port_name)
 
             # Update all card ports
@@ -769,7 +780,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Removes sink object by its index (PulseAudio's sink index)."""
         if index in self.sinks:
             sink = self.sinks[index]
-            self._log("    - Sink[{}] removed: '{}'".format(index, sink.name))
+            logging.debug('  - Sink[%d] removed: `%s`', index, sink.name)
 
             # Remove all sink ports' menu items
             for port in sink.ports.values():
@@ -792,7 +803,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Registers new sink input object or updates an existing one."""
         # Remove existing sink input with the same index, if any
         self.sink_input_remove(index)
-        self._log("    + Sink input[{}] added: '{}' -> sink {}".format(index, name, sink))
+        logging.debug('  + Sink input[%d] added: `%s` -> sink %d', index, name, sink)
 
         # Register the new sink input
         self.sink_inputs[index] = name
@@ -800,7 +811,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def sink_input_remove(self, index: int):
         """Removes sink input object by its index (PulseAudio's sink input index)."""
         if index in self.sink_inputs:
-            self._log("    - Sink input[{}] removed: '{}'".format(index, self.sink_inputs[index]))
+            logging.debug('  - Sink input[%d] removed: `%s`', index, self.sink_inputs[index])
 
             # Remove the sink input
             del self.sink_inputs[index]
@@ -823,12 +834,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # If source already exists, fetch it
         if index in self.sources:
-            self._log("    * Source[{}] updated: '{}', card {}".format(index, name, data.card))
+            logging.debug('  * Source[%d] updated: `%s`, card %d', index, name, data.card)
             source = self.sources[index]
 
         # Otherwise register a new source object
         else:
-            self._log("    + Source[{}] added: '{}', card {}".format(index, name, data.card))
+            logging.debug('  + Source[%d] added: `%s`, card %d', index, name, data.card)
             # Prepare ports array: iterate through ports[] (array of pointers to structs)
             source_ports = {}
             if data.ports:
@@ -846,9 +857,9 @@ class SoundSwitcherIndicator(GObject.GObject):
                             PA_DIRECTION_INPUT,
                             None)
                         source_ports[port.name] = port
-                        self._log(
-                            "        + Source port added: '{}' ({}); priority: {}; available: {}".format(
-                                port.name, port.description, port.priority, YESNO[port.is_available]))
+                        logging.debug(
+                            '    + Source port added: `%s` (`%s`); priority: %d; available: %s',
+                            port.name, port.description, port.priority, YESNO[port.is_available])
                         idx_port += 1
                     else:
                         break
@@ -860,7 +871,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Update source's active port, if there's any
         if data.active_port:
             port_name = data.active_port.contents.name.decode()
-            self._log("        * Activated source port '{}'".format(port_name))
+            logging.debug('    * Activated source port `%s`', port_name)
             source.activate_port_by_name(port_name)
 
             # Update all card ports
@@ -870,7 +881,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Removes source object by its index (PulseAudio's source index)."""
         if index in self.sources:
             source = self.sources[index]
-            self._log("    - Source[{}] removed: '{}'".format(index, source.name))
+            logging.debug('  - Source[%d] removed: `%s`', index, source.name)
 
             # Remove all source ports' menu items
             for port in source.ports.values():
@@ -893,7 +904,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Registers new source output object or updates an existing one."""
         # Remove existing source output with the same index, if any
         self.source_output_remove(index)
-        self._log("    + Source output[{}] added: '{}'".format(index, name))
+        logging.debug('  + Source output[%d] added: `%s`', index, name)
 
         # Register the new source output
         self.source_outputs[index] = name
@@ -901,7 +912,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def source_output_remove(self, index: int):
         """Removes source output object by its index (PulseAudio's source output index)."""
         if index in self.source_outputs:
-            self._log("    - Source output[{}] removed: '{}'".format(index, self.source_outputs[index]))
+            logging.debug('  - Source output[%d] removed: `%s`', index, self.source_outputs[index])
 
             # Remove the source output
             del self.source_outputs[index]
@@ -915,27 +926,22 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Other methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    # Debug output method
-    @staticmethod
-    def _log(msg: str):
-        if SoundSwitcherIndicator.logging:
-            print(msg)
-
     def activate_sink(self, name: str):
         """Activates a sink by name."""
-        self._log("* Activated sink: '{}'".format(name))
+        logging.debug('* Activated sink: `%s`', name)
         for sink in self.sinks.values():
             sink.is_active = sink.name == name
 
     def activate_source(self, name: str):
         """Activates a source by name."""
-        self._log("* Activated source: '{}'".format(name))
+        logging.debug('* Activated source: `%s`', name)
         for source in self.sources.values():
             source.is_active = source.name == name
 
     @staticmethod
     def main():
-        """Main event loop."""
+        """The main app function."""
+        # Run the main event loop
         Gtk.main()
 
     def menu_append_item(self, label: str=None, activate_signal=None):
@@ -1117,5 +1123,10 @@ class SoundSwitcherIndicator(GObject.GObject):
             pa_context_get_server_info            (self.pa_context, self._pacb_server_info,        None))
 
 if __name__ == "__main__":
+
+    # Parse the command line
+    _parse_cmd_line()
+
+    # Instantiate and run the indicator
     indicator = SoundSwitcherIndicator()
     indicator.main()

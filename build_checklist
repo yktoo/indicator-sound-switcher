@@ -1,7 +1,6 @@
 To release a new build:
 -----------------------
 
-0. Disable logging (SoundSwitcherIndicator.logging = False)
 1. Update app version in the header of ./indicator-sound-switcher
 2. Update app version in the header of ./setup.py
 3. Add change info into ./debian/changelog
