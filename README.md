@@ -26,3 +26,9 @@ Run the application in verbose mode to see the detailed log:
     indicator-sound-switcher -vv
 
 and, once the error condition has been reproduced, attach the output to the report.
+
+
+Changelog
+---------
+
+See [changelog](debian/changelog).
