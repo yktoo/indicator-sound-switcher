@@ -3,20 +3,25 @@ Maintainer: Dmitry Kann <yktooo@gmail.com>
 Section: python
 Priority: optional
 Build-Depends:
+ debhelper (>= 9),
+ dh-python,
  python3 (>= 3.1),
- debhelper (>= 7.4.3)
-Standards-Version: 3.9.4
+ python3-setuptools
+Standards-Version: 3.9.7
+X-Python3-Version: >= 3.1
 Homepage: https://github.com/yktoo/indicator-sound-switcher
 
 Package: indicator-sound-switcher
 Architecture: all
 Depends:
  ${misc:Depends},
- ${python:Depends},
- python-gi,
+ ${python3:Depends},
+ python3-gi,
  gir1.2-appindicator3-0.1,
- pulseaudio (>=1:5.0),
+ pulseaudio (>= 1:4.0),
  libpulse0
+Conflicts:
+ indicator-sound-switcher (<< 2.0)
 Description: Sound input/output selector indicator
  A simple yet usable application indicator for Ubuntu/Unity. It allows for
  easy switching of the default sound input ("source" in PulseAudio terms) and

@@ -816,16 +816,6 @@ pa_card_profile_info._fields_ = [
     ('n_sources', uint32_t),
     ('priority', uint32_t),
 ]
-class pa_card_profile_info2(Structure):
-    pass
-pa_card_profile_info2._fields_ = [
-    ('name', STRING),
-    ('description', STRING),
-    ('n_sinks', uint32_t),
-    ('n_sources', uint32_t),
-    ('priority', uint32_t),
-    ('available', c_int),
-]
 class pa_card_port_info(Structure):
     pass
 pa_card_port_info._fields_ = [
@@ -838,7 +828,6 @@ pa_card_port_info._fields_ = [
     ('profiles', POINTER(POINTER(pa_card_profile_info))),
     ('proplist', POINTER(pa_proplist)),
     ('latency_offset', int64_t),
-    ('profiles2', POINTER(POINTER(pa_card_profile_info2))),
 ]
 class pa_card_info(Structure):
     pass
@@ -853,8 +842,6 @@ pa_card_info._fields_ = [
     ('proplist', POINTER(pa_proplist)),
     ('n_ports', uint32_t),
     ('ports', POINTER(POINTER(pa_card_port_info))),
-    ('profiles2', POINTER(POINTER(pa_card_profile_info2))),
-    ('active_profile2', POINTER(pa_card_profile_info2)),
 ]
 pa_card_info_cb_t = CFUNCTYPE(None, POINTER(pa_context), POINTER(pa_card_info), c_int, c_void_p)
 pa_context_get_card_info_by_index = _libraries['libpulse.so.0'].pa_context_get_card_info_by_index
