@@ -51,7 +51,7 @@ cp -r debian "$RELEASE_DIR" || err "Copying debian/ into $RELEASE_DIR failed"
 # Build a Debian source package
 pushd .
 cd "$RELEASE_DIR"
-debuild -S -sa || err "Building Debian package failed"
+debuild -sa || err "Building Debian package failed"
 popd >/dev/null
 
 # Cleanup: remove the release dir
