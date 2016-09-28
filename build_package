@@ -23,7 +23,7 @@ err() {
 }
 
 # Extract name and version values from the setup script file
-APP_NAME=$(sed -ne 's/\s*package_name\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
+APP_NAME=$(sed -ne 's/\s*name=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
 [[ -n "$APP_NAME" ]] || err "Failed to extract application name"
 
 APP_VERSION=$(sed -ne 's/\s*version=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
@@ -37,8 +37,8 @@ app_ver_string="${APP_NAME} (${APP_VERSION}-${APP_BUILD})"
   err "The changelog doesn't start with the entry '${app_ver_string}'"
 
 # Initial cleanup: clean the dist dirs
-[ ! -d "$DIST_ROOT_DIR" ] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
-[ ! -d "$LOCALE_ROOT_DIR" ] || rm -rf "$LOCALE_ROOT_DIR" || err "Removing $LOCALE_ROOT_DIR failed"
+[[ ! -d "$DIST_ROOT_DIR"   ]] || rm -rf "$DIST_ROOT_DIR"   || err "Removing $DIST_ROOT_DIR failed"
+[[ ! -d "$LOCALE_ROOT_DIR" ]] || rm -rf "$LOCALE_ROOT_DIR" || err "Removing $LOCALE_ROOT_DIR failed"
 
 # Generate .mo files from .po files
 find "$PO_DIR" -type f -name '*.po' |

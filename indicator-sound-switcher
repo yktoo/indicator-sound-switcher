@@ -944,7 +944,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
 if __name__ == "__main__":
     # Set up the gettext localisation engine
-    gettext.install(APP_ID, localedir='locale')
+    gettext.install(APP_ID)
 
     # Parse the command line
     _parse_cmd_line()
