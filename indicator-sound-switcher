@@ -15,25 +15,9 @@ You should have received a copy of the GNU General Public License along
 with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# Global definitions
-APP_ID      = "indicator-sound-switcher"
-APP_NAME    = "Sound Switcher Indicator"
-APP_ICON    = "indicator-sound-switcher"
-APP_VERSION = "2.0.1"
-APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License version 3, as published
-by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranties of
-MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
-PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program. If not, see http://www.gnu.org/licenses/"""
-
 import sys
 import logging
+import gettext
 
 from gi import require_version
 from gi.repository import GObject
@@ -48,6 +32,23 @@ from indicator_sound_switcher.lib_pulseaudio import *
 from indicator_sound_switcher.card import CardProfile, Card
 from indicator_sound_switcher.port import Port
 from indicator_sound_switcher.stream import Source, Sink
+
+# Global definitions
+APP_ID      = 'indicator-sound-switcher'
+APP_NAME    = 'Sound Switcher Indicator'
+APP_ICON    = 'indicator-sound-switcher'
+APP_VERSION = '2.0.2'
+APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License version 3, as published
+by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranties of
+MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program. If not, see http://www.gnu.org/licenses/"""
 
 YESNO = {False: 'No', True: 'Yes'}
 
@@ -184,7 +185,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         logging.debug('.item_about()')
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
-        dialog.set_copyright('Written by Dmitry Kann')
+        dialog.set_copyright(_('Written by Dmitry Kann'))
         dialog.set_license(APP_LICENCE)
         dialog.set_version(APP_VERSION)
         dialog.set_website('http://yktoo.com')
@@ -800,17 +801,17 @@ class SoundSwitcherIndicator(GObject.GObject):
     def menu_setup(self):
         """Initializes indicator menu."""
         # Make the source list section
-        self.item_header_inputs = self.menu_append_item('Inputs')
+        self.item_header_inputs = self.menu_append_item(_('Inputs'))
         self.item_separator_inputs = self.menu_append_item()
 
         # Make the sink list section
-        self.item_header_outputs = self.menu_append_item('Outputs')
+        self.item_header_outputs = self.menu_append_item(_('Outputs'))
         self.item_separator_outputs = self.menu_append_item()
 
         # Add static items
-        self.menu_append_item('_Refresh', self.item_refresh)
-        self.menu_append_item('_About',   self.item_about)
-        self.menu_append_item('_Quit',    self.item_quit)
+        self.menu_append_item(_('_Refresh'), self.item_refresh)
+        self.menu_append_item(_('_About'),   self.item_about)
+        self.menu_append_item(_('_Quit'),    self.item_quit)
 
     def pulseaudio_initialize(self):
         """PulseAudio initialization. Returns True if succeeded."""
@@ -942,6 +943,8 @@ class SoundSwitcherIndicator(GObject.GObject):
             pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
 
 if __name__ == "__main__":
+    # Set up the gettext localisation engine
+    gettext.install(APP_ID)
 
     # Parse the command line
     _parse_cmd_line()

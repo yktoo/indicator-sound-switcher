@@ -62,5 +62,5 @@ class Port(GObject.GObject):
     def get_menu_item_title(self):
         """Returns the title to be used with menu item."""
         return \
-            (self.owner_card.description if self.owner_card else '(unknown device)') + \
+            (self.owner_card.description if self.owner_card else _('(unknown device)')) + \
             ('' if self.is_dummy else ' ‣ ' + self.description)

@@ -1,3 +1,11 @@
+indicator-sound-switcher (2.0.2ubuntu0-1) xenial; urgency=low
+
+  * Localisation support (#28)
+  * Russian, Spanish translations added
+  * Added manpage (#24)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Wed, 28 Sep 2016 10:45:00 +0100
+
 indicator-sound-switcher (2.0.1ubuntu0-1) xenial; urgency=low
 
   * Card profile support

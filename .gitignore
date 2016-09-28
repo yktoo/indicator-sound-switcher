@@ -1,5 +1,7 @@
 build/
 dist/
+locale/
 .idea/
 MANIFEST
 *.pyc
+*.mo
