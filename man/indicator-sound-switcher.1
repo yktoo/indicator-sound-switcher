@@ -1,0 +1,26 @@
+.TH indicator-sound-switcher 1 2016-09-28 "" ""
+.SH NAME
+indicator-sound-switcher \- Sound input/output selector indicator.
+.SH SYNOPSIS
+.BR indicator-sound-switcher " [options]"
+.SH DESCRIPTION
+.B indicator-sound-switcher
+is a sound input/output selector indicator for Ubuntu/Unity. It shows an icon
+in the indicator area in Ubuntu's Panel. The icon's menu allows you to switch
+the current sound input and output (i.e. source and sink ports in PulseAudio's
+terms, respectively) with just two clicks.
+
+This application would normally start automatically after logging in, but can
+also be run manually from the command line.
+.SH OPTIONS
+.TP
+.BR \-v
+Verbose output. With this option \fBINFO\fP messages will also be output (by
+default only \fBWARNING\fP, \fBERROR\fP and \fBCRITICAL\fP messages are output
+to the console).
+.TP
+.BR \-vv
+Even more verbose output. With this option all messages (including \fBDEBUG\fP
+ones) will be printed to the console.
+.SH AUTHOR
+Dmitry Kann (yktooo@gmail.com)
