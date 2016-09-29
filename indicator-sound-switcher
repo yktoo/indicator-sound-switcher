@@ -17,6 +17,7 @@ with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import logging
+import os.path
 import gettext
 
 from gi import require_version
@@ -28,10 +29,13 @@ from gi.repository import Gtk
 require_version('AppIndicator3', '0.1')
 from gi.repository import AppIndicator3 as AppIndicator
 
+from gi.repository import GLib
+
 from indicator_sound_switcher.lib_pulseaudio import *
 from indicator_sound_switcher.card import CardProfile, Card
 from indicator_sound_switcher.port import Port
 from indicator_sound_switcher.stream import Source, Sink
+from indicator_sound_switcher.config import Config
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -78,7 +82,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
         self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
-        # Initialize PulseAudio object lists and references
+        # Initialise PulseAudio object lists and references
         self.cards          = {}
         self.sources        = {}
         self.source_outputs = {}
@@ -97,11 +101,19 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.pa_context_connected     = False
         self.pa_context_failed        = False
 
-        # Create the menu
+        # Initialise menu items
         self.item_header_inputs     = None
         self.item_separator_inputs  = None
         self.item_header_outputs    = None
         self.item_separator_outputs = None
+
+        # Load configuration, if any
+        config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
+        self.config = Config.load_from_file(config_file_name)
+        if self.config is None:
+            self.config = Config()
+
+        # Create a menu
         self.menu = Gtk.Menu()
         self.ind.set_menu(self.menu)
         self.menu_setup()
@@ -109,7 +121,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Initialise the PulseAudio interface
         self.pa_mainloop = None
         self.pa_mainloop_api = None
-        if not self.pulseaudio_initialize():
+        if not self.pulseaudio_initialise():
             # If the initialisation has failed, quit
             self.pulseaudio_shutdown()
             sys.exit(1)
@@ -813,7 +825,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.menu_append_item(_('_About'),   self.item_about)
         self.menu_append_item(_('_Quit'),    self.item_quit)
 
-    def pulseaudio_initialize(self):
+    def pulseaudio_initialise(self):
         """PulseAudio initialization. Returns True if succeeded."""
         # Setup the callbacks
         self._pacb_card_info          = pa_card_info_cb_t         (self.pacb_card_info)
