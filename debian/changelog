@@ -1,3 +1,13 @@
+indicator-sound-switcher (2.1.0ubuntu0-1) xenial; urgency=low
+
+  * Inputs and/or Outputs section can be now hidden entirely (#32)
+  * Devices and ports can now be renamed (#31)
+  * Ports can be blacklisted (#13)
+  * The application can be configured using a JSON file (#30)
+  * French translation added
+
+ -- Dmitry Kann <yktooo@gmail.com>  Thu, 29 Sep 2016 14:22:00 +0100
+
 indicator-sound-switcher (2.0.2ubuntu0-1) xenial; urgency=low
 
   * Localisation support (#28)

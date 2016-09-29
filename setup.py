@@ -32,7 +32,7 @@ for lang in os.listdir('locale'):
 # Configure
 setup(
     name='indicator-sound-switcher',
-    version='2.0.2ubuntu0',
+    version='2.1.0ubuntu0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',
