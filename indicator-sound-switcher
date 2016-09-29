@@ -35,7 +35,7 @@ from indicator_sound_switcher.lib_pulseaudio import *
 from indicator_sound_switcher.card import CardProfile, Card
 from indicator_sound_switcher.port import Port
 from indicator_sound_switcher.stream import Source, Sink
-from indicator_sound_switcher.config import Config
+from indicator_sound_switcher.config import Config, EMPTY_CONFIG
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -111,7 +111,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
         self.config = Config.load_from_file(config_file_name)
         if self.config is None:
-            self.config = Config()
+            self.config = EMPTY_CONFIG
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -395,7 +395,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             idx += 1
         return profiles
 
-    def card_fetch_ports(self, pa_ports: list) -> dict:
+    def card_fetch_ports(self, pa_ports: list, ports_cfg: Config) -> dict:
         """Extracts card ports from a PA data structure and returns them as a dict of Port objects, indexed by name."""
         ports = {}
         if pa_ports:
@@ -407,11 +407,14 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
                 pa_port = port_ptr.contents
                 port_name = pa_port.name.decode()
+                port_display_name = ports_cfg[port_name, '']
                 ports[port_name] = Port(
                     port_name,
                     pa_port.description.decode(),
+                    port_display_name,
                     pa_port.priority,
                     pa_port.available != PA_PORT_AVAILABLE_NO,
+                    port_display_name is not False,
                     pa_port.direction,
                     [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)])
                 idx += 1
@@ -420,14 +423,16 @@ class SoundSwitcherIndicator(GObject.GObject):
     def card_create_menu_items(self, card):
         """Inserts menu items for the given card."""
         for port in card.ports.values():
-            # Create a menu item and save it in the port object
-            port.menu_item = self.menu_insert_ordered_item(
-                self.item_header_outputs    if port.is_output else self.item_header_inputs,
-                self.item_separator_outputs if port.is_output else self.item_separator_inputs,
-                port.get_menu_item_title(),
-                port.is_available)
-            # Bind a click handler
-            port.handler_id = port.menu_item.connect('activate', self.item_select_port, (card.index, port.name))
+            # If the port and its section are to be displayed in the menu
+            if port.is_visible:
+                hdr_item = self.item_header_outputs    if port.is_output else self.item_header_inputs
+                sep_item = self.item_separator_outputs if port.is_output else self.item_separator_inputs
+                if hdr_item is not None and sep_item is not None:
+                    # Create a menu item and save it in the port object
+                    port.menu_item = self.menu_insert_ordered_item(
+                        hdr_item, sep_item, port.get_menu_item_title(), port.is_available)
+                    # Bind a click handler
+                    port.handler_id = port.menu_item.connect('activate', self.item_select_port, (card.index, port.name))
 
     def card_info(self, data):
         """Registers new card object or updates an existing one."""
@@ -436,8 +441,11 @@ class SoundSwitcherIndicator(GObject.GObject):
         name          = data.name.decode()
         act_prof_name = data.active_profile.contents.name.decode()
 
+        # Try to fetch the card's configuration
+        card_cfg = self.config['devices', EMPTY_CONFIG][name, EMPTY_CONFIG]
+
         # Prepare ports array
-        card_ports = self.card_fetch_ports(data.ports)
+        card_ports = self.card_fetch_ports(data.ports, card_cfg['ports', EMPTY_CONFIG])
 
         # If card already exists, fetch it
         if index in self.cards:
@@ -464,7 +472,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         else:
             logging.debug('  + Card[%d] added: `%s`', index, name)
 
-            # Prepare profiles array
+            # Prepare profiles dict
             card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
             # Log profiles
             for profile in card_profiles.values():
@@ -483,12 +491,13 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
-                card_ports['#dummy_out'] = Port('#dummy_out', None, -1, True, PA_DIRECTION_OUTPUT, None)
-                card_ports['#dummy_in']  = Port('#dummy_in',  None, -1, True, PA_DIRECTION_INPUT, None)
+                card_ports['#dummy_out'] = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None)
+                card_ports['#dummy_in']  = Port('#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None)
 
             # Create and register a new card object
             self.cards[index] = card = Card(
-                index, name, data.driver.decode(), card_profiles, card_ports, data.proplist.contents)
+                index, name, card_cfg['name', ''], data.driver.decode(), card_profiles, card_ports,
+                data.proplist.contents)
 
             # Add a menu item for each card port
             self.card_create_menu_items(card)
@@ -572,8 +581,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                         port = Port(
                             port_struct.name.decode(),
                             port_struct.description.decode(),
+                            '',
                             port_struct.priority,
                             port_struct.available != PA_PORT_AVAILABLE_NO,
+                            False,
                             PA_DIRECTION_OUTPUT,
                             None)
                         sink_ports[port.name] = port
@@ -673,8 +684,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                         port = Port(
                             port_struct.name.decode(),
                             port_struct.description.decode(),
+                            '',
                             port_struct.priority,
                             port_struct.available != PA_PORT_AVAILABLE_NO,
+                            False,
                             PA_DIRECTION_INPUT,
                             None)
                         source_ports[port.name] = port
@@ -812,13 +825,15 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def menu_setup(self):
         """Initializes indicator menu."""
-        # Make the source list section
-        self.item_header_inputs = self.menu_append_item(_('Inputs'))
-        self.item_separator_inputs = self.menu_append_item()
+        # Make the input list section, if needed
+        if bool(self.config['show_inputs', True]):
+            self.item_header_inputs = self.menu_append_item(_('Inputs'))
+            self.item_separator_inputs = self.menu_append_item()
 
-        # Make the sink list section
-        self.item_header_outputs = self.menu_append_item(_('Outputs'))
-        self.item_separator_outputs = self.menu_append_item()
+        # Make the output list section, if needed
+        if bool(self.config['show_outputs', True]):
+            self.item_header_outputs = self.menu_append_item(_('Outputs'))
+            self.item_separator_outputs = self.menu_append_item()
 
         # Add static items
         self.menu_append_item(_('_Refresh'), self.item_refresh)

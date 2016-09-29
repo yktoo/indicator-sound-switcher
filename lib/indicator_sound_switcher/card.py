@@ -38,17 +38,27 @@ class Card(GObject.GObject):
                 break
         return found_stream, found_port
 
-    def __init__(self, index: int, name: str, driver: str, profiles: dict, ports: dict, proplist):
-        """Constructor."""
+    def __init__(self, index: int, name: str, display_name: str, driver: str, profiles: dict, ports: dict, proplist):
+        """Constructor.
+        :param index:         Index of the card, as provided by PulseAudio
+        :param name:          (Internal) name of the card, as provided by PulseAudio
+        :param display_name:  Card display name overriden by user. If empty, description is to be used
+        :param driver:        Name of the driver used
+        :param profiles:      Dictionary of CardProfile objects, indexed by profile name
+        :param ports:         Dictionary of Port objects, indexed by port name
+        :param proplist:      Property list, a PulseAudio's pa_proplist structure
+        """
         GObject.GObject.__init__(self)
-        self.index    = index
-        self.name     = name
-        self.driver   = driver
-        self.profiles = profiles
-        self.ports    = ports
-        self.proplist = proplist
+        self.index        = index
+        self.name         = name
+        self.display_name = display_name
+        self.driver       = driver
+        self.profiles     = profiles
+        self.ports        = ports
+        self.proplist     = proplist
 
         # Initialise derived properties
+        # Default device description, prefetched from the property list
         self.description = self.get_property_str("device.description")
 
         # Assign every port's owner_card
@@ -58,6 +68,10 @@ class Card(GObject.GObject):
     def get_property_str(self, name: str) -> str:
         """Returns value of a property by its name as a string."""
         return lib_pulseaudio.pa_proplist_gets(self.proplist, name.encode()).decode()
+
+    def get_display_name(self) -> str:
+        """Returns display name for the card."""
+        return self.display_name or self.description
 
     def update_port_activity(self, sources: dict, sinks: dict):
         """Updates the is_active state of every port on the card, according to the state of the related sink/source

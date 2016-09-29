@@ -81,3 +81,7 @@ class Config(dict):
         # Process keyword arguments
         for k, v in kwargs.items():
             self[k] = v
+
+
+# Empty configuration singleton
+EMPTY_CONFIG = Config()
