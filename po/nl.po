@@ -1,0 +1,47 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-09-30 15:59+0200\n"
+"PO-Revision-Date: 2016-09-30 16:06+0200\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.7.1\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: nl\n"
+
+#: indicator-sound-switcher:188
+msgid "Written by Dmitry Kann"
+msgstr "Geschreven door Dmitry Kann"
+
+#: indicator-sound-switcher:804
+msgid "Inputs"
+msgstr "Ingangen"
+
+#: indicator-sound-switcher:808
+msgid "Outputs"
+msgstr "Uitgangen"
+
+#: indicator-sound-switcher:812
+msgid "_Refresh"
+msgstr "_Verversen"
+
+#: indicator-sound-switcher:813
+msgid "_About"
+msgstr "_Over"
+
+#: indicator-sound-switcher:814
+msgid "_Quit"
+msgstr "_Afsluiten"
+
+#: lib/indicator_sound_switcher/port.py:65
+msgid "(unknown device)"
+msgstr "(onbekende kaart)"
