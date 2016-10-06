@@ -21,13 +21,17 @@ data_files = [
 ]
 
 # Add all available .mo translation files to the list data files
-for lang in os.listdir('locale'):
-    data_files.append(
-        (
-            'share/locale/{}/LC_MESSAGES'.format(lang),
-            [os.path.join('locale', lang, 'LC_MESSAGES', 'indicator-sound-switcher.mo')]
-        )
-    )
+try:
+	for lang in os.listdir('locale'):
+	    data_files.append(
+	        (
+	            'share/locale/{}/LC_MESSAGES'.format(lang),
+	            [os.path.join('locale', lang, 'LC_MESSAGES', 'indicator-sound-switcher.mo')]
+	        )
+	    )
+except:
+        print('*** No such file or directory: locale')
+        print('Continue installation without additional translation.')
 
 # Configure
 setup(
