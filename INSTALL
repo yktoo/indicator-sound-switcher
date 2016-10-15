@@ -34,4 +34,4 @@ In order to install the application from the source tarball:
 
   4. Run:
 
-    sudo python setup.py install
+    sudo python3 setup.py install
