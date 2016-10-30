@@ -1,3 +1,12 @@
+indicator-sound-switcher (2.1.1ubuntu0-1) xenial; urgency=low
+
+  * Port configuration in JSON file can be an object now
+  * Port can be assigned a preferred profile (#26)
+  * Port availability can be overridden to true (#39)
+  * Dutch translation added
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 30 Oct 2016 23:02:00 +0100
+
 indicator-sound-switcher (2.1.0ubuntu0-1) xenial; urgency=low
 
   * Inputs and/or Outputs section can be now hidden entirely (#32)

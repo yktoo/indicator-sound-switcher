@@ -29,7 +29,7 @@ class Port(GObject.GObject):
 
         # Show or hide the corresponding menu item
         if self.menu_item:
-            if self.is_available:
+            if self.is_available or self.always_avail:
                 self.menu_item.show()
             else:
                 self.menu_item.hide()
@@ -38,7 +38,7 @@ class Port(GObject.GObject):
 
     def __init__(
             self, name: str, description, display_name: str, priority: int, is_available: bool, is_visible: bool,
-            direction: int, profiles, pref_profile):
+            direction: int, profiles, pref_profile, always_avail: bool):
         """Constructor.
         :param name:          (Internal) name of the port
         :param description:   Default 'human friendly' name of the port
@@ -49,6 +49,7 @@ class Port(GObject.GObject):
         :param direction:     Port direction (input/output), one of the PA_DIRECTION_* constants
         :param profiles:      List of strings, name of the profiles that support this port
         :param pref_profile:  Name of the preferred profile for the port, if any, otherwise None
+        :param always_avail:  If True, the port is always shown disregarding its availability state
         """
         GObject.GObject.__init__(self)
         self.name          = name
@@ -60,6 +61,7 @@ class Port(GObject.GObject):
         self.direction     = direction
         self.profiles      = profiles
         self.pref_profile  = pref_profile
+        self.always_avail  = always_avail
 
         # Initialise other properties
         # -- Owner source/sink in case this is a source/sink port, otherwise None

@@ -411,10 +411,12 @@ class SoundSwitcherIndicator(GObject.GObject):
                 port_display_name = ''
                 port_is_visible   = True
                 port_pref_profile = None
+                port_always_avail = False
                 if isinstance(port_cfg, Config):
                     port_display_name = port_cfg['name', '']
                     port_is_visible   = bool(port_cfg['show', True])
                     port_pref_profile = port_cfg['preferred_profile', None]
+                    port_always_avail = port_cfg['always_available', False]
                 elif port_cfg is False:
                     port_is_visible = False
                 else:
@@ -429,7 +431,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                     port_is_visible,
                     pa_port.direction,
                     [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)],
-                    port_pref_profile)
+                    port_pref_profile,
+                    port_always_avail)
                 idx += 1
         return ports
 
@@ -443,7 +446,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                 if hdr_item is not None and sep_item is not None:
                     # Create a menu item and save it in the port object
                     port.menu_item = self.menu_insert_ordered_item(
-                        hdr_item, sep_item, port.get_menu_item_title(), port.is_available)
+                        hdr_item, sep_item, port.get_menu_item_title(), port.is_available or port.always_avail)
                     # Bind a click handler
                     port.handler_id = port.menu_item.connect('activate', self.item_select_port, (card.index, port.name))
 
@@ -504,8 +507,10 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
-                card_ports['#dummy_out'] = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None)
-                card_ports['#dummy_in']  = Port('#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None, None)
+                card_ports['#dummy_out'] = Port(
+                    '#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
+                card_ports['#dummy_in']  = Port(
+                    '#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None, None, False)
 
             # Create and register a new card object
             self.cards[index] = card = Card(
@@ -620,7 +625,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                             False,
                             PA_DIRECTION_OUTPUT,
                             None,
-                            None)
+                            None,
+                            False)
                         sink_ports[port.name] = port
                         logging.debug(
                             '    + Sink port added: `%s` (`%s`); priority: %d; available: %s',
@@ -724,7 +730,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                             False,
                             PA_DIRECTION_INPUT,
                             None,
-                            None)
+                            None,
+                            False)
                         source_ports[port.name] = port
                         logging.debug(
                             '    + Source port added: `%s` (`%s`); priority: %d; available: %s',
