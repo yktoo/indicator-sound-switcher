@@ -235,9 +235,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                 logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
                 return
 
-            # If no matching port on that stream, we need to switch profile first
-            if stream_port is None:
-                self.card_switch_profile(port)
+            # Switch profile if necessary
+            self.card_switch_profile(port, stream_port is not None)
 
             # Switching output
             if port.is_output:
@@ -407,16 +406,30 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
                 pa_port = port_ptr.contents
                 port_name = pa_port.name.decode()
-                port_display_name = ports_cfg[port_name, '']
+                # Port config can be string (port name), boolean (false to hide the port) or a proper Config object
+                port_cfg = ports_cfg[port_name, '']
+                port_display_name = ''
+                port_is_visible   = True
+                port_pref_profile = None
+                if isinstance(port_cfg, Config):
+                    port_display_name = port_cfg['name', '']
+                    port_is_visible   = bool(port_cfg['show', True])
+                    port_pref_profile = port_cfg['preferred_profile', None]
+                elif port_cfg is False:
+                    port_is_visible = False
+                else:
+                    port_display_name = str(port_cfg)
+                # Add a port object
                 ports[port_name] = Port(
                     port_name,
                     pa_port.description.decode(),
                     port_display_name,
                     pa_port.priority,
                     pa_port.available != PA_PORT_AVAILABLE_NO,
-                    port_display_name is not False,
+                    port_is_visible,
                     pa_port.direction,
-                    [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)])
+                    [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)],
+                    port_pref_profile)
                 idx += 1
         return ports
 
@@ -491,8 +504,8 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
             if not card_ports:
-                card_ports['#dummy_out'] = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None)
-                card_ports['#dummy_in']  = Port('#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None)
+                card_ports['#dummy_out'] = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None)
+                card_ports['#dummy_in']  = Port('#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None, None)
 
             # Create and register a new card object
             self.cards[index] = card = Card(
@@ -526,26 +539,46 @@ class SoundSwitcherIndicator(GObject.GObject):
         for card in self.cards.values():
             card.update_port_activity(self.sources, self.sinks)
 
-    def card_switch_profile(self, port):
-        """Finds the most appropriate profile for the given card port and activates it on its card."""
+    def card_switch_profile(self, port, can_keep_current):
+        """Finds the most appropriate profile for the given card port and activates it on its card.
+        :param port: Port that we need the best profile for
+        :param can_keep_current: Boolean, whether the currently active profile is compatible with this port so we can
+                                 just keep it.
+        """
         card = port.owner_card
 
         # Compile a list of profiles supporting the port
         profiles = {pname: card.profiles[pname] for pname in port.profiles if pname in card.profiles}
+        selected_profile = None
 
-        # Pick the one with max priority
-        max_prio_profile = max(profiles.values(), key=lambda k: k.priority)
-        logging.debug(
-            '* Switch card[%d] to profile `%s` with priority %d',
-            card.index, max_prio_profile.name, max_prio_profile.priority)
+        # If the port is given a preferred profile, verify it's valid for this port
+        if port.pref_profile:
+            if port.pref_profile in profiles:
+                selected_profile = profiles[port.pref_profile]
+                logging.debug('* Preferred profile `%s` is specified for port `%s`', port.pref_profile, port.name)
+            else:
+                logging.warning(
+                    '! Cannot activate preferred profile `%s` for port `%s` as this port doesn\'t support it',
+                    port.pref_profile, port.name)
+
+        # If no preferred profile given and the current one is fine, do nothing
+        if not selected_profile and can_keep_current:
+            return
+
+        # Otherwise pick the one with max priority
+        if not selected_profile:
+            selected_profile = max(profiles.values(), key=lambda k: k.priority)
 
         # Switch the profile
+        logging.debug(
+            '* Switching card[%d] to profile `%s` with priority %d',
+            card.index, selected_profile.name, selected_profile.priority)
         self.synchronise_op(
             'pa_context_set_card_profile_by_index()',
             pa_context_set_card_profile_by_index(
                 self.pa_context,
                 card.index,
-                max_prio_profile.name.encode(),
+                selected_profile.name.encode(),
                 self._pacb_context_success,
                 None))
 
@@ -586,6 +619,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                             port_struct.available != PA_PORT_AVAILABLE_NO,
                             False,
                             PA_DIRECTION_OUTPUT,
+                            None,
                             None)
                         sink_ports[port.name] = port
                         logging.debug(
@@ -689,6 +723,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                             port_struct.available != PA_PORT_AVAILABLE_NO,
                             False,
                             PA_DIRECTION_INPUT,
+                            None,
                             None)
                         source_ports[port.name] = port
                         logging.debug(

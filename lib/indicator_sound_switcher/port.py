@@ -38,7 +38,7 @@ class Port(GObject.GObject):
 
     def __init__(
             self, name: str, description, display_name: str, priority: int, is_available: bool, is_visible: bool,
-            direction: int, profiles):
+            direction: int, profiles, pref_profile):
         """Constructor.
         :param name:          (Internal) name of the port
         :param description:   Default 'human friendly' name of the port
@@ -48,6 +48,7 @@ class Port(GObject.GObject):
         :param is_visible:    Whether the port is visible for the user
         :param direction:     Port direction (input/output), one of the PA_DIRECTION_* constants
         :param profiles:      List of strings, name of the profiles that support this port
+        :param pref_profile:  Name of the preferred profile for the port, if any, otherwise None
         """
         GObject.GObject.__init__(self)
         self.name          = name
@@ -58,6 +59,7 @@ class Port(GObject.GObject):
         self.is_visible    = is_visible
         self.direction     = direction
         self.profiles      = profiles
+        self.pref_profile  = pref_profile
 
         # Initialise other properties
         # -- Owner source/sink in case this is a source/sink port, otherwise None
