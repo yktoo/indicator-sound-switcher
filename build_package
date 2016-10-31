@@ -10,7 +10,6 @@
 
 SETUP_SCRIPT="setup.py"
 DIST_ROOT_DIR="dist"
-LOCALE_ROOT_DIR="locale"
 PO_DIR="po"
 APP_BUILD=${1:-1}
 
@@ -23,7 +22,7 @@ err() {
 }
 
 # Extract name and version values from the setup script file
-APP_NAME=$(sed -ne 's/\s*name=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
+APP_NAME=$(sed -ne 's/\s*APP_ID\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
 [[ -n "$APP_NAME" ]] || err "Failed to extract application name"
 
 APP_VERSION=$(sed -ne 's/\s*version=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
@@ -37,24 +36,7 @@ app_ver_string="${APP_NAME} (${APP_VERSION}-${APP_BUILD})"
   err "The changelog doesn't start with the entry '${app_ver_string}'"
 
 # Initial cleanup: clean the dist dirs
-[[ ! -d "$DIST_ROOT_DIR"   ]] || rm -rf "$DIST_ROOT_DIR"   || err "Removing $DIST_ROOT_DIR failed"
-[[ ! -d "$LOCALE_ROOT_DIR" ]] || rm -rf "$LOCALE_ROOT_DIR" || err "Removing $LOCALE_ROOT_DIR failed"
-
-# Generate .mo files from .po files
-find "$PO_DIR" -type f -name '*.po' |
-    while read po_file; do
-        po_basename="$(basename "$po_file")"
-        lang=${po_basename%.po}
-        mo_dir="$LOCALE_ROOT_DIR/$lang/LC_MESSAGES"
-        mo_file="$mo_dir/$APP_NAME.mo"
-
-        # Make sure the output dir exists
-        mkdir -p "$mo_dir" || err "Failed to create $mo_dir"
-
-        # Compile the .po
-        echo "Compiling $po_file into $mo_file..."
-        msgfmt "$po_file" -o "$mo_file" || err "Compilation of $po_file into $mo_file failed"
-    done
+[[ ! -d "$DIST_ROOT_DIR" ]] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
 
 # Run the setup script to create a source tarball
 python3 "$SETUP_SCRIPT" --quiet sdist --owner=root --group=root || err "Building source tarball failed"
