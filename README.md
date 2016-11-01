@@ -47,11 +47,23 @@ The `devices` object contains configuration objects for each device. The name to
 
     DEB   + Card[0] added: `alsa_card.pci-0000_00_08.0`
 
-The `ports` object of the device configuration allows to rename or hide a specific device port in the menu. Likewise, the port's name can be found in the debug output, for example:
+The `ports` object of the device configuration allows to further configure a specific device port in the menu. Likewise, the port's name can be found in the debug output, for example:
 
     DEB     + Card port added: `analog-output-speaker` (`Speakers`); priority: 10000; direction: 1; available: No
 
-Here `analog-output-speaker` is the port name and `Speakers` is what will be displayed in the menu by default. The menu item can be changed by providing a different name, or hidden altogether by setting the value to `false`.
+Here `analog-output-speaker` is the port name and `Speakers` is what will be displayed in the menu by default.
+
+The configuration of the port can be one of the following datatypes:
+
+* `string`, providing a display name for the port.
+* `boolean`: actually, only the value `false` is supported, which indicates the corresponding menu item is to be hidden.
+* `object`, providing the following elements (all are optional):
+
+| Name                    | Type    | Default | Description                                                                                                 |
+|-------------------------|---------|---------|-------------------------------------------------------------------------------------------------------------|
+| `name`                  | string  |         | Alternative display name for the port (menu item text).                                                     |
+| `preferred_profile`     | string  |         | Profile name to switch to by default when the menu item is selected. If not given, and the currently selected profile doesn't support this port, a profile with the maximum priority will be picked. |
+| `always_available`      | boolean | false   | If `true`, the corresponding menu item will be displayed disregarding whether or not the port is available. |
 
 Here's a sample configuration file:
 
@@ -64,7 +76,12 @@ Here's a sample configuration file:
             "name": "My lovely card",
             "ports": {
                 "analog-output-speaker": "Boombox",
-                "iec958-stereo-output": false
+                "iec958-stereo-output": false,
+                "analog-input-microphone": {
+                    "name": "Mike",
+                    "preferred_profile": "output:analog-stereo+input:analog-stereo",
+                    "always_available": true
+                }
             }
         },
         "alsa_card.pci-0000_01_00.1": {
@@ -77,7 +94,10 @@ Here's a sample configuration file:
 It says that:
 
 * The `Inputs` section will be hidden.
-* The device `alsa_card.pci-0000_00_06.0` will be referred to as `My lovely card`. Its speaker output will be called `Boombox`, and its S/PDIF port will be hidden from the menu.
+* The device `alsa_card.pci-0000_00_06.0` will be referred to as `My lovely card`, and
+  * Its speaker output will be called `Boombox`,
+  * Its S/PDIF port will be hidden from the menu,
+  * Its microphone input will be called `Mike`, activate the duplex (input+output) profile when selected, and be shown even when isn't available.
 * The device `alsa_card.pci-0000_01_00.1` will be named `HDMI Audio` in the menu items.
 * For the rest all the defaults will apply.
 
