@@ -1,4 +1,4 @@
-indicator-sound-switcher (2.1.1ubuntu0-1) xenial; urgency=low
+indicator-sound-switcher (2.1.1ubuntu0-1) yakkety; urgency=low
 
   * Port configuration in JSON file can be an object now
   * Port can be assigned a preferred profile (#26)
