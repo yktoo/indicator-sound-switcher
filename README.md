@@ -67,7 +67,7 @@ The configuration of the port can be one of the following datatypes:
 
 Here's a sample configuration file:
 
-```
+```JSON
 {
     "show_inputs": false,
     "show_outputs": true,
