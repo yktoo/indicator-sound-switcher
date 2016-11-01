@@ -22,7 +22,8 @@ def compile_lang_files() -> list:
         # Get a canonical path to the .po dir
         po_dir = os.path.abspath(PO_DIR)
         # Remove the locale dir altogether, if any
-        shutil.rmtree(locale_dir)
+        if os.path.isdir(locale_dir):
+            shutil.rmtree(locale_dir)
         # Create a new dir
         os.makedirs(locale_dir)
         # Iterate through available .po files
