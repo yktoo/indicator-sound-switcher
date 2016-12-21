@@ -6,7 +6,8 @@ Build-Depends:
  debhelper (>= 9),
  dh-python,
  python3 (>= 3.1),
- python3-setuptools
+ python3-setuptools,
+ gettext
 Standards-Version: 3.9.8
 X-Python3-Version: >= 3.1
 Homepage: https://github.com/yktoo/indicator-sound-switcher
@@ -19,7 +20,9 @@ Depends:
  python3-gi,
  gir1.2-appindicator3-0.1,
  pulseaudio (>= 1:4.0),
- libpulse0
+ libpulse0,
+ libcanberra-gtk-module,
+ gettext
 Conflicts:
  indicator-sound-switcher (<< 2.0)
 Description: Sound input/output selector indicator
