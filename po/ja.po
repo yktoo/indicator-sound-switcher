@@ -1,0 +1,47 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Kenichi Ito <ken.i54k@gmail.com>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-01-15 12:25+0900\n"
+"PO-Revision-Date: 2017-01-15 12:31+0900\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.9\n"
+"Last-Translator: Kenichi Ito <ken.i54k@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
+
+#: indicator-sound-switcher:188
+msgid "Written by Dmitry Kann"
+msgstr "作者 Dmitry Kann"
+
+#: indicator-sound-switcher:804
+msgid "Inputs"
+msgstr "入力"
+
+#: indicator-sound-switcher:808
+msgid "Outputs"
+msgstr "出力"
+
+#: indicator-sound-switcher:812
+msgid "_Refresh"
+msgstr "更新(_R)"
+
+#: indicator-sound-switcher:813
+msgid "_About"
+msgstr "情報(_A)"
+
+#: indicator-sound-switcher:814
+msgid "_Quit"
+msgstr "終了(_Q)"
+
+#: lib/indicator_sound_switcher/port.py:65
+msgid "(unknown device)"
+msgstr "(不明なデバイス)"
