@@ -13,7 +13,7 @@ class Stream(GObject.GObject):
         # If activated, also activate the item that corresponds to the active port
         if value:
             for port in self.ports.values():
-                if port.is_active:
+                if port.is_active or port.is_dummy:
                     port.is_active = True
                     break
 
@@ -22,12 +22,13 @@ class Stream(GObject.GObject):
     def __init__(self, index: int, name: str, description: str, ports: dict, card_index: int):
         """Constructor."""
         GObject.GObject.__init__(self)
-        self.index       = index
-        self.name        = name
-        self.description = description
-        self.ports       = ports
-        self.card_index  = card_index
-        self._is_active  = False
+        self.index        = index
+        self.name         = name
+        self.description  = description
+        self.display_name = ''  # TODO add override possibility
+        self.ports        = ports
+        self.card_index   = card_index
+        self._is_active   = False
 
         # Assign every port's owner_stream
         for port in self.ports.values():
@@ -38,9 +39,15 @@ class Stream(GObject.GObject):
         for port in self.ports.values():
             port.is_active = port.name == name
 
+    def get_display_name(self) -> str:
+        """Returns display name for the stream."""
+        return self.display_name or self.description
+
+
 class Source(Stream):
     """Source class."""
     pass
+
 
 class Sink(Stream):
     """Sink class."""

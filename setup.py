@@ -69,7 +69,7 @@ data_files = [
 # Configure
 setup(
     name=APP_ID,
-    version='2.1.1ubuntu0',
+    version='2.1.2ubuntu0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',

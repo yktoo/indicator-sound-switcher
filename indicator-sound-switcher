@@ -14,10 +14,11 @@ PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along
 with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---------------------------------------------------------------------------
-Note for developers: some PEP8 rules are neglected here, namely:
+Note for developers: some PEP8 rules are deliberately neglected here, namely:
 - E211
 - E221
 - E241
+- E272
 - E402
 """
 
@@ -47,7 +48,7 @@ from indicator_sound_switcher.config import Config, EMPTY_CONFIG
 APP_ID      = 'indicator-sound-switcher'
 APP_NAME    = 'Sound Switcher Indicator'
 APP_ICON    = 'indicator-sound-switcher'
-APP_VERSION = '2.1.1'
+APP_VERSION = '2.1.2'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -61,6 +62,9 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/"""
 
 YESNO = {False: 'No', True: 'Yes'}
+
+CARD_NONE_SINK   = -1
+CARD_NONE_SOURCE = -2
 
 
 def _parse_cmd_line():
@@ -223,36 +227,57 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.update_all_pa_items()
 
     def item_select_port(self, widget, buf):
-        """Handler of sink selection item click event."""
+        """Handler of port selection item click event."""
         if widget.get_active():
-            # Fetch data from the buf tuple
-            idx_card, port_name = buf
+            # Fetch card index from the buf tuple
+            idx_card = buf[0]
 
-            # Find the card and its port
-            card = self.cards[idx_card]
-            port = card.ports[port_name]
-            logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
+            # If it's a dummy (network) card sink, buf[1] is the sink's index
+            if idx_card == CARD_NONE_SINK:
+                port       = None
+                idx_stream = buf[1]
+                stream     = self.sinks[idx_stream]
+                is_output  = True
+                logging.info('# Network sink[%d] `%s` selected', idx_stream, stream.name)
 
-            # Try to find a matching stream and its port
-            stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
+            # If it's a dummy (network) card source, buf[1] is the source's index
+            elif idx_card == CARD_NONE_SOURCE:
+                port       = None
+                idx_stream = buf[1]
+                stream     = self.sources[idx_stream]
+                is_output  = False
+                logging.info('# Network source[%d] `%s` selected', idx_stream, stream.name)
 
-            # If no stream found, that's an error
-            if stream is None:
-                logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
-                return
+            # Otherwise it's a real device and buf[1] is the port's name
+            else:
+                port_name = buf[1]
 
-            # Switch profile if necessary
-            self.card_switch_profile(port, stream_port is not None)
+                # Find the card and its port
+                card       = self.cards[idx_card]
+                port       = card.ports[port_name]
+                is_output  = port.is_output
+                logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
+
+                # Try to find a matching stream and its port
+                stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
+
+                # If no stream found, that's an error
+                if stream is None:
+                    logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
+                    return
+
+                # Switch profile if necessary
+                self.card_switch_profile(port, stream_port is not None)
 
             # Switching output
-            if port.is_output:
+            if is_output:
                 # Change the default sink
                 self.synchronise_op(
                     'pa_context_set_default_sink()',
                     pa_context_set_default_sink(self.pa_context, stream.name.encode(), self._pacb_context_success, None))
 
                 # Change the active port, if it's not a dummy one
-                if not port.is_dummy:
+                if port is not None and not port.is_dummy:
                     pa_context_set_sink_port_by_index(
                         self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None)
 
@@ -272,7 +297,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                         self.pa_context, stream.name.encode(), self._pacb_context_success, None))
 
                 # Change the active port, if it's not a dummy one
-                if not port.is_dummy:
+                if port is not None and not port.is_dummy:
                     self.synchronise_op(
                         'pa_context_set_source_port_by_index()',
                         pa_context_set_source_port_by_index(
@@ -613,9 +638,16 @@ class SoundSwitcherIndicator(GObject.GObject):
         else:
             logging.debug('  + Sink[%d] added: `%s`, card %d', index, name, data.card)
 
-            # Prepare ports array: iterate through ports[] (array of pointers to structs)
+            # Prepare ports array
             sink_ports = {}
-            if data.ports:
+            # If it's a network sink, add a dummy port
+            network_card = self.is_network_card(data.card)
+            if network_card:
+                port = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
+                sink_ports[port.name] = port
+
+            # Else iterate through ports[] (array of pointers to structs)
+            elif data.ports:
                 idx_port = 0
                 while True:
                     port_ptr = data.ports[idx_port]
@@ -641,9 +673,22 @@ class SoundSwitcherIndicator(GObject.GObject):
                     else:
                         break
 
-            # Create and register a new instance of Sink object
+            # Create and register a new instance of Sink object (this will also set owner_stream in each port)
             sink = Sink(index, name, description, sink_ports, data.card)
             self.sinks[index] = sink
+
+            # If it's a network sink, create its menu item
+            if network_card and self.item_header_outputs is not None and self.item_separator_outputs is not None:
+                for port in sink_ports.values():
+                    # TODO add visibility check
+                    port.menu_item = self.menu_insert_ordered_item(
+                        self.item_header_outputs,
+                        self.item_separator_outputs,
+                        port.get_menu_item_title(),
+                        port.is_available or port.always_avail)
+                    # Bind a click handler
+                    port.handler_id = port.menu_item.connect(
+                        'activate', self.item_select_port, (CARD_NONE_SINK, index))
 
         # Update sink's active port, if there's any
         if data.active_port:
@@ -718,9 +763,17 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Otherwise register a new source object
         else:
             logging.debug('  + Source[%d] added: `%s`, card %d', index, name, data.card)
-            # Prepare ports array: iterate through ports[] (array of pointers to structs)
+
+            # Prepare ports array
             source_ports = {}
-            if data.ports:
+            # If it's a network sink, add a dummy port
+            network_card = self.is_network_card(data.card)
+            if network_card:
+                port = Port('#dummy_in', None, '', -1, True, True, PA_DIRECTION_INPUT, None, None, False)
+                source_ports[port.name] = port
+
+            # Else iterate through ports[] (array of pointers to structs)
+            elif data.ports:
                 idx_port = 0
                 while True:
                     port_ptr = data.ports[idx_port]
@@ -746,9 +799,22 @@ class SoundSwitcherIndicator(GObject.GObject):
                     else:
                         break
 
-            # Create and register a new instance of Source object
+            # Create and register a new instance of Source object (this will also set owner_stream in each port)
             source = Source(index, name, description, source_ports, data.card)
             self.sources[index] = source
+
+            # If it's a network sink, create its menu item
+            if network_card and self.item_header_inputs is not None and self.item_separator_inputs is not None:
+                for port in source_ports.values():
+                    # TODO add visibility check
+                    port.menu_item = self.menu_insert_ordered_item(
+                        self.item_header_inputs,
+                        self.item_separator_inputs,
+                        port.get_menu_item_title(),
+                        port.is_available or port.always_avail)
+                    # Bind a click handler
+                    port.handler_id = port.menu_item.connect(
+                        'activate', self.item_select_port, (CARD_NONE_SOURCE, index))
 
         # Update source's active port, if there's any
         if data.active_port:
@@ -1016,6 +1082,13 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.synchronise_op(
             'pa_context_get_server_info()',
             pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
+
+    @staticmethod
+    def is_network_card(card_index: int) -> bool:
+        """Returns True if the given card index belongs to a network card."""
+        # Assume all indexes bigger than 2e9 are network cards
+        return card_index > 2000000000
+
 
 if __name__ == "__main__":
     # Set up the gettext localisation engine

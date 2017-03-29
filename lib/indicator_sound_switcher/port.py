@@ -67,7 +67,7 @@ class Port(GObject.GObject):
         # -- Owner source/sink in case this is a source/sink port, otherwise None
         self.owner_stream  = None
         # -- Owner card in case this is a card port, otherwise None
-        self.onwer_card    = None
+        self.owner_card    = None
         # -- Menu item associated with this port, if any, otherwise None
         self.menu_item     = None
         # -- Property storage: is_active
@@ -88,6 +88,15 @@ class Port(GObject.GObject):
 
     def get_menu_item_title(self) -> str:
         """Returns the title to be used with menu item."""
-        return \
-            (self.owner_card.get_display_name() if self.owner_card else _('(unknown device)')) + \
-            ('' if self.is_dummy else ' ‣ ' + self.get_display_name())
+        # Port on a physical device
+        if self.owner_card is not None:
+            owner_name = self.owner_card.get_display_name()
+        # Port on a network sink/source
+        elif self.owner_stream is not None:
+            owner_name = self.owner_stream.get_display_name()
+        # WTF port
+        else:
+            owner_name = _('(unknown device)')
+
+        # Append port name if it isn't dummy
+        return owner_name + ('' if self.is_dummy else ' ‣ ' + self.get_display_name())
