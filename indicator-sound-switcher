@@ -682,7 +682,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # If it's a virtual sink and it's visible, create its menu item
             if virtual_card and sink_display_name is not False and self.item_header_outputs is not None and \
-                            self.item_separator_outputs is not None:
+                    self.item_separator_outputs is not None:
                 for port in sink_ports.values():
                     port.menu_item = self.menu_insert_ordered_item(
                         self.item_header_outputs,
@@ -804,14 +804,14 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
             source_display_name = self.get_virtual_stream_display_name(
-                self.config_devices['virtual', EMPTY_CONFIG]['sinks', EMPTY_CONFIG][name, ''])
+                self.config_devices['virtual', EMPTY_CONFIG]['sources', EMPTY_CONFIG][name, ''])
             source = Source(index, name, source_display_name or '', description, source_ports, data.card)
             self.sources[index] = source
 
-            # If it's a virtual sink, create its menu item
-            if virtual_card and self.item_header_inputs is not None and self.item_separator_inputs is not None:
+            # If it's a virtual source, create its menu item
+            if virtual_card and source_display_name is not False and self.item_header_inputs is not None and \
+                    self.item_separator_inputs is not None:
                 for port in source_ports.values():
-                    # TODO add visibility check
                     port.menu_item = self.menu_insert_ordered_item(
                         self.item_header_inputs,
                         self.item_separator_inputs,
