@@ -86,6 +86,14 @@ Here's a sample configuration file:
         },
         "alsa_card.pci-0000_01_00.1": {
             "name": "HDMI Audio"
+        },
+        "virtual": {
+            "sinks": {
+                "combined": "All at once",
+                "WTF NETWORK?": {
+                    "name": "Kithen computer"
+                }
+            }
         }
     }
 }

@@ -122,6 +122,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.config = Config.load_from_file(config_file_name)
         if self.config is None:
             self.config = EMPTY_CONFIG
+        self.config_devices = self.config['devices', EMPTY_CONFIG]
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -232,21 +233,21 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Fetch card index from the buf tuple
             idx_card = buf[0]
 
-            # If it's a dummy (network) card sink, buf[1] is the sink's index
+            # If it's a dummy (virtual) card sink, buf[1] is the sink's index
             if idx_card == CARD_NONE_SINK:
                 port       = None
                 idx_stream = buf[1]
                 stream     = self.sinks[idx_stream]
                 is_output  = True
-                logging.info('# Network sink[%d] `%s` selected', idx_stream, stream.name)
+                logging.info('# Virtual sink[%d] `%s` selected', idx_stream, stream.name)
 
-            # If it's a dummy (network) card source, buf[1] is the source's index
+            # If it's a dummy (virtual) card source, buf[1] is the source's index
             elif idx_card == CARD_NONE_SOURCE:
                 port       = None
                 idx_stream = buf[1]
                 stream     = self.sources[idx_stream]
                 is_output  = False
-                logging.info('# Network source[%d] `%s` selected', idx_stream, stream.name)
+                logging.info('# Virtual source[%d] `%s` selected', idx_stream, stream.name)
 
             # Otherwise it's a real device and buf[1] is the port's name
             else:
@@ -489,7 +490,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         act_prof_name = data.active_profile.contents.name.decode()
 
         # Try to fetch the card's configuration
-        card_cfg = self.config['devices', EMPTY_CONFIG][name, EMPTY_CONFIG]
+        card_cfg = self.config_devices[name, EMPTY_CONFIG]
 
         # Prepare ports array
         card_ports = self.card_fetch_ports(data.ports, card_cfg['ports', EMPTY_CONFIG])
@@ -640,9 +641,9 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Prepare ports array
             sink_ports = {}
-            # If it's a network sink, add a dummy port
-            network_card = self.is_network_card(data.card)
-            if network_card:
+            # If it's a virtual sink, add a dummy port
+            virtual_card = self.is_virtual_card(data.card)
+            if virtual_card:
                 port = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
                 sink_ports[port.name] = port
 
@@ -674,13 +675,15 @@ class SoundSwitcherIndicator(GObject.GObject):
                         break
 
             # Create and register a new instance of Sink object (this will also set owner_stream in each port)
-            sink = Sink(index, name, description, sink_ports, data.card)
+            sink_display_name = self.get_virtual_stream_display_name(
+                self.config_devices['virtual', EMPTY_CONFIG]['sinks', EMPTY_CONFIG][name, ''])
+            sink = Sink(index, name, sink_display_name or '', description, sink_ports, data.card)
             self.sinks[index] = sink
 
-            # If it's a network sink, create its menu item
-            if network_card and self.item_header_outputs is not None and self.item_separator_outputs is not None:
+            # If it's a virtual sink and it's visible, create its menu item
+            if virtual_card and sink_display_name is not False and self.item_header_outputs is not None and \
+                            self.item_separator_outputs is not None:
                 for port in sink_ports.values():
-                    # TODO add visibility check
                     port.menu_item = self.menu_insert_ordered_item(
                         self.item_header_outputs,
                         self.item_separator_outputs,
@@ -766,9 +769,9 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Prepare ports array
             source_ports = {}
-            # If it's a network sink, add a dummy port
-            network_card = self.is_network_card(data.card)
-            if network_card:
+            # If it's a virtual sink, add a dummy port
+            virtual_card = self.is_virtual_card(data.card)
+            if virtual_card:
                 port = Port('#dummy_in', None, '', -1, True, True, PA_DIRECTION_INPUT, None, None, False)
                 source_ports[port.name] = port
 
@@ -800,11 +803,13 @@ class SoundSwitcherIndicator(GObject.GObject):
                         break
 
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
-            source = Source(index, name, description, source_ports, data.card)
+            source_display_name = self.get_virtual_stream_display_name(
+                self.config_devices['virtual', EMPTY_CONFIG]['sinks', EMPTY_CONFIG][name, ''])
+            source = Source(index, name, source_display_name or '', description, source_ports, data.card)
             self.sources[index] = source
 
-            # If it's a network sink, create its menu item
-            if network_card and self.item_header_inputs is not None and self.item_separator_inputs is not None:
+            # If it's a virtual sink, create its menu item
+            if virtual_card and self.item_header_inputs is not None and self.item_separator_inputs is not None:
                 for port in source_ports.values():
                     # TODO add visibility check
                     port.menu_item = self.menu_insert_ordered_item(
@@ -1084,10 +1089,21 @@ class SoundSwitcherIndicator(GObject.GObject):
             pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
 
     @staticmethod
-    def is_network_card(card_index: int) -> bool:
-        """Returns True if the given card index belongs to a network card."""
-        # Assume all indexes bigger than 2e9 are network cards
+    def is_virtual_card(card_index: int) -> bool:
+        """Returns True if the given index corresponds to a virtual (network or combined input/output) card."""
+        # Assume all indexes bigger than 2e9 are virtual cards
         return card_index > 2000000000
+
+    @staticmethod
+    def get_virtual_stream_display_name(stream_cfg):
+        """Returns display name for the given virtual stream or false if it's to be hidden."""
+        # Stream config can be string (stream name), boolean (false to hide the stream) or a proper Config object
+        if isinstance(stream_cfg, Config):
+            return stream_cfg['name', '']
+        elif stream_cfg is False:
+            return False
+        else:
+            return str(stream_cfg)
 
 
 if __name__ == "__main__":

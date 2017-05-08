@@ -19,13 +19,13 @@ class Stream(GObject.GObject):
 
     is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
-    def __init__(self, index: int, name: str, description: str, ports: dict, card_index: int):
+    def __init__(self, index: int, name: str, display_name: str, description: str, ports: dict, card_index: int):
         """Constructor."""
         GObject.GObject.__init__(self)
         self.index        = index
         self.name         = name
+        self.display_name = display_name
         self.description  = description
-        self.display_name = ''  # TODO add override possibility
         self.ports        = ports
         self.card_index   = card_index
         self._is_active   = False

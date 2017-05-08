@@ -1,6 +1,6 @@
 indicator-sound-switcher (2.1.2ubuntu0-1) yakkety; urgency=low
 
-  * Added support for network sinks and source (#48)
+  * Added support for network sinks and sources (#48)
   * Japanese translation added
 
  -- Dmitry Kann <yktooo@gmail.com>  Wed, 29 Mar 2017 18:11:47 +0200
