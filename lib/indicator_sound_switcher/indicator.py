@@ -13,6 +13,7 @@ from .card import CardProfile, Card
 from .port import Port
 from .stream import Source, Sink
 from .config import Config, EMPTY_CONFIG
+from .prefs import PreferencesDialog
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -173,6 +174,14 @@ class SoundSwitcherIndicator(GObject.GObject):
         dialog.set_logo_icon_name(APP_ICON)
         dialog.connect('response', lambda *largs: dialog.destroy())
         dialog.run()
+
+    @staticmethod
+    def on_preferences(*args):
+        """Signal handler: Preferences item clicked."""
+        logging.debug('.on_preferences()')
+        dlg = PreferencesDialog()
+        dlg.run()
+        dlg.destroy()
 
     def on_quit(self, *args):
         """Signal handler: Quit item clicked."""
@@ -924,9 +933,10 @@ class SoundSwitcherIndicator(GObject.GObject):
             self.item_separator_outputs = self.menu_append_item()
 
         # Add static items
-        self.menu_append_item(_('_Refresh'), self.on_refresh)
-        self.menu_append_item(_('_About'), self.on_about)
-        self.menu_append_item(_('_Quit'), self.on_quit)
+        self.menu_append_item(_('_Refresh'),      self.on_refresh)
+        self.menu_append_item(_('_Preferences…'), self.on_preferences)
+        self.menu_append_item(_('_About'),        self.on_about)
+        self.menu_append_item(_('_Quit'),         self.on_quit)
 
     def pulseaudio_initialise(self):
         """Initialise PulseAudio context and related objects.
