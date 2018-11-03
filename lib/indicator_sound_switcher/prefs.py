@@ -3,24 +3,23 @@ import logging
 
 from gi.repository import Gtk
 
-from .config import Config
-
 
 class PreferencesDialog(Gtk.Dialog):
     """Indicator preferences dialog."""
 
-    def __init__(self, config: Config, on_refresh: callable, parent: Gtk.Window=None):
+    def __init__(self, indicator, parent: Gtk.Window=None):
         """Constructor.
+        :param indicator: Sound Switcher Indicator instance
         :param parent: parent window
         """
-        Gtk.Dialog.__init__(self, _('Sound Switcher Indicator Preferences'), parent, 0, (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
+        Gtk.Dialog.__init__(
+            self, _('Sound Switcher Indicator Preferences'), parent, 0, (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
         self.set_border_width(12)
-        self.set_default_size(500,  300)
-        self.config = config
-        self.on_refresh = on_refresh
+        self.set_default_size(600,  400)
+        self.indicator = indicator
 
         # Add notebook with pages
-        notebook = MainNotebook(self)
+        notebook = MainNotebook(indicator)
         self.get_content_area().pack_start(notebook, True, True, 0)
 
         # Show all controls
@@ -30,7 +29,7 @@ class PreferencesDialog(Gtk.Dialog):
 class BasePage(Gtk.Box):
     """Base abstract class for notebook page objects."""
 
-    def __init__(self, title: str, dlg: PreferencesDialog):
+    def __init__(self, title: str, indicator):
         """Constructor."""
         super().__init__()
         self.set_orientation(Gtk.Orientation.VERTICAL)
@@ -39,7 +38,7 @@ class BasePage(Gtk.Box):
         self.scroll_box = None
         self.is_initialised = False
         self.title = title
-        self.dlg = dlg
+        self.indicator = indicator
 
     def get_label_widget(self):
         """Create and return a widget for the page label."""
@@ -63,8 +62,8 @@ class BasePage(Gtk.Box):
 class GeneralPage(BasePage):
     """General page object."""
 
-    def __init__(self, dlg: PreferencesDialog):
-        super().__init__(_('_General'), dlg)
+    def __init__(self, indicator):
+        super().__init__(_('_General'), indicator)
 
         # Add switches
         self.switch_inputs  = self._add_switch(_('Show inputs'), self.on_switch_inputs_set)
@@ -90,49 +89,78 @@ class GeneralPage(BasePage):
         return switch
 
     def initialise(self):
-        self.switch_inputs.set_active (self.dlg.config['show_inputs',  True])
-        self.switch_outputs.set_active(self.dlg.config['show_outputs', True])
+        self.switch_inputs.set_active (self.indicator.config['show_inputs',  True])
+        self.switch_outputs.set_active(self.indicator.config['show_outputs', True])
 
     def on_switch_inputs_set(self, widget: Gtk.Switch, data):
         """Signal handler: Show Inputs switch set."""
         if not self.is_initialised:
             return
         logging.debug('.on_switch_inputs_set(%s)', widget.get_active())
-        self.dlg.config['show_inputs'] = widget.get_active()
-        self.dlg.on_refresh()
+        self.indicator.config['show_inputs'] = widget.get_active()
+        self.indicator.on_refresh()
 
     def on_switch_outputs_set(self, widget: Gtk.Switch, data):
         """Signal handler: Show Outputs switch set."""
         if not self.is_initialised:
             return
         logging.debug('.on_switch_outputs_set(%s)', widget.get_active())
-        self.dlg.config['show_outputs'] = widget.get_active()
-        self.dlg.on_refresh()
+        self.indicator.config['show_outputs'] = widget.get_active()
+        self.indicator.on_refresh()
 
 
 class DevicesPage(BasePage):
     """Devices page object."""
 
-    def __init__(self, dlg: PreferencesDialog):
-        super().__init__(_('_Devices'), dlg)
+    def __init__(self, indicator):
+        super().__init__(_('_Devices'), indicator)
+
+        # Add a scrollbox
         scrollbox = Gtk.ScrolledWindow()
         self.pack_start(scrollbox, True, True, 0)
 
+        # Add a list box
+        self.list_box = Gtk.ListBox()
+        scrollbox.add(self.list_box)
+
     def initialise(self):
-        pass
+        for idx, card in self.indicator.cards.items():
+            # Add a grid
+            grid = Gtk.Grid(border_width=12, column_spacing=6, row_spacing=6)
+            # -- Add an icon
+            grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
+            # -- Add a device title label
+            title_label = Gtk.Label(xalign=0)
+            title_label.set_markup('<b>{}</b>'.format(card.get_display_name()))
+            grid.attach(title_label, 1, 0,  1, 1)
+            # -- Add a device name label
+            grid.attach(Gtk.Label(card.name), 1, 1,  1, 1)
+            # -- Add a configure button
+            box = Gtk.Box(hexpand=True, vexpand=True)
+            btn = Gtk.Button(_('Configure…'))
+            btn.connect('clicked', self.on_configure_btn_clicked, idx)
+            box.pack_end(btn, False, False, 0)
+            grid.attach(box, 2, 1,  1, 2)
+
+            # Add the grid as a list row
+            self.list_box.add(Gtk.ListBoxRow(child=grid))
+
+    def on_configure_btn_clicked(self, widget, idx: int):
+        """Signal handler: Configure Device button clicked."""
+        logging.debug('.on_configure_btn_clicked(idx=%d)', idx)
         # TODO
 
 
 class MainNotebook(Gtk.Notebook):
     """Implementation of the preferences dialog's notebook control."""
 
-    def __init__(self, dlg: PreferencesDialog):
+    def __init__(self, indicator):
         logging.debug('Creating ' + self.__class__.__name__)
         super().__init__()
 
         # Create notebook pages
-        self._add_page(GeneralPage(dlg))
-        self._add_page(DevicesPage(dlg))
+        self._add_page(GeneralPage(indicator))
+        self._add_page(DevicesPage(indicator))
 
         # Connect page switch signal
         self.connect('switch-page', self.on_switch_page)
