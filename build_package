@@ -2,7 +2,7 @@
 #-------------------------------------------------------------------------------
 # Purpose:
 #   Build distribution packages for Ubuntu
-# Parameters:
+# Arguments:
 #   1 - Build number, optional. If omitted, "1" is used
 # Requires:
 #   None

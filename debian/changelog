@@ -1,9 +1,11 @@
-indicator-sound-switcher (2.1.2ubuntu0-1) yakkety; urgency=low
+indicator-sound-switcher (2.2.0ubuntu0-1) bionic; urgency=low
 
+  * Added Preferences dialog
   * Added support for network sinks and sources (#48)
+  * Fixed items showing in wrong order after refresh (#55)
   * Japanese translation added
 
- -- Dmitry Kann <yktooo@gmail.com>  Wed, 29 Mar 2017 18:11:47 +0200
+ -- Dmitry Kann <yktooo@gmail.com>  Sat, 03 Nov 2018 11:34:21 +0200
 
 indicator-sound-switcher (2.1.1ubuntu0-1) yakkety; urgency=low
 

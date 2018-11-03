@@ -19,7 +19,7 @@ from .prefs import PreferencesDialog
 APP_ID      = 'indicator-sound-switcher'
 APP_NAME    = 'Sound Switcher Indicator'
 APP_ICON    = 'indicator-sound-switcher'
-APP_VERSION = '2.1.2'
+APP_VERSION = '2.2.0'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -73,6 +73,9 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.item_separator_inputs  = None
         self.item_header_outputs    = None
         self.item_separator_outputs = None
+
+        # Initialise other stuff
+        self.prefs_dlg = None
 
         # Load configuration, if any
         config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
@@ -175,13 +178,15 @@ class SoundSwitcherIndicator(GObject.GObject):
         dialog.connect('response', lambda *largs: dialog.destroy())
         dialog.run()
 
-    @staticmethod
-    def on_preferences(*args):
+    def on_preferences(self, *args):
         """Signal handler: Preferences item clicked."""
         logging.debug('.on_preferences()')
-        dlg = PreferencesDialog()
-        dlg.run()
-        dlg.destroy()
+        self.prefs_dlg = PreferencesDialog(self.config,  self.on_refresh)
+        try:
+            self.prefs_dlg.run()
+        finally:
+            self.prefs_dlg.destroy()
+            self.prefs_dlg = None
 
     def on_quit(self, *args):
         """Signal handler: Quit item clicked."""
@@ -191,6 +196,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_refresh(self, *args):
         """Signal handler: Refresh item clicked."""
         logging.debug('.on_refresh()')
+        self.menu_setup()
         self.update_all_pa_items()
 
     def on_select_port(self, widget, data):
@@ -876,8 +882,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         :return: the created item
         """
         if label is None:
+            logging.debug('.menu_append_item(): appending separator')
             item = Gtk.SeparatorMenuItem()
         else:
+            logging.debug('.menu_append_item(): appending item `%s`', label)
             item = Gtk.MenuItem.new_with_mnemonic(label)
             if activate_signal is not None:
                 item.connect("activate", activate_signal, None)
@@ -917,20 +925,33 @@ class SoundSwitcherIndicator(GObject.GObject):
             i += 1
 
         # Insert the item
+        logging.debug(
+            '.menu_insert_ordered_item(): inserting item `%s` at index %d%s',
+            label, i, ' (hidden)' if not show else '')
         self.menu.insert(new_item, i)
         return new_item
 
     def menu_setup(self):
         """Initialise the indicator menu."""
+        # Remove all menu items
+        for item in self.menu.get_children():
+            self.menu.remove(item)
+
         # Make the input list section, if needed
         if bool(self.config['show_inputs', True]):
             self.item_header_inputs = self.menu_append_item(_('Inputs'))
             self.item_separator_inputs = self.menu_append_item()
+        else:
+            self.item_header_inputs = None
+            self.item_separator_inputs = None
 
         # Make the output list section, if needed
         if bool(self.config['show_outputs', True]):
             self.item_header_outputs = self.menu_append_item(_('Outputs'))
             self.item_separator_outputs = self.menu_append_item()
+        else:
+            self.item_header_outputs = None
+            self.item_separator_outputs = None
 
         # Add static items
         self.menu_append_item(_('_Refresh'),      self.on_refresh)
@@ -1009,6 +1030,11 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def shutdown(self):
         """Shut down the application."""
+        # Close the Preferences dialog if it's open
+        if self.prefs_dlg is not None:
+            self.prefs_dlg.response(Gtk.ResponseType.CLOSE)
+
+        # Shutdown PulseAudio
         self.pulseaudio_shutdown()
         Gtk.main_quit()
 

@@ -35,7 +35,8 @@ def compile_lang_files() -> list:
                 mo_dir = os.path.join(locale_dir, lang, 'LC_MESSAGES')
                 os.makedirs(mo_dir)
                 # Compile the .po into a .mo
-                os.system('msgfmt "{}" -o "{}"'.format(os.path.join(po_dir, in_file), os.path.join(mo_dir, APP_ID + '.mo')))
+                os.system(
+                    'msgfmt "{}" -o "{}"'.format(os.path.join(po_dir, in_file), os.path.join(mo_dir, APP_ID + '.mo')))
 
     # Check a locale dir is there
     if not os.path.isdir(locale_dir):
@@ -49,6 +50,7 @@ def compile_lang_files() -> list:
             [os.path.join(LOCALE_DIR, lang, 'LC_MESSAGES', APP_ID + '.mo')]
         ) for lang in os.listdir(locale_dir)
     ]
+
 
 data_files = [
     # App shortcut
@@ -69,7 +71,7 @@ data_files = [
 # Configure
 setup(
     name=APP_ID,
-    version='2.1.2ubuntu0',
+    version='2.2.0ubuntu0',
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',
