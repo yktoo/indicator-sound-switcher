@@ -181,7 +181,13 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_preferences(self, *args):
         """Signal handler: Preferences item clicked."""
         logging.debug('.on_preferences()')
-        self.prefs_dlg = PreferencesDialog(self.config,  self.on_refresh)
+        # If the dialog is already open, just bring it up
+        if self.prefs_dlg is not None:
+            self.prefs_dlg.present()
+            return
+
+        # Instantiate a new dialog otherwise
+        self.prefs_dlg = PreferencesDialog(self)
         try:
             self.prefs_dlg.run()
         finally:
