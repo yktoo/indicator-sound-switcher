@@ -25,7 +25,7 @@ err() {
 APP_NAME=$(sed -ne 's/\s*APP_ID\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
 [[ -n "$APP_NAME" ]] || err "Failed to extract application name"
 
-APP_VERSION=$(sed -ne 's/\s*version=\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
+APP_VERSION=$(sed -ne 's/\s*APP_VERSION\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
 [[ -n "$APP_VERSION" ]] || err "Failed to extract application version"
 
 echo "Building ${APP_NAME} version ${APP_VERSION} build ${APP_BUILD}..."

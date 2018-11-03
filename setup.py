@@ -5,14 +5,15 @@ import os
 import shutil
 
 
-PO_DIR     = 'po'
-LOCALE_DIR = 'locale'
-APP_ID     = 'indicator-sound-switcher'
+PO_DIR      = 'po'
+LOCALE_DIR  = 'locale'
+APP_ID      = 'indicator-sound-switcher'
+APP_VERSION = '2.2.0ubuntu0'
 
 
 def compile_lang_files() -> list:
-    """(Re)generates .mo files from the available .po files, if any. Returns a list of .mo files to be packaged or
-    installed.
+    """(Re)generate .mo files from the available .po files, if any
+    :return: list of .mo files to be packaged or installed
     """
     # Get a canonical locale path
     locale_dir = os.path.abspath(LOCALE_DIR)
@@ -71,7 +72,7 @@ data_files = [
 # Configure
 setup(
     name=APP_ID,
-    version='2.2.0ubuntu0',
+    version=APP_VERSION,
     description='Sound input/output selector indicator',
     author='Dmitry Kann',
     author_email='yktooo@gmail.com',
