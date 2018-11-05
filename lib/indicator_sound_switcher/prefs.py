@@ -116,15 +116,45 @@ class DevicesPage(BasePage):
 
     def __init__(self, indicator):
         super().__init__(_('_Devices'), indicator)
+        self.set_orientation(Gtk.Orientation.HORIZONTAL)
+        self.set_spacing(6)
 
         # Add a scrollbox
-        scrollbox = Gtk.ScrolledWindow()
-        self.pack_start(scrollbox, True, True, 0)
+        scrollbox = Gtk.ScrolledWindow(propagate_natural_width=True)
+        scrollbox.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.pack_start(scrollbox, False, True, 0)
 
         # Add a list box
         self.list_box = Gtk.ListBox()
         self.list_box.connect('row-selected', self.on_device_row_selected)
         scrollbox.add(self.list_box)
+
+        # Add a device settings box
+        bx_dev_settings = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=6, border_width=12, hexpand=True, vexpand=True)
+
+        # Add a name label/entry
+        bx_name = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        bx_name.pack_start(Gtk.Label(_('Name'), xalign=0),  False, True, 0)
+        self.dev_name_entry = Gtk.Entry()
+        bx_name.pack_end(self.dev_name_entry,  True, True, 0)
+        bx_dev_settings.pack_start(bx_name, False, True, 0)
+
+        # Add a label for port list box
+        bx_dev_settings.pack_start(Gtk.Label(_('Ports'), xalign=0),  False, True, 0)
+
+        # Add a list box with ports
+        self.dev_ports_list_box = Gtk.ListBox()
+        bx_dev_settings.pack_start(self.dev_ports_list_box, True, True, 0)
+
+        # Add a frame for device settings
+        frame_dev_settings = Gtk.Frame(
+            label=_('Device settings'),
+            label_xalign=0.05,
+            hexpand=True,
+            vexpand=True,
+            child=bx_dev_settings)
+        self.pack_start(frame_dev_settings, True, True, 0)
 
     def initialise(self):
         for idx, card in self.indicator.cards.items():
@@ -133,6 +163,7 @@ class DevicesPage(BasePage):
 
             # Add a list box row
             row = Gtk.ListBoxRow(child=grid)
+            row.card = card
 
             # Add an icon
             grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
@@ -145,52 +176,34 @@ class DevicesPage(BasePage):
             # Add a device name label
             grid.attach(Gtk.Label(card.name, xalign=0), 1, 1,  1, 1)
 
-            # Add a device settings box
-            row.dev_settings_box = self._get_device_settings_box(card)
-            grid.attach(row.dev_settings_box, 0, 2,  2, 1)
-
             # Add the grid as a list row
             self.list_box.add(row)
 
         # Show all child widgets
         self.show_all()
 
-        # Update the visibility of device widgets
-        self.update_device_widgets()
+        # Update device settings widgets
+        self.update_dev_settings_widgets()
 
-    @staticmethod
-    def _get_device_settings_box(card: Card) -> Gtk.Box:
-        """Create and return a box with device settings."""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, border_width=12, hexpand=True, vexpand=True)
+    def update_dev_settings_widgets(self):
+        """Update device settings widgets."""
+        # Get selected row
+        row = self.list_box.get_selected_row()
 
-        # Add a name label/entry
-        bx_name = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        bx_name.pack_start(Gtk.Label(_('Name'), xalign=0),  False, True, 0)
-        bx_name.pack_end(Gtk.Entry(),  True, True, 0)
-        box.pack_start(bx_name, False, True, 0)
+        # Remove all ports from the ports list box
+        for port_row in self.dev_ports_list_box.get_children():
+            self.dev_ports_list_box.remove(port_row)
 
-        # Add a label for port list box
-        box.pack_start(Gtk.Label(_('Ports'), xalign=0),  False, True, 0)
-
-        # Add a list box with ports
-        list_box = Gtk.ListBox()
-        for name, port in card.ports.items():
-            list_box.add(Gtk.Label(port.get_display_name(), xalign=0))
-        box.pack_start(list_box, True, True, 0)
-        return box
-
-    def update_device_widgets(self):
-        """Update widgets in each device row."""
-        sel_row = self.list_box.get_selected_row()
-        for row in self.list_box.get_children():
-            if row == sel_row:
-                row.dev_settings_box.show_all()
-            else:
-                row.dev_settings_box.hide()
+        # If there's selected row
+        if row is not None:
+            self.dev_name_entry.set_text(row.card.name)
+            for name, port in row.card.ports.items():
+                self.dev_ports_list_box.add(Gtk.Label(port.get_display_name(), xalign=0))
+        self.show_all()
 
     def on_device_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
         """Signal handler: devices list box row (un)selected."""
-        self.update_device_widgets()
+        self.update_dev_settings_widgets()
 
 
 class MainNotebook(Gtk.Notebook):
