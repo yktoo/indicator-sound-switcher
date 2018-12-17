@@ -5,3 +5,4 @@ locale/
 MANIFEST
 *.pyc
 *.mo
+*.iml
