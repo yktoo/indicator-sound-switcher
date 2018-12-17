@@ -3,7 +3,7 @@ import logging
 
 from gi.repository import Gtk
 
-from .card import Card
+from . import utils
 
 
 class PreferencesDialog(Gtk.Dialog):
@@ -17,7 +17,7 @@ class PreferencesDialog(Gtk.Dialog):
         Gtk.Dialog.__init__(
             self, _('Sound Switcher Indicator Preferences'), parent, 0, (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
         self.set_border_width(12)
-        self.set_default_size(600,  400)
+        self.set_default_size(600, 400)
         self.indicator = indicator
 
         # Add notebook with pages
@@ -64,28 +64,15 @@ class GeneralPage(BasePage):
     def __init__(self, indicator):
         super().__init__(_('_General'), indicator)
 
-        # Add switches
-        self.switch_inputs  = self._add_switch(_('Show inputs'), self.on_switch_inputs_set)
-        self.switch_outputs = self._add_switch(_('Show outputs'), self.on_switch_outputs_set)
+        # Add inputs switch
+        self.switch_inputs = Gtk.Switch()
+        self.switch_inputs.connect('state-set', self.on_switch_inputs_set)
+        self.pack_start(utils.labeled_widget(_('Show inputs'), self.switch_inputs, False), False, False, 0)
 
-    def _add_switch(self, label: str, on_state_set: callable) -> Gtk.Switch:
-        """Add a new labeled switch widget to the page.
-        :return: the created switch widget
-        """
-        # Add a horizontal box that will hold a label and a switch
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-
-        # Add a label
-        box.pack_start(Gtk.Label(label), False, False, 0)
-
-        # Add a switch
-        switch = Gtk.Switch()
-        switch.connect('state-set', on_state_set)
-        box.pack_end(switch, False, False, 0)
-
-        # Add the box to the page
-        self.pack_start(box, False, False, 0)
-        return switch
+        # Add outputs switch
+        self.switch_outputs = Gtk.Switch()
+        self.switch_outputs.connect('state-set', self.on_switch_outputs_set)
+        self.pack_start(utils.labeled_widget(_('Show outputs'), self.switch_outputs, False), False, False, 0)
 
     def initialise(self):
         self.switch_inputs.set_active (self.indicator.config['show_inputs',  True])
@@ -119,42 +106,100 @@ class DevicesPage(BasePage):
         self.set_orientation(Gtk.Orientation.HORIZONTAL)
         self.set_spacing(6)
 
+        # Add main grid
+        grid = Gtk.Grid(border_width=12, column_spacing=6, row_spacing=6, hexpand=True, vexpand=True)
+        self.pack_start(grid, True, True, 0)
+
+        # Fill in the grid
+        self._add_device_widgets(grid)
+        self._add_device_props_widgets(grid)
+        self._add_port_props_widgets(grid)
+
+    def _add_device_widgets(self, grid: Gtk.Grid):
+        """Add widgets for the device list to the main grid."""
+        # Add a label
+        grid.attach(utils.lbl_bold(_('Devices:')), 0, 0, 1, 1)
+
         # Add a scrollbox
-        scrollbox = Gtk.ScrolledWindow(propagate_natural_width=True)
+        scrollbox = Gtk.ScrolledWindow(propagate_natural_width=True, min_content_height=300)
         scrollbox.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.pack_start(scrollbox, False, True, 0)
+        grid.attach(scrollbox, 0, 1, 1, 1)
 
-        # Add a list box
-        self.list_box = Gtk.ListBox()
-        self.list_box.connect('row-selected', self.on_device_row_selected)
-        scrollbox.add(self.list_box)
+        # Add a list box with devices
+        self.listbox_devices = Gtk.ListBox()
+        self.listbox_devices.connect('row-selected', self.on_device_row_selected)
+        scrollbox.add(self.listbox_devices)
 
-        # Add a device settings box
-        bx_dev_settings = Gtk.Box(
+    def _add_device_props_widgets(self, grid: Gtk.Grid):
+        """Add widgets for device props to the main grid."""
+        # Add a label
+        grid.attach(utils.lbl_bold(_('Device settings:')), 1, 0, 1, 1)
+
+        # Add a props wrapper box
+        bx_wrapper = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        grid.attach(bx_wrapper, 1, 1, 1, 1)
+
+        # Add a placeholder label
+        self.lbl_dev_props_placeholder = Gtk.Label(_('(select device first)'))
+        bx_wrapper.pack_start(self.lbl_dev_props_placeholder, True, True, 0)
+
+        # Add a props box
+        self.box_dev_props = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, spacing=6, border_width=12, hexpand=True, vexpand=True)
+        bx_wrapper.pack_end(self.box_dev_props, True, True, 0)
 
         # Add a name label/entry
-        bx_name = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        bx_name.pack_start(Gtk.Label(_('Name'), xalign=0),  False, True, 0)
-        self.dev_name_entry = Gtk.Entry()
-        bx_name.pack_end(self.dev_name_entry,  True, True, 0)
-        bx_dev_settings.pack_start(bx_name, False, True, 0)
+        self.entry_dev_name = Gtk.Entry(width_chars=20)
+        self.box_dev_props.pack_start(utils.labeled_widget(_('Custom name:'), self.entry_dev_name), False, True, 0)
 
         # Add a label for port list box
-        bx_dev_settings.pack_start(Gtk.Label(_('Ports'), xalign=0),  False, True, 0)
+        self.box_dev_props.pack_start(utils.lbl_bold(_('Ports:'), xalign=0),  False, True, 0)
 
         # Add a list box with ports
-        self.dev_ports_list_box = Gtk.ListBox()
-        bx_dev_settings.pack_start(self.dev_ports_list_box, True, True, 0)
+        self.listbox_ports = Gtk.ListBox()
+        self.listbox_ports.connect('row-selected', self.on_port_row_selected)
+        self.box_dev_props.pack_start(
+            Gtk.ScrolledWindow(child=self.listbox_ports, vexpand=True), True, True, 0)
 
-        # Add a frame for device settings
-        frame_dev_settings = Gtk.Frame(
-            label=_('Device settings'),
-            label_xalign=0.05,
-            hexpand=True,
-            vexpand=True,
-            child=bx_dev_settings)
-        self.pack_start(frame_dev_settings, True, True, 0)
+    def _add_port_props_widgets(self, grid: Gtk.Grid):
+        """Add widgets for port props to the main grid."""
+        # Add a label
+        grid.attach(utils.lbl_bold(_('Port settings:')), 2, 0, 1, 1)
+
+        # Add a props wrapper box
+        bx_wrapper = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        grid.attach(bx_wrapper, 2, 1, 1, 1)
+
+        # Add a placeholder label
+        self.lbl_port_props_placeholder = Gtk.Label(_('(select port first)'))
+        bx_wrapper.pack_start(self.lbl_port_props_placeholder, True, True, 0)
+
+        # Add a props box
+        self.box_port_props = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=6, border_width=12, hexpand=True, vexpand=True)
+        bx_wrapper.pack_start(self.box_port_props, True, True, 0)
+
+        # Add a visibility label/switch
+        self.switch_port_visible = Gtk.Switch()
+        # TODO add self.switch_port_visible.connect('state-set', ...)
+        self.box_port_props.pack_start(
+            utils.labeled_widget(_('Visible'), self.switch_port_visible, False), False, True, 0)
+
+        # Add a name label/entry
+        self.entry_port_name = Gtk.Entry(width_chars=20)
+        self.box_port_props.pack_start(utils.labeled_widget(_('Custom name:'), self.entry_port_name), False, True, 0)
+
+        # Add an always available label/switch
+        self.switch_port_always_avail = Gtk.Switch()
+        # TODO add self.switch_port_always_avail.connect('state-set', ...)
+        self.box_port_props.pack_start(
+            utils.labeled_widget(_('Always available'), self.switch_port_always_avail, False), False, True, 0)
+
+        # Add a preferred profile label/dropdown
+        self.cbox_port_pref_profile = Gtk.ComboBoxText()
+        # TODO add self.cbox_port_pref_profile.connect('...', ...)
+        self.box_port_props.pack_start(
+            utils.labeled_widget(_('Preferred profile:'), self.cbox_port_pref_profile), False, True, 0)
 
     def initialise(self):
         for idx, card in self.indicator.cards.items():
@@ -169,41 +214,72 @@ class DevicesPage(BasePage):
             grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
 
             # Add a device title label
-            title_label = Gtk.Label(xalign=0)
-            title_label.set_markup('<b>{}</b>'.format(card.get_display_name()))
-            grid.attach(title_label, 1, 0,  1, 1)
+            grid.attach(utils.lbl_bold(card.get_display_name(), xalign=0), 1, 0,  1, 1)
 
             # Add a device name label
             grid.attach(Gtk.Label(card.name, xalign=0), 1, 1,  1, 1)
 
             # Add the grid as a list row
-            self.list_box.add(row)
+            self.listbox_devices.add(row)
 
         # Show all child widgets
         self.show_all()
 
-        # Update device settings widgets
-        self.update_dev_settings_widgets()
+        # Update device and port props widgets
+        self.update_dev_props_widgets()
+        self.update_port_props_widgets()
 
-    def update_dev_settings_widgets(self):
-        """Update device settings widgets."""
+    def update_dev_props_widgets(self):
+        """Update device props widgets."""
         # Get selected row
-        row = self.list_box.get_selected_row()
+        row = self.listbox_devices.get_selected_row()
 
         # Remove all ports from the ports list box
-        for port_row in self.dev_ports_list_box.get_children():
-            self.dev_ports_list_box.remove(port_row)
+        for port_row in self.listbox_ports.get_children():
+            self.listbox_ports.remove(port_row)
 
-        # If there's selected row
-        if row is not None:
-            self.dev_name_entry.set_text(row.card.name)
+        # If there's no selected row, hide the controls and show the placeholder
+        if row is None:
+            self.lbl_dev_props_placeholder.show()
+            self.box_dev_props.hide()
+        # Update widgets otherwise and hide the placeholder
+        else:
+            self.entry_dev_name.set_text(row.card.display_name)
             for name, port in row.card.ports.items():
-                self.dev_ports_list_box.add(Gtk.Label(port.get_display_name(), xalign=0))
-        self.show_all()
+                # Add a box for labels
+                bx_port = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=6)
+                bx_port.pack_start(utils.lbl_bold(port.get_display_name(), xalign=0), False, False, 0)
+                bx_port.pack_start(Gtk.Label(port.name, xalign=0), False, False, 0)
+
+                # Add a port row
+                port_row = Gtk.ListBoxRow(child=bx_port)
+                port_row.port = port
+                self.listbox_ports.add(port_row)
+            self.box_dev_props.show_all()
+            self.lbl_dev_props_placeholder.hide()
+
+    def update_port_props_widgets(self):
+        """Update port props widgets."""
+        # Get selected row
+        row = self.listbox_ports.get_selected_row()
+
+        # If there's no selected row, hide the controls and show the placeholder
+        if row is None:
+            self.lbl_port_props_placeholder.show()
+            self.box_port_props.hide()
+        # Update widgets otherwise and hide the placeholder
+        else:
+            self.entry_port_name.set_text(row.port.display_name)
+            self.box_port_props.show_all()
+            self.lbl_port_props_placeholder.hide()
 
     def on_device_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
         """Signal handler: devices list box row (un)selected."""
-        self.update_dev_settings_widgets()
+        self.update_dev_props_widgets()
+
+    def on_port_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
+        """Signal handler: ports list box row (un)selected."""
+        self.update_port_props_widgets()
 
 
 class MainNotebook(Gtk.Notebook):
