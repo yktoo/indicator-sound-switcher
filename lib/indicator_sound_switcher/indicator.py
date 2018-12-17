@@ -13,7 +13,7 @@ from .card import CardProfile, Card
 from .port import Port
 from .stream import Source, Sink
 from .config import Config, EMPTY_CONFIG
-from .prefs import PreferencesDialog
+from .prefs import show_prefs_dialog
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -181,18 +181,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_preferences(self, *args):
         """Signal handler: Preferences item clicked."""
         logging.debug('.on_preferences()')
-        # If the dialog is already open, just bring it up
-        if self.prefs_dlg is not None:
-            self.prefs_dlg.present()
-            return
-
-        # Instantiate a new dialog otherwise
-        self.prefs_dlg = PreferencesDialog(self)
-        try:
-            self.prefs_dlg.run()
-        finally:
-            self.prefs_dlg.destroy()
-            self.prefs_dlg = None
+        show_prefs_dialog()
 
     def on_quit(self, *args):
         """Signal handler: Quit item clicked."""

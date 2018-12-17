@@ -26,9 +26,15 @@ Author: Dmitry Kann
   <!-- interface-license-type gplv3 -->
   <!-- interface-name Sound Switcher Indicator -->
   <!-- interface-authors Dmitry Kann -->
-  <object class="GtkDialog">
+  <object class="GtkDialog" id="prefs_dialog">
     <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Sound Switcher Indicator Preferences</property>
+    <property name="window_position">center-always</property>
+    <property name="default_width">800</property>
+    <property name="default_height">500</property>
+    <property name="icon_name">gtk-preferences</property>
     <property name="type_hint">dialog</property>
+    <property name="has_resize_grip">True</property>
     <child>
       <placeholder/>
     </child>
@@ -46,10 +52,19 @@ Author: Dmitry Kann
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkButton">
+                <property name="label">gtk-close</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
+                <property name="always_show_image">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -68,6 +83,13 @@ Author: Dmitry Kann
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_left">12</property>
+                <property name="margin_right">12</property>
+                <property name="margin_top">12</property>
+                <property name="margin_bottom">12</property>
+                <property name="row_spacing">6</property>
+                <property name="column_spacing">6</property>
+                <property name="column_homogeneous">True</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
@@ -105,8 +127,8 @@ Author: Dmitry Kann
                     <property name="halign">end</property>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">0</property>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -116,15 +138,9 @@ Author: Dmitry Kann
                     <property name="halign">end</property>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">1</property>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">0</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
             </child>
@@ -143,6 +159,10 @@ Author: Dmitry Kann
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_left">12</property>
+                <property name="margin_right">12</property>
+                <property name="margin_top">12</property>
+                <property name="margin_bottom">12</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="row_spacing">6</property>
@@ -211,10 +231,12 @@ Author: Dmitry Kann
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -233,7 +255,7 @@ Author: Dmitry Kann
                             <property name="can_focus">True</property>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
+                            <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">1</property>
                           </packing>
@@ -284,6 +306,8 @@ Author: Dmitry Kann
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="row_spacing">6</property>
+                    <property name="column_spacing">6</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>

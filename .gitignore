@@ -6,3 +6,4 @@ MANIFEST
 *.pyc
 *.mo
 *.iml
+*.*~

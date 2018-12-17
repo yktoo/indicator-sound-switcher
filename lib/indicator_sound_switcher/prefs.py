@@ -1,64 +1,39 @@
 import abc
 import logging
+import os
 
 from gi.repository import Gtk
 
 from . import utils
 
 
-class PreferencesDialog(Gtk.Dialog):
-    """Indicator preferences dialog."""
-
-    def __init__(self, indicator, parent: Gtk.Window=None):
-        """Constructor.
-        :param indicator: Sound Switcher Indicator instance
-        :param parent: parent window
-        """
-        Gtk.Dialog.__init__(
-            self, _('Sound Switcher Indicator Preferences'), parent, 0, (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
-        self.set_border_width(12)
-        self.set_default_size(600, 400)
-        self.indicator = indicator
-
-        # Add notebook with pages
-        notebook = MainNotebook(indicator)
-        self.get_content_area().pack_start(notebook, True, True, 0)
-
-        # Show all controls
-        self.show_all()
+_dlg = None
 
 
-class BasePage(Gtk.Box):
-    """Base abstract class for notebook page objects."""
+def show_prefs_dialog():
+    """Instantiate and run a Preferences dialog."""
+    global _dlg
 
-    def __init__(self, title: str, indicator):
-        """Constructor."""
-        super().__init__()
-        self.set_orientation(Gtk.Orientation.VERTICAL)
-        self.set_spacing(6)
-        self.set_border_width(10)
-        self.scroll_box = None
-        self.is_initialised = False
-        self.title = title
-        self.indicator = indicator
+    # If the dialog is already open, just bring it up
+    if _dlg is not None:
+        _dlg.present()
+        return
 
-    def get_label_widget(self):
-        """Create and return a widget for the page label."""
-        return Gtk.Label.new_with_mnemonic(self.title)
+    builder = Gtk.Builder()
+    builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
 
-    def on_activate(self):
-        """Is called whenever the page is activated."""
-        if not self.is_initialised:
-            # Call the page-specific initialisation
-            self.initialise()
-            self.is_initialised = True
-
-    @abc.abstractmethod
-    def initialise(self):
-        """Must initialise the page."""
+    # Instantiate a new dialog otherwise
+    _dlg = builder.get_object('prefs_dialog')
+    try:
+        _dlg.show_all()
+        _dlg.run()
+    finally:
+        _dlg.destroy()
+        _dlg = None
 
 
-class GeneralPage(BasePage):
+# TODO remove
+class GeneralPage():
     """General page object."""
 
     def __init__(self, indicator):
@@ -98,7 +73,8 @@ class GeneralPage(BasePage):
         self.indicator.on_refresh()
 
 
-class DevicesPage(BasePage):
+# TODO remove
+class DevicesPage():
     """Devices page object."""
 
     def __init__(self, indicator):
@@ -280,28 +256,3 @@ class DevicesPage(BasePage):
     def on_port_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
         """Signal handler: ports list box row (un)selected."""
         self.update_port_props_widgets()
-
-
-class MainNotebook(Gtk.Notebook):
-    """Implementation of the preferences dialog's notebook control."""
-
-    def __init__(self, indicator):
-        logging.debug('Creating ' + self.__class__.__name__)
-        super().__init__()
-
-        # Create notebook pages
-        self._add_page(GeneralPage(indicator))
-        self._add_page(DevicesPage(indicator))
-
-        # Connect page switch signal
-        self.connect('switch-page', self.on_switch_page)
-
-    def _add_page(self, page: BasePage):
-        """Add a single (descendant of) BasePage."""
-        self.append_page(page, page.get_label_widget())
-
-    @staticmethod
-    def on_switch_page(widget, page, index):
-        """Signal handler: current page changed"""
-        logging.debug('Page changed to %d', index)
-        page.on_activate()
