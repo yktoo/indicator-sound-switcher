@@ -5,8 +5,8 @@ from gi.repository import Gtk
 
 from . import utils
 
-
-_dlg: PreferencesDialog = None
+# Global Preferences dialog instance
+_dlg = None
 
 
 def show_dialog(indicator):
@@ -15,7 +15,7 @@ def show_dialog(indicator):
 
     # If the dialog is already open, just bring it up
     if _dlg is not None:
-        _dlg.dlg.present()
+        _dlg.prefs_dialog.present()
 
     # Instantiate a new dialog otherwise
     else:
@@ -29,7 +29,7 @@ def show_dialog(indicator):
 def quit_dialog():
     """Close the Preferences dialog, is any."""
     if _dlg is not None:
-        _dlg.dlg.response(Gtk.ResponseType.CLOSE)
+        _dlg.prefs_dialog.response(Gtk.ResponseType.CLOSE)
 
 
 class PreferencesDialog:
@@ -37,15 +37,19 @@ class PreferencesDialog:
 
     def __init__(self, indicator):
         """Constructor."""
+        self.indicator = indicator
         # Open and parse the XML UI file otherwise
         self.builder = Gtk.Builder()
         self.builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
 
-        # Connect signal handler
+        # Update widgets
+        self._update_widgets()
+
+        # Connect signal handlers
         self.builder.connect_signals(self)
 
     def __getattr__(self, name):
-        """Magic getter method."""
+        """Magic getter method. Registers each object as an attribute on first access."""
         obj = self.builder.get_object(name)
         setattr(self, name, obj)
         return obj
@@ -56,61 +60,100 @@ class PreferencesDialog:
         self.prefs_dialog.run()
         self.prefs_dialog.destroy()
 
-    @staticmethod
-    def on_close(*args):
-        logging.debug('Handler.on_close()')
-        _dlg.response(Gtk.ResponseType.CLOSE)
+    def _update_widgets(self):
+        """Update the state of 'top level' widgets."""
+        # General page - switches
+        self.sw_show_inputs.set_active (self.indicator.config['show_inputs',  True])
+        self.sw_show_outputs.set_active(self.indicator.config['show_outputs', True])
 
-    @staticmethod
-    def on_show_inputs_switched(widget, data):
-        logging.debug('Handler.on_show_inputs_switched(%s)', widget.get_active())
-        #TODO
-        pass
+        # Device page - device list
+        for idx, card in self.indicator.cards.items():
+            # Add a grid
+            grid = Gtk.Grid(border_width=12, column_spacing=6, row_spacing=6, hexpand=True)
 
-    @staticmethod
-    def on_show_outputs_switched(widget, data):
-        logging.debug('Handler.on_show_outputs_switched(%s)', widget.get_active())
-        #TODO
-        pass
+            # Add a list box row
+            row = Gtk.ListBoxRow(child=grid)
+            row.card = card
 
+            # Add an icon
+            grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
 
-# TODO remove
-class GeneralPage():
-    """General page object."""
+            # Add a device title label
+            grid.attach(utils.lbl_bold(card.get_display_name(), xalign=0), 1, 0,  1, 1)
 
-    def __init__(self, indicator):
-        super().__init__(_('_General'), indicator)
+            # Add a device name label
+            grid.attach(Gtk.Label(card.name, xalign=0), 1, 1,  1, 1)
 
-        # Add inputs switch
-        self.switch_inputs = Gtk.Switch()
-        self.switch_inputs.connect('state-set', self.on_switch_inputs_set)
-        self.pack_start(utils.labeled_widget(_('Show inputs'), self.switch_inputs, False), False, False, 0)
+            # Add the grid as a list row
+            self.lbx_devices.add(row)
 
-        # Add outputs switch
-        self.switch_outputs = Gtk.Switch()
-        self.switch_outputs.connect('state-set', self.on_switch_outputs_set)
-        self.pack_start(utils.labeled_widget(_('Show outputs'), self.switch_outputs, False), False, False, 0)
+        # Update device and port props widgets
+        self.update_dev_props_widgets()
+        self.update_port_props_widgets()
 
-    def initialise(self):
-        self.switch_inputs.set_active (self.indicator.config['show_inputs',  True])
-        self.switch_outputs.set_active(self.indicator.config['show_outputs', True])
+    def update_dev_props_widgets(self):
+        """Update device props widgets."""
+        # Get selected row
+        row = self.lbx_devices.get_selected_row()
 
-        # Show all child widgets
-        self.show_all()
+        # Remove all ports from the ports list box
+        for port_row in self.lbx_ports.get_children():
+            self.lbx_ports.remove(port_row)
 
-    def on_switch_inputs_set(self, widget: Gtk.Switch, data):
-        """Signal handler: Show Inputs switch set."""
-        if not self.is_initialised:
-            return
-        logging.debug('.on_switch_inputs_set(%s)', widget.get_active())
+        # If there's no selected row, hide the controls and show the placeholder
+#        if row is None:
+#            self.lbl_dev_props_placeholder.show()
+#            self.box_dev_props.hide()
+#        # Update widgets otherwise and hide the placeholder
+#        else:
+#            self.entry_dev_name.set_text(row.card.display_name)
+#            for name, port in row.card.ports.items():
+#                # Add a box for labels
+#                bx_port = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=6)
+#                bx_port.pack_start(utils.lbl_bold(port.get_display_name(), xalign=0), False, False, 0)
+#                bx_port.pack_start(Gtk.Label(port.name, xalign=0), False, False, 0)
+#
+#                # Add a port row
+#                port_row = Gtk.ListBoxRow(child=bx_port)
+#                port_row.port = port
+#                self.lbx_ports.add(port_row)
+#            self.box_dev_props.show_all()
+#            self.lbl_dev_props_placeholder.hide()
+
+    def update_port_props_widgets(self):
+        """Update port props widgets."""
+        # Get selected row
+        row = self.lbx_ports.get_selected_row()
+
+        # If there's no selected row, hide the controls and show the placeholder
+#        if row is None:
+#            self.lbl_port_props_placeholder.show()
+#            self.box_port_props.hide()
+#        # Update widgets otherwise and hide the placeholder
+#        else:
+#            self.entry_port_name.set_text(row.port.display_name)
+#            self.box_port_props.show_all()
+#            self.lbl_port_props_placeholder.hide()
+
+    def on_device_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
+        """Signal handler: devices list box row (un)selected."""
+        self.update_dev_props_widgets()
+
+    def on_port_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
+        """Signal handler: ports list box row (un)selected."""
+        self.update_port_props_widgets()
+
+    def on_close(self, *args):
+        logging.debug('PreferencesDialog.on_close()')
+        self.prefs_dialog.response(Gtk.ResponseType.CLOSE)
+
+    def on_show_inputs_switched(self, widget, data):
+        logging.debug('PreferencesDialog.on_show_inputs_switched(%s)', widget.get_active())
         self.indicator.config['show_inputs'] = widget.get_active()
         self.indicator.on_refresh()
 
-    def on_switch_outputs_set(self, widget: Gtk.Switch, data):
-        """Signal handler: Show Outputs switch set."""
-        if not self.is_initialised:
-            return
-        logging.debug('.on_switch_outputs_set(%s)', widget.get_active())
+    def on_show_outputs_switched(self, widget, data):
+        logging.debug('PreferencesDialog.on_show_outputs_switched(%s)', widget.get_active())
         self.indicator.config['show_outputs'] = widget.get_active()
         self.indicator.on_refresh()
 
@@ -174,10 +217,10 @@ class DevicesPage():
         self.box_dev_props.pack_start(utils.lbl_bold(_('Ports:'), xalign=0),  False, True, 0)
 
         # Add a list box with ports
-        self.listbox_ports = Gtk.ListBox()
-        self.listbox_ports.connect('row-selected', self.on_port_row_selected)
+        self.lbx_ports = Gtk.ListBox()
+        self.lbx_ports.connect('row-selected', self.on_port_row_selected)
         self.box_dev_props.pack_start(
-            Gtk.ScrolledWindow(child=self.listbox_ports, vexpand=True), True, True, 0)
+            Gtk.ScrolledWindow(child=self.lbx_ports, vexpand=True), True, True, 0)
 
     def _add_port_props_widgets(self, grid: Gtk.Grid):
         """Add widgets for port props to the main grid."""
@@ -219,82 +262,3 @@ class DevicesPage():
         self.box_port_props.pack_start(
             utils.labeled_widget(_('Preferred profile:'), self.cbox_port_pref_profile), False, True, 0)
 
-    def initialise(self):
-        for idx, card in self.indicator.cards.items():
-            # Add a grid
-            grid = Gtk.Grid(border_width=12, column_spacing=6, row_spacing=6, hexpand=True)
-
-            # Add a list box row
-            row = Gtk.ListBoxRow(child=grid)
-            row.card = card
-
-            # Add an icon
-            grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
-
-            # Add a device title label
-            grid.attach(utils.lbl_bold(card.get_display_name(), xalign=0), 1, 0,  1, 1)
-
-            # Add a device name label
-            grid.attach(Gtk.Label(card.name, xalign=0), 1, 1,  1, 1)
-
-            # Add the grid as a list row
-            self.listbox_devices.add(row)
-
-        # Show all child widgets
-        self.show_all()
-
-        # Update device and port props widgets
-        self.update_dev_props_widgets()
-        self.update_port_props_widgets()
-
-    def update_dev_props_widgets(self):
-        """Update device props widgets."""
-        # Get selected row
-        row = self.listbox_devices.get_selected_row()
-
-        # Remove all ports from the ports list box
-        for port_row in self.listbox_ports.get_children():
-            self.listbox_ports.remove(port_row)
-
-        # If there's no selected row, hide the controls and show the placeholder
-        if row is None:
-            self.lbl_dev_props_placeholder.show()
-            self.box_dev_props.hide()
-        # Update widgets otherwise and hide the placeholder
-        else:
-            self.entry_dev_name.set_text(row.card.display_name)
-            for name, port in row.card.ports.items():
-                # Add a box for labels
-                bx_port = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=6)
-                bx_port.pack_start(utils.lbl_bold(port.get_display_name(), xalign=0), False, False, 0)
-                bx_port.pack_start(Gtk.Label(port.name, xalign=0), False, False, 0)
-
-                # Add a port row
-                port_row = Gtk.ListBoxRow(child=bx_port)
-                port_row.port = port
-                self.listbox_ports.add(port_row)
-            self.box_dev_props.show_all()
-            self.lbl_dev_props_placeholder.hide()
-
-    def update_port_props_widgets(self):
-        """Update port props widgets."""
-        # Get selected row
-        row = self.listbox_ports.get_selected_row()
-
-        # If there's no selected row, hide the controls and show the placeholder
-        if row is None:
-            self.lbl_port_props_placeholder.show()
-            self.box_port_props.hide()
-        # Update widgets otherwise and hide the placeholder
-        else:
-            self.entry_port_name.set_text(row.port.display_name)
-            self.box_port_props.show_all()
-            self.lbl_port_props_placeholder.hide()
-
-    def on_device_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
-        """Signal handler: devices list box row (un)selected."""
-        self.update_dev_props_widgets()
-
-    def on_port_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
-        """Signal handler: ports list box row (un)selected."""
-        self.update_port_props_widgets()
