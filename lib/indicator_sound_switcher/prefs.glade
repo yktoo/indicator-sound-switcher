@@ -59,6 +59,7 @@ Author: Dmitry Kann
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
                 <property name="always_show_image">True</property>
+                <signal name="clicked" handler="on_close" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -121,10 +122,11 @@ Author: Dmitry Kann
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSwitch">
+                  <object class="GtkSwitch" id="sw_show_outputs">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="halign">end</property>
+                    <signal name="state-set" handler="on_show_outputs_switched" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -132,10 +134,11 @@ Author: Dmitry Kann
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSwitch">
+                  <object class="GtkSwitch" id="sw_show_inputs">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="halign">end</property>
+                    <signal name="state-set" handler="on_show_inputs_switched" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>

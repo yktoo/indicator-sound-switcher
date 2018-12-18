@@ -13,7 +13,7 @@ from .card import CardProfile, Card
 from .port import Port
 from .stream import Source, Sink
 from .config import Config, EMPTY_CONFIG
-from .prefs import show_prefs_dialog
+from . import prefs
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -73,9 +73,6 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.item_separator_inputs  = None
         self.item_header_outputs    = None
         self.item_separator_outputs = None
-
-        # Initialise other stuff
-        self.prefs_dlg = None
 
         # Load configuration, if any
         config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
@@ -181,7 +178,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_preferences(self, *args):
         """Signal handler: Preferences item clicked."""
         logging.debug('.on_preferences()')
-        show_prefs_dialog()
+        prefs.show_dialog(self)
 
     def on_quit(self, *args):
         """Signal handler: Quit item clicked."""
@@ -1026,8 +1023,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def shutdown(self):
         """Shut down the application."""
         # Close the Preferences dialog if it's open
-        if self.prefs_dlg is not None:
-            self.prefs_dlg.response(Gtk.ResponseType.CLOSE)
+        prefs.quit_dialog()
 
         # Shutdown PulseAudio
         self.pulseaudio_shutdown()

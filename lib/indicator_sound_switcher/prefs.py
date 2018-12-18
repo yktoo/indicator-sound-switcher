@@ -1,4 +1,3 @@
-import abc
 import logging
 import os
 
@@ -7,29 +6,72 @@ from gi.repository import Gtk
 from . import utils
 
 
-_dlg = None
+_dlg: PreferencesDialog = None
 
 
-def show_prefs_dialog():
+def show_dialog(indicator):
     """Instantiate and run a Preferences dialog."""
     global _dlg
 
     # If the dialog is already open, just bring it up
     if _dlg is not None:
-        _dlg.present()
-        return
-
-    builder = Gtk.Builder()
-    builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
+        _dlg.dlg.present()
 
     # Instantiate a new dialog otherwise
-    _dlg = builder.get_object('prefs_dialog')
-    try:
-        _dlg.show_all()
-        _dlg.run()
-    finally:
-        _dlg.destroy()
-        _dlg = None
+    else:
+        _dlg = PreferencesDialog(indicator)
+        try:
+            _dlg.run()
+        finally:
+            _dlg = None
+
+
+def quit_dialog():
+    """Close the Preferences dialog, is any."""
+    if _dlg is not None:
+        _dlg.dlg.response(Gtk.ResponseType.CLOSE)
+
+
+class PreferencesDialog:
+    """Preferences dialog."""
+
+    def __init__(self, indicator):
+        """Constructor."""
+        # Open and parse the XML UI file otherwise
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
+
+        # Connect signal handler
+        self.builder.connect_signals(self)
+
+    def __getattr__(self, name):
+        """Magic getter method."""
+        obj = self.builder.get_object(name)
+        setattr(self, name, obj)
+        return obj
+
+    def run(self):
+        """Main routine. Show and run the dialog."""
+        self.prefs_dialog.show_all()
+        self.prefs_dialog.run()
+        self.prefs_dialog.destroy()
+
+    @staticmethod
+    def on_close(*args):
+        logging.debug('Handler.on_close()')
+        _dlg.response(Gtk.ResponseType.CLOSE)
+
+    @staticmethod
+    def on_show_inputs_switched(widget, data):
+        logging.debug('Handler.on_show_inputs_switched(%s)', widget.get_active())
+        #TODO
+        pass
+
+    @staticmethod
+    def on_show_outputs_switched(widget, data):
+        logging.debug('Handler.on_show_outputs_switched(%s)', widget.get_active())
+        #TODO
+        pass
 
 
 # TODO remove
