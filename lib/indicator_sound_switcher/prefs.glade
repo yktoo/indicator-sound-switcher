@@ -29,7 +29,7 @@ Author: Dmitry Kann
   <object class="GtkDialog" id="prefs_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Sound Switcher Indicator Preferences</property>
-    <property name="window_position">center-always</property>
+    <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">500</property>
     <property name="icon_name">gtk-preferences</property>
@@ -235,6 +235,7 @@ Author: Dmitry Kann
                             <property name="can_focus">False</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
+                            <signal name="row-selected" handler="on_device_row_selected" swapped="no"/>
                           </object>
                         </child>
                       </object>
@@ -246,7 +247,7 @@ Author: Dmitry Kann
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="bx_dev_props">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="hexpand">True</property>
@@ -271,9 +272,13 @@ Author: Dmitry Kann
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkEntry">
+                          <object class="GtkEntry" id="e_device_name">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="secondary_icon_stock">gtk-no</property>
+                            <property name="secondary_icon_tooltip_text" translatable="yes">Reset</property>
+                            <signal name="changed" handler="on_device_name_changed" swapped="no"/>
+                            <signal name="icon-press" handler="on_entry_clear_click" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -323,6 +328,7 @@ Author: Dmitry Kann
                                 <property name="can_focus">False</property>
                                 <property name="hexpand">True</property>
                                 <property name="vexpand">True</property>
+                                <signal name="row-selected" handler="on_port_row_selected" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -341,7 +347,7 @@ Author: Dmitry Kann
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkGrid">
+                  <object class="GtkGrid" id="g_port_props">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="row_spacing">6</property>
@@ -359,7 +365,7 @@ Author: Dmitry Kann
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSwitch">
+                      <object class="GtkSwitch" id="sw_port_visible">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="halign">end</property>
@@ -406,7 +412,7 @@ Author: Dmitry Kann
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSwitch">
+                      <object class="GtkSwitch" id="sw_port_always_avail">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="halign">end</property>
@@ -417,9 +423,12 @@ Author: Dmitry Kann
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry">
+                      <object class="GtkEntry" id="e_port_name">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="secondary_icon_stock">gtk-no</property>
+                        <property name="secondary_icon_tooltip_text" translatable="yes">Reset</property>
+                        <signal name="icon-press" handler="on_entry_clear_click" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -427,7 +436,7 @@ Author: Dmitry Kann
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText">
+                      <object class="GtkComboBoxText" id="cb_port_pref_profile">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
