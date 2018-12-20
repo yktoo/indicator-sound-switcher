@@ -12,8 +12,8 @@ from .lib_pulseaudio import *
 from .card import CardProfile, Card
 from .port import Port
 from .stream import Source, Sink
-from .config import Config, EMPTY_CONFIG
-from . import prefs
+from .config import Config
+from .prefs import PreferencesDialog
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
@@ -77,9 +77,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Load configuration, if any
         config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
         self.config = Config.load_from_file(config_file_name)
-        if self.config is None:
-            self.config = EMPTY_CONFIG
-        self.config_devices = self.config['devices', EMPTY_CONFIG]
+        self.config_devices = self.config['devices']
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -178,7 +176,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_preferences(self, *args):
         """Signal handler: Preferences item clicked."""
         logging.debug('.on_preferences()')
-        prefs.show_dialog(self)
+        PreferencesDialog.show(self)
 
     def on_quit(self, *args):
         """Signal handler: Quit item clicked."""
@@ -461,10 +459,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         act_prof_name = data.active_profile.contents.name.decode()
 
         # Try to fetch the card's configuration
-        card_cfg = self.config_devices[name, EMPTY_CONFIG]
+        card_cfg = self.config_devices[name]
 
         # Prepare ports array
-        card_ports = self.card_fetch_ports(data.ports, card_cfg['ports', EMPTY_CONFIG])
+        card_ports = self.card_fetch_ports(data.ports, card_cfg['ports'])
 
         # If card already exists, fetch it
         if index in self.cards:
@@ -646,7 +644,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Create and register a new instance of Sink object (this will also set owner_stream in each port)
             sink_display_name = self.get_virtual_stream_display_name(
-                self.config_devices['virtual', EMPTY_CONFIG]['sinks', EMPTY_CONFIG][name, ''])
+                self.config_devices['virtual']['sinks'][name, ''])
             sink = Sink(index, name, sink_display_name or '', description, sink_ports, data.card)
             self.sinks[index] = sink
 
@@ -774,7 +772,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
             source_display_name = self.get_virtual_stream_display_name(
-                self.config_devices['virtual', EMPTY_CONFIG]['sources', EMPTY_CONFIG][name, ''])
+                self.config_devices['virtual']['sources'][name, ''])
             source = Source(index, name, source_display_name or '', description, source_ports, data.card)
             self.sources[index] = source
 
@@ -1023,7 +1021,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def shutdown(self):
         """Shut down the application."""
         # Close the Preferences dialog if it's open
-        prefs.quit_dialog()
+        PreferencesDialog.quit()
 
         # Shutdown PulseAudio
         self.pulseaudio_shutdown()

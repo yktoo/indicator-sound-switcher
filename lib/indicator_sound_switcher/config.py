@@ -7,20 +7,20 @@ import json
 
 
 class Config(dict):
-    """Extension of the standard dict class that overrides item getter to add default value support and a better
-    exception message.
+    """Extension of the standard dict class that overrides item getter to add default value support and sub-dictionary
+    autocreation.
     """
 
     @staticmethod
     def load_from_file(file_name: str):
         """Load, parse and return JSON configuration from a file specified by name.
         :param file_name: Name of the JSON configuration file.
-        :returns An instance of Config or None if the file doesn't exist.
+        :returns An instance of Config (empty if the file doesn't exist).
         """
         # Check if the file exists
         if not os.path.isfile(file_name):
             logging.info('Configuration file %s not found, falling back to defaults', file_name)
-            return None
+            return Config()
 
         # Open and read in the file
         with open(file_name, 'r') as cf:
@@ -37,7 +37,8 @@ class Config(dict):
         """Override the inherited getter.
         :param key Either a key name (string) or a tuple consisting of
           [0] Configuration key name and
-          [1] Optional default value to return if the key isn't found. If not given, a ConfigError will be raised.
+          [1] Optional default value to return if the key isn't found. If not given, a new, empty Config instance will
+              be inserted and returned
         :rtype : V
         :return Configuration value corresponfing to the name or the default.
         """
@@ -56,12 +57,15 @@ class Config(dict):
         # Try to fetch a key
         if key_name in self:
             return dict.__getitem__(self, key_name)
+
         # We don't have the key. If a default was given, return it
-        elif default_given:
+        if default_given:
             return default
-        # Otherwise raise an exception
-        else:
-            raise KeyError('The key named `{}` is not found in the configuration.'.format(key_name))
+
+        # Insert an empty Config instance and return it
+        result = Config()
+        dict.__setitem__(self, key_name, result)
+        return result
 
     def __setitem__(self, key, value):
         """Override the inherited setter to convert incoming dict values into Config instances."""
@@ -81,7 +85,3 @@ class Config(dict):
         # Process keyword arguments
         for k, v in kwargs.items():
             self[k] = v
-
-
-# Empty configuration singleton
-EMPTY_CONFIG = Config()

@@ -5,50 +5,44 @@ from gi.repository import Gtk
 
 from . import utils
 
-# Global Preferences dialog instance
-_dlg = None
-
-
-def show_dialog(indicator):
-    """Instantiate and run a Preferences dialog."""
-    global _dlg
-
-    # If the dialog is already open, just bring it up
-    if _dlg is not None:
-        _dlg.prefs_dialog.present()
-
-    # Instantiate a new dialog otherwise
-    else:
-        _dlg = PreferencesDialog(indicator)
-        try:
-            _dlg.run()
-        finally:
-            _dlg = None
-
-
-def quit_dialog():
-    """Close the Preferences dialog, is any."""
-    if _dlg is not None:
-        _dlg.prefs_dialog.response(Gtk.ResponseType.CLOSE)
-
 
 class PreferencesDialog:
     """Preferences dialog."""
 
+    # Preferences dialog singleton
+    _dlg = None
+
+    @classmethod
+    def show(cls, indicator):
+        """Instantiate and run a Preferences dialog."""
+        # If the dialog is already open, just bring it up
+        if cls._dlg is not None:
+            cls._dlg.prefs_dialog.present()
+
+        # Instantiate a new dialog otherwise
+        else:
+            cls._dlg = PreferencesDialog(indicator)
+            try:
+                cls._dlg.run()
+            finally:
+                cls._dlg = None
+
+    @classmethod
+    def quit(cls):
+        """Close the Preferences dialog, is any."""
+        if cls._dlg is not None:
+            cls._dlg.prefs_dialog.response(Gtk.ResponseType.CLOSE)
+
     def __init__(self, indicator):
         """Constructor."""
         self.indicator = indicator
-
-        # Initialise the config
-        self.config = indicator.config
-        if self.config['devices', None] is None:
-            self.config['devices'] = {}
 
         # Open and parse the XML UI file otherwise
         self.builder = Gtk.Builder()
         self.builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
 
         # Update widgets
+        self.updating_widgets = 0
         self._update_widgets()
 
         # Connect signal handlers
@@ -68,9 +62,12 @@ class PreferencesDialog:
 
     def _update_widgets(self):
         """Update the state of 'top level' widgets."""
+        # Lock signal handlers
+        self.updating_widgets += 1
+
         # General page - switches
-        self.sw_show_inputs.set_active (self.config['show_inputs',  True])
-        self.sw_show_outputs.set_active(self.config['show_outputs', True])
+        self.sw_show_inputs.set_active (self.indicator.config['show_inputs',  True])
+        self.sw_show_outputs.set_active(self.indicator.config['show_outputs', True])
 
         # Device page - device list
         for idx, card in self.indicator.cards.items():
@@ -97,8 +94,14 @@ class PreferencesDialog:
         self.update_dev_props_widgets()
         self.update_port_props_widgets()
 
+        # Unlock signal handlers
+        self.updating_widgets -= 1
+
     def update_dev_props_widgets(self):
         """Update device props widgets."""
+        # Lock signal handlers
+        self.updating_widgets += 1
+
         # Get selected row
         row = self.lbx_devices.get_selected_row()
 
@@ -126,8 +129,14 @@ class PreferencesDialog:
         # Enable widgets
         self.bx_dev_props.set_sensitive(row is not None)
 
+        # Unlock signal handlers
+        self.updating_widgets -= 1
+
     def update_port_props_widgets(self):
         """Update port props widgets."""
+        # Lock signal handlers
+        self.updating_widgets += 1
+
         # Get selected row
         row = self.lbx_ports.get_selected_row()
 
@@ -140,6 +149,9 @@ class PreferencesDialog:
 
         # Enable widgets
         self.g_port_props.set_sensitive(row is not None)
+
+        # Unlock signal handlers
+        self.updating_widgets -= 1
 
     def on_close(self, *args):
         """Signal handler: dialog Close button clicked."""
@@ -158,23 +170,31 @@ class PreferencesDialog:
 
     def on_show_inputs_switched(self, widget, data):
         """Signal handler: Show inputs switch changed."""
+        if self.updating_widgets > 0:
+            return
         logging.debug('PreferencesDialog.on_show_inputs_switched(%s)', widget.get_active())
         self.indicator.config['show_inputs'] = widget.get_active()
         self.indicator.on_refresh()
 
     def on_show_outputs_switched(self, widget, data):
         """Signal handler: Show outputs switch changed."""
+        if self.updating_widgets > 0:
+            return
         logging.debug('PreferencesDialog.on_show_outputs_switched(%s)', widget.get_active())
         self.indicator.config['show_outputs'] = widget.get_active()
         self.indicator.on_refresh()
 
     def on_device_name_changed(self, entry: Gtk.Entry):
         """Signal handler: Device name entry text changed."""
+        if self.updating_widgets > 0:
+            return
+
+
         logging.debug('PreferencesDialog.on_device_name_changed(`%s`)', entry.get_text())
         row = self.lbx_devices.get_selected_row()
         if row:
-            self.config['devices'][row.card.name]['name'] = entry.get_text()
-        self.indicator.on_refresh()
+            self.indicator.config['devices'][row.card.name]['name'] = entry.get_text()
+            self.indicator.on_refresh()
 
     @staticmethod
     def on_entry_clear_click(entry, icon_pos, event):
