@@ -487,7 +487,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Otherwise register a new card object
         else:
-            logging.debug('  + Card[%d] added: `%s`', index, name)
+            logging.debug('  + Card[%d] added: `%s`, driver: `%s`', index, name, data.driver.decode())
 
             # Prepare profiles dict
             card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)

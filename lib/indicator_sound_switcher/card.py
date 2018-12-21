@@ -1,6 +1,7 @@
 from gi.repository import GObject
 from . import lib_pulseaudio
 
+
 class CardProfile(GObject.GObject):
     """Card profile class."""
 
@@ -72,6 +73,17 @@ class Card(GObject.GObject):
     def get_display_name(self) -> str:
         """Returns display name for the card."""
         return self.display_name or self.description
+
+    def get_descriptive_name(self) -> str:
+        """Returns a 'descriptive' name for the card, which consists of the name of an avaibale output port with the
+        highest priority (this is the behaviour Gnome Sound Panel implements) and the card's description."""
+        max_port = None
+        for port in self.ports.values():
+            if port.is_available and port.is_output and (max_port is None or port.priority > max_port.priority):
+                max_port = port
+
+        # If a suitable port found, return it combined with the description, otherwise just use the description
+        return '{} - {}'.format(max_port.description, self.description) if max_port else self.description
 
     def update_port_activity(self, sources: dict, sinks: dict):
         """Updates the is_active state of every port on the card, according to the state of the related sink/source

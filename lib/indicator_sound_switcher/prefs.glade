@@ -369,6 +369,7 @@ Author: Dmitry Kann
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="halign">end</property>
+                        <signal name="state-set" handler="on_port_visible_switched" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -416,6 +417,7 @@ Author: Dmitry Kann
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="halign">end</property>
+                        <signal name="state-set" handler="on_port_always_avail_switched" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -428,6 +430,7 @@ Author: Dmitry Kann
                         <property name="can_focus">True</property>
                         <property name="secondary_icon_stock">gtk-no</property>
                         <property name="secondary_icon_tooltip_text" translatable="yes">Reset</property>
+                        <signal name="changed" handler="on_port_name_changed" swapped="no"/>
                         <signal name="icon-press" handler="on_entry_clear_click" swapped="no"/>
                       </object>
                       <packing>
