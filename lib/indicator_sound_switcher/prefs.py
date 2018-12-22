@@ -94,6 +94,8 @@ class PreferencesDialog:
 
             # Add a list box row
             row = Gtk.ListBoxRow(child=grid)
+
+            # Store device's name, ports and profiles as additional attributes in the row
             row.device_name = card.name
             row.device_ports = {
                 p.name: {
@@ -102,6 +104,7 @@ class PreferencesDialog:
                     'is_available': p.is_available,
                 } for p in card.ports.values()
             }
+            row.device_profiles = {p.name: p.description for p in card.profiles.values()}
 
             # Add an icon
             grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
@@ -135,7 +138,11 @@ class PreferencesDialog:
             self.lbx_ports.remove(port_row)
 
         # If there's a selected row
-        if row is not None:
+        if row is None:
+            # Remove all profiles from port's preferred profile combobox
+            self.cb_port_pref_profile.remove_all()
+
+        else:
             device_cfg = self.get_current_device_config()
             self.e_device_name.set_text(device_cfg['name', ''])
 
@@ -169,6 +176,11 @@ class PreferencesDialog:
             # Show all rows' widgets
             self.lbx_ports.show_all()
 
+            # Update port's preferred profile combobox (technically it's a port's property, but profiles are defined by
+            # the port's device)
+            for name, desc in row.device_profiles.items():
+                self.cb_port_pref_profile.append_text('{} ({})'.format(desc, name))
+
         # Enable widgets
         self.bx_dev_props.set_sensitive(row is not None)
 
@@ -176,7 +188,7 @@ class PreferencesDialog:
         self.updating_widgets -= 1
 
     def update_port_props_widgets(self):
-        """Update port props widgets."""
+        """Update port properties widgets."""
         # Lock signal handlers
         self.updating_widgets += 1
 
@@ -205,14 +217,23 @@ class PreferencesDialog:
             self.e_port_name.set_text(pname)
 
             # Port's preferred profile
-            # TODO self.cb_port_pref_profile.
+            # TODO select correct item
 
         # Enable widgets
-        self.g_port_props.set_sensitive(row is not None)
-        # TODO disable other widgets if not visible
+        self.enable_port_props_widgets()
 
         # Unlock signal handlers
         self.updating_widgets -= 1
+
+    def enable_port_props_widgets(self):
+        """Update enabled state of port properties widgets."""
+        # Visible switch
+        self.g_port_props.set_sensitive(self.lbx_ports.get_selected_row() is not None)
+
+        # Other widgets
+        b = self.sw_port_visible.get_active()
+        for w in {self.sw_port_always_avail, self.e_port_name, self.cb_port_pref_profile}:
+            w.set_sensitive(b)
 
     def get_current_device_config(self):
         """Fetch and return the Config object that corresponds to the currently selected device.
@@ -222,20 +243,22 @@ class PreferencesDialog:
         return self.indicator.config['devices'][row.device_name] if row is not None else None
 
     def get_current_port_config(self):
-        """Fetch and return the Config object that corresponds to the currently selected device port.
+        """Fetch and return the Config object that corresponds to the currently selected device port. Enforces that it's
+        a Config object (not str or False).
         :return: port Config instance or None if there's no port selected.
         """
         device_cfg = self.get_current_device_config()
+        port_cfg = None
         if device_cfg is not None:
             row = self.lbx_ports.get_selected_row()
             if row is not None:
                 # Make sure the port's config is a Config instance (it can also be a string or False)
-                if type(device_cfg['ports'][row.port_name]) is not Config:
-                    device_cfg['ports'][row.port_name] = {}
-                return device_cfg['ports'][row.port_name]
-
-        # No luck
-        return None
+                port_cfg = device_cfg['ports'][row.port_name]
+                if type(port_cfg) is not Config:
+                    # Migrate port name, if any, into a config attribute
+                    port_cfg = {'name': port_cfg if type(port_cfg) is str else ''}
+                    device_cfg['ports'][row.port_name] = port_cfg
+        return port_cfg
 
     def on_close(self, *args):
         """Signal handler: dialog Close button clicked."""
@@ -294,6 +317,11 @@ class PreferencesDialog:
         if device_cfg is not None and row is not None:
             # If the port is visible, set its config to an empty Config instance, otherwise to False
             device_cfg['ports'][row.port_name] = {} if val else False
+
+            # Enable widgets
+            self.enable_port_props_widgets()
+
+            # Schedule indicator update
             self.schedule_refresh()
 
     def on_port_always_avail_switched(self, widget, data):
