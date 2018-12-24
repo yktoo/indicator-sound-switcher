@@ -75,7 +75,7 @@ class Card(GObject.GObject):
         return self.display_name or self.description
 
     def get_descriptive_name(self) -> str:
-        """Returns a 'descriptive' name for the card, which consists of the name of an avaibale output port with the
+        """Return a 'descriptive' name for the card, which consists of the name of an available output port with the
         highest priority (this is the behaviour Gnome Sound Panel implements) and the card's description."""
         max_port = None
         for port in self.ports.values():

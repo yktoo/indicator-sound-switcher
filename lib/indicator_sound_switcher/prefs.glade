@@ -26,6 +26,14 @@ Author: Dmitry Kann
   <!-- interface-license-type gplv3 -->
   <!-- interface-name Sound Switcher Indicator -->
   <!-- interface-authors Dmitry Kann -->
+  <object class="GtkListStore" id="pref_profile_store">
+    <columns>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name description -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkDialog" id="prefs_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Sound Switcher Indicator Preferences</property>
@@ -35,6 +43,7 @@ Author: Dmitry Kann
     <property name="icon_name">gtk-preferences</property>
     <property name="type_hint">dialog</property>
     <property name="has_resize_grip">True</property>
+    <signal name="destroy" handler="on_destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -439,9 +448,12 @@ Author: Dmitry Kann
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="cb_port_pref_profile">
+                      <object class="GtkComboBox" id="cb_port_pref_profile">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="model">pref_profile_store</property>
+                        <property name="id_column">0</property>
+                        <signal name="changed" handler="on_port_pref_profile_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>

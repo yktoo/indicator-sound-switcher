@@ -75,9 +75,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.item_separator_outputs = None
 
         # Load configuration, if any
-        config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
-        self.config = Config.load_from_file(config_file_name)
-        self.config_devices = self.config['devices']
+        self.config = None
+        self.config_devices = None
+        self.config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
+        self.config_load()
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -407,33 +408,19 @@ class SoundSwitcherIndicator(GObject.GObject):
                     break
                 pa_port = port_ptr.contents
                 port_name = pa_port.name.decode()
-                # Port config can be string (port name), boolean (false to hide the port) or a proper Config object
-                port_cfg = ports_cfg[port_name, '']
-                port_display_name = ''
-                port_is_visible   = True
-                port_pref_profile = None
-                port_always_avail = False
-                if isinstance(port_cfg, Config):
-                    port_display_name = port_cfg['name', '']
-                    port_is_visible   = bool(port_cfg['show', True])
-                    port_pref_profile = port_cfg['preferred_profile', None]
-                    port_always_avail = port_cfg['always_available', False]
-                elif port_cfg is False:
-                    port_is_visible = False
-                else:
-                    port_display_name = str(port_cfg)
+                port_cfg = ports_cfg[port_name]
                 # Add a port object
                 ports[port_name] = Port(
                     port_name,
                     pa_port.description.decode(),
-                    port_display_name,
+                    port_cfg['name', ''],
                     pa_port.priority,
                     pa_port.available != PA_PORT_AVAILABLE_NO,
-                    port_is_visible,
+                    bool(port_cfg['visible', True]),
                     pa_port.direction,
                     [pa_port.profiles[i].contents.name.decode() for i in range(0, pa_port.n_profiles)],
-                    port_pref_profile,
-                    port_always_avail)
+                    port_cfg['preferred_profile', None],
+                    port_cfg['always_available', False])
                 idx += 1
         return ports
 
@@ -846,6 +833,15 @@ class SoundSwitcherIndicator(GObject.GObject):
     # ------------------------------------------------------------------------------------------------------------------
     # Other methods
     # ------------------------------------------------------------------------------------------------------------------
+
+    def config_load(self):
+        """Read the configuration from the corresponding file."""
+        self.config = Config.load_from_file(self.config_file_name)
+        self.config_devices = self.config['devices']
+
+    def config_save(self):
+        """Write the configuration out to the corresponding file."""
+        self.config.save_to_file(self.config_file_name)
 
     def activate_sink(self, name: str):
         """Activate a sink by its name."""

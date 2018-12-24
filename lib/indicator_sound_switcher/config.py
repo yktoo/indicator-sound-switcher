@@ -29,6 +29,13 @@ class Config(dict):
         logging.info('Loaded configuration file %s', file_name)
         return conf
 
+    def save_to_file(self, file_name: str):
+        """Save configuration to the given JSON file.
+        :param file_name: Name of the JSON configuration file to save the configuration to.
+        """
+        with open(file_name, 'w') as cf:
+            json.dump(self, cf, indent=4, ensure_ascii=False)
+
     # noinspection PyMissingConstructor
     def __init__(self, *args, **kwargs):
         self.update(*args, **kwargs)

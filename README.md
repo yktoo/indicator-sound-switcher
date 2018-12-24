@@ -53,14 +53,11 @@ The `ports` object of the device configuration allows to further configure a spe
 
 Here `analog-output-speaker` is the port name and `Speakers` is what will be displayed in the menu by default.
 
-The configuration of the port can be one of the following datatypes:
-
-* `string`, providing a display name for the port.
-* `boolean`: actually, only the value `false` is supported, which indicates the corresponding menu item is to be hidden.
-* `object`, providing the following elements (all are optional):
+The configuration of the port is an object providing the following elements (all are optional):
 
 | Name                    | Type    | Default | Description                                                                                                 |
 |-------------------------|---------|---------|-------------------------------------------------------------------------------------------------------------|
+| `visible`               | boolean | true    | Whether the corresponding menu item is visible.                                                             |
 | `name`                  | string  |         | Alternative display name for the port (menu item text).                                                     |
 | `preferred_profile`     | string  |         | Profile name to switch to by default when the menu item is selected. If not given, and the currently selected profile doesn't support this port, a profile with the maximum priority will be picked. |
 | `always_available`      | boolean | false   | If `true`, the corresponding menu item will be displayed disregarding whether or not the port is available. |

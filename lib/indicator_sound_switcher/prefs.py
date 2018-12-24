@@ -2,7 +2,7 @@ import logging
 import os
 from threading import Timer
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango, GLib
 
 from . import utils
 from .config import Config
@@ -44,6 +44,12 @@ class PreferencesDialog:
         self.builder = Gtk.Builder()
         self.builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
 
+        # Create a text renderer for preferred profiles to support ellipsizing the text
+        renderer_text = Gtk.CellRendererText()
+        renderer_text.props.ellipsize = Pango.EllipsizeMode.END
+        self.cb_port_pref_profile.pack_start(renderer_text, True)
+        self.cb_port_pref_profile.add_attribute(renderer_text, 'text', 1)
+
         # Update widgets
         self.updating_widgets = 0
         self.update_widgets()
@@ -63,19 +69,27 @@ class PreferencesDialog:
         self.prefs_dialog.run()
         self.prefs_dialog.destroy()
 
-    def _indicator_refresh_cb(self):
-        """Delayed indicator refresh callback."""
-        self.refresh_timer = None
-        self.indicator.on_refresh()
+    def indicator_refresh_cb(self):
+        """Delayed indicator refresh and the configuration write-out callback."""
+        if self.refresh_timer:
+            # Kill the existing timer, if any
+            self.refresh_timer.cancel()
+            self.refresh_timer = None
+
+            # Save the configuration
+            self.indicator.config_save()
+
+            # Refresh the indicator (on idle)
+            GLib.idle_add(self.indicator.on_refresh)
 
     def schedule_refresh(self):
-        """(Re)schedule a delayed indicator refresh."""
+        """(Re)schedule a delayed indicator refresh and the configuration write-out."""
         # Kill the existing timer, if any
         if self.refresh_timer:
             self.refresh_timer.cancel()
 
         # Schedule a refresh after 2 seconds
-        self.refresh_timer = Timer(2.0, self._indicator_refresh_cb)
+        self.refresh_timer = Timer(2.0, self.indicator_refresh_cb)
         self.refresh_timer.start()
 
     def update_widgets(self):
@@ -99,9 +113,10 @@ class PreferencesDialog:
             row.device_name = card.name
             row.device_ports = {
                 p.name: {
-                    'display_name': p.get_display_name(),
+                    'description':  p.description,
                     'is_output':    p.is_output,
                     'is_available': p.is_available,
+                    'profiles':     p.profiles,
                 } for p in card.ports.values()
             }
             row.device_profiles = {p.name: p.description for p in card.profiles.values()}
@@ -135,14 +150,10 @@ class PreferencesDialog:
 
         # Remove all ports from the ports list box
         for port_row in self.lbx_ports.get_children():
-            self.lbx_ports.remove(port_row)
+            port_row.destroy()
 
         # If there's a selected row
-        if row is None:
-            # Remove all profiles from port's preferred profile combobox
-            self.cb_port_pref_profile.remove_all()
-
-        else:
+        if row is not None:
             device_cfg = self.get_current_device_config()
             self.e_device_name.set_text(device_cfg['name', ''])
 
@@ -154,8 +165,9 @@ class PreferencesDialog:
                 # Add a list box row
                 port_row = Gtk.ListBoxRow(child=grid)
                 port_row.port_name = name
+                port_row.port_profiles = port['profiles']
 
-                # Add an icon
+                # Add an icon: checkmark or a cross, depending on the port's current availability
                 grid.attach(
                     Gtk.Image.new_from_icon_name('gtk-ok' if port['is_available'] else 'gtk-no', Gtk.IconSize.MENU),
                     0, 0, 1, 2)
@@ -163,7 +175,7 @@ class PreferencesDialog:
                 # Add a port title label
                 grid.attach(
                     utils.lbl_bold(
-                        '{}: {}'.format(_('Out') if port['is_output'] else _('In'), port['display_name']),
+                        '{}: {}'.format(_('Out') if port['is_output'] else _('In'), port['description']),
                         xalign=0),
                     1, 0, 1, 1)
 
@@ -176,11 +188,6 @@ class PreferencesDialog:
             # Show all rows' widgets
             self.lbx_ports.show_all()
 
-            # Update port's preferred profile combobox (technically it's a port's property, but profiles are defined by
-            # the port's device)
-            for name, desc in row.device_profiles.items():
-                self.cb_port_pref_profile.append_text('{} ({})'.format(desc, name))
-
         # Enable widgets
         self.bx_dev_props.set_sensitive(row is not None)
 
@@ -192,32 +199,23 @@ class PreferencesDialog:
         # Lock signal handlers
         self.updating_widgets += 1
 
-        # Get selected device's config and port row
-        device_cfg = self.get_current_device_config()
-        row = self.lbx_ports.get_selected_row()
+        # Get selected port's config
+        device_row = self.lbx_devices.get_selected_row()
+        port_row   = self.lbx_ports.get_selected_row()
+        port_cfg   = self.get_current_port_config()
+        if device_row is not None and port_row is not None and port_cfg is not None:
+            self.sw_port_visible.set_active(bool(port_cfg['visible', True]))
+            self.sw_port_always_avail.set_active(bool(port_cfg['always_available', False]))
+            self.e_port_name.set_text(port_cfg['name', ''] or '')
 
-        # If there's a selected row
-        if device_cfg is not None and row is not None:
-            port_cfg = device_cfg['ports'][row.port_name]
-            cfg_is_config = isinstance(port_cfg, Config)
-
-            # A port is visible unless it's config is set to False
-            self.sw_port_visible.set_active(port_cfg is not False)
-
-            # Whether the port is always available
-            self.sw_port_always_avail.set_active(cfg_is_config and port_cfg['always_available', False])
-
-            # Port's name can be its config (if it's a str) or the value of its 'name' attribute
-            if type(port_cfg) is str:
-                pname = port_cfg
-            elif cfg_is_config:
-                pname = port_cfg['name', '']
-            else:
-                pname = ''
-            self.e_port_name.set_text(pname)
-
-            # Port's preferred profile
-            # TODO select correct item
+            # Update port's preferred profile combobox
+            self.pref_profile_store.clear()
+            self.pref_profile_store.append(['', _('(none)')])
+            for name, desc in device_row.device_profiles.items():
+                # Only add profiles that the port supports
+                if name in port_row.port_profiles:
+                    self.pref_profile_store.append([name, desc])
+            self.cb_port_pref_profile.set_active_id(port_cfg['preferred_profile', ''] or '')
 
         # Enable widgets
         self.enable_port_props_widgets()
@@ -235,14 +233,14 @@ class PreferencesDialog:
         for w in {self.sw_port_always_avail, self.e_port_name, self.cb_port_pref_profile}:
             w.set_sensitive(b)
 
-    def get_current_device_config(self):
+    def get_current_device_config(self) -> Config:
         """Fetch and return the Config object that corresponds to the currently selected device.
         :return: device Config instance or None if there's no device selected.
         """
         row = self.lbx_devices.get_selected_row()
         return self.indicator.config['devices'][row.device_name] if row is not None else None
 
-    def get_current_port_config(self):
+    def get_current_port_config(self) -> Config:
         """Fetch and return the Config object that corresponds to the currently selected device port. Enforces that it's
         a Config object (not str or False).
         :return: port Config instance or None if there's no port selected.
@@ -252,13 +250,18 @@ class PreferencesDialog:
         if device_cfg is not None:
             row = self.lbx_ports.get_selected_row()
             if row is not None:
-                # Make sure the port's config is a Config instance (it can also be a string or False)
+                # Make sure the port's config is a Config instance (previously it could also be a string or False)
                 port_cfg = device_cfg['ports'][row.port_name]
                 if type(port_cfg) is not Config:
-                    # Migrate port name, if any, into a config attribute
-                    port_cfg = {'name': port_cfg if type(port_cfg) is str else ''}
+                    port_cfg = {}
                     device_cfg['ports'][row.port_name] = port_cfg
         return port_cfg
+
+    def on_destroy(self, dlg):
+        """Signal handler: dialog destroying."""
+        logging.debug('PreferencesDialog.on_destroy()')
+        # Make sure config update has run
+        self.indicator_refresh_cb()
 
     def on_close(self, *args):
         """Signal handler: dialog Close button clicked."""
@@ -310,18 +313,10 @@ class PreferencesDialog:
             return
         val = widget.get_active()
         logging.debug('PreferencesDialog.on_port_visible_switched(%s)', val)
-
-        # Fetch current device config and the current port row
-        device_cfg = self.get_current_device_config()
-        row = self.lbx_ports.get_selected_row()
-        if device_cfg is not None and row is not None:
-            # If the port is visible, set its config to an empty Config instance, otherwise to False
-            device_cfg['ports'][row.port_name] = {} if val else False
-
-            # Enable widgets
+        cfg = self.get_current_port_config()
+        if cfg is not None:
+            cfg['visible'] = val
             self.enable_port_props_widgets()
-
-            # Schedule indicator update
             self.schedule_refresh()
 
     def on_port_always_avail_switched(self, widget, data):
@@ -344,6 +339,17 @@ class PreferencesDialog:
         cfg = self.get_current_port_config()
         if cfg is not None:
             cfg['name'] = val
+            self.schedule_refresh()
+
+    def on_port_pref_profile_changed(self, cbox: Gtk.ComboBox):
+        """Signal handler: Port preferred profile combobox selection changed."""
+        if self.updating_widgets > 0:
+            return
+        val = cbox.get_active_id()
+        logging.debug('PreferencesDialog.on_port_pref_profile_changed(`%s`)', val)
+        cfg = self.get_current_port_config()
+        if cfg is not None:
+            cfg['preferred_profile'] = val
             self.schedule_refresh()
 
     @staticmethod
