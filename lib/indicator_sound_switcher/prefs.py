@@ -304,7 +304,7 @@ class PreferencesDialog:
         logging.debug('PreferencesDialog.on_device_name_changed(`%s`)', val)
         cfg = self.get_current_device_config()
         if cfg is not None:
-            cfg['name'] = val
+            cfg['name'] = val or None
             self.schedule_refresh()
 
     def on_port_visible_switched(self, widget, data):
@@ -315,7 +315,7 @@ class PreferencesDialog:
         logging.debug('PreferencesDialog.on_port_visible_switched(%s)', val)
         cfg = self.get_current_port_config()
         if cfg is not None:
-            cfg['visible'] = val
+            cfg['visible'] = None if val else False
             self.enable_port_props_widgets()
             self.schedule_refresh()
 
@@ -327,7 +327,7 @@ class PreferencesDialog:
         logging.debug('PreferencesDialog.on_port_always_avail_switched(%s)', val)
         cfg = self.get_current_port_config()
         if cfg is not None:
-            cfg['always_available'] = val
+            cfg['always_available'] = val or None
             self.schedule_refresh()
 
     def on_port_name_changed(self, entry: Gtk.Entry):
@@ -338,7 +338,7 @@ class PreferencesDialog:
         logging.debug('PreferencesDialog.on_port_name_changed(`%s`)', val)
         cfg = self.get_current_port_config()
         if cfg is not None:
-            cfg['name'] = val
+            cfg['name'] = val or None
             self.schedule_refresh()
 
     def on_port_pref_profile_changed(self, cbox: Gtk.ComboBox):
@@ -349,7 +349,7 @@ class PreferencesDialog:
         logging.debug('PreferencesDialog.on_port_pref_profile_changed(`%s`)', val)
         cfg = self.get_current_port_config()
         if cfg is not None:
-            cfg['preferred_profile'] = val
+            cfg['preferred_profile'] = val or None
             self.schedule_refresh()
 
     @staticmethod

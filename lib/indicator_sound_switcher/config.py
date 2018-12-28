@@ -75,10 +75,18 @@ class Config(dict):
         return result
 
     def __setitem__(self, key, value):
-        """Override the inherited setter to convert incoming dict values into Config instances."""
-        if type(value) is dict:
-            value = Config(value)
-        dict.__setitem__(self, key, value)
+        """Override the inherited setter to convert incoming dict values into Config instances and to remove values when
+        they are assigned None.
+        """
+        # A value of None means removing it
+        if value is None:
+            dict.__delitem__(self, key)
+
+        else:
+            # Convert dictionaries into Config instances
+            if type(value) is dict:
+                value = Config(value)
+            dict.__setitem__(self, key, value)
 
     def update(self, *args, **kwargs):
         """Override to provide proper setter calls, also for the constructor."""
