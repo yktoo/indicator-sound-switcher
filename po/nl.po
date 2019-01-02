@@ -7,41 +7,115 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-30 15:59+0200\n"
-"PO-Revision-Date: 2016-09-30 16:06+0200\n"
+"POT-Creation-Date: 2019-01-02 17:57+0100\n"
+"PO-Revision-Date: 2019-01-02 18:07+0100\n"
+"Last-Translator: \n"
 "Language-Team: \n"
+"Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.7.1\n"
-"Last-Translator: \n"
+"X-Generator: Poedit 2.0.6\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: nl\n"
 
-#: indicator-sound-switcher:188
+#: lib/indicator_sound_switcher/indicator.py:168
 msgid "Written by Dmitry Kann"
-msgstr "Geschreven door Dmitry Kann"
+msgstr "Auteur: Dmitry Kann"
 
-#: indicator-sound-switcher:804
+#: lib/indicator_sound_switcher/indicator.py:928
 msgid "Inputs"
 msgstr "Ingangen"
 
-#: indicator-sound-switcher:808
+#: lib/indicator_sound_switcher/indicator.py:936
 msgid "Outputs"
 msgstr "Uitgangen"
 
-#: indicator-sound-switcher:812
+#: lib/indicator_sound_switcher/indicator.py:943
 msgid "_Refresh"
 msgstr "_Verversen"
 
-#: indicator-sound-switcher:813
+#: lib/indicator_sound_switcher/indicator.py:944
+msgid "_Preferences…"
+msgstr "_Instellingen…"
+
+#: lib/indicator_sound_switcher/indicator.py:945
 msgid "_About"
 msgstr "_Over"
 
-#: indicator-sound-switcher:814
+#: lib/indicator_sound_switcher/indicator.py:946
 msgid "_Quit"
 msgstr "_Afsluiten"
 
-#: lib/indicator_sound_switcher/port.py:65
+#: lib/indicator_sound_switcher/prefs.py:178
+msgid "Out"
+msgstr "Uitgang"
+
+#: lib/indicator_sound_switcher/prefs.py:178
+msgid "In"
+msgstr "Ingang"
+
+#: lib/indicator_sound_switcher/prefs.py:213
+msgid "(none)"
+msgstr "(geen)"
+
+#: lib/indicator_sound_switcher/port.py:99
 msgid "(unknown device)"
 msgstr "(onbekende kaart)"
+
+#: lib/indicator_sound_switcher/prefs.glade:39
+msgid "Sound Switcher Indicator Preferences"
+msgstr "Instellingen van Sound Switcher Indicator"
+
+#: lib/indicator_sound_switcher/prefs.glade:108
+msgid "Show inputs"
+msgstr "Ingangen tonen"
+
+#: lib/indicator_sound_switcher/prefs.glade:123
+msgid "Show outputs"
+msgstr "Uitgangen tonen"
+
+#: lib/indicator_sound_switcher/prefs.glade:163
+msgid "_General"
+msgstr "_Algemeen"
+
+#: lib/indicator_sound_switcher/prefs.glade:187
+msgid "Devices"
+msgstr "Kaarten"
+
+#: lib/indicator_sound_switcher/prefs.glade:202
+msgid "Device settings"
+msgstr "Kaartinstellingen"
+
+#: lib/indicator_sound_switcher/prefs.glade:217
+msgid "Port settings"
+msgstr "Poortinstellingen"
+
+#: lib/indicator_sound_switcher/prefs.glade:275
+#: lib/indicator_sound_switcher/prefs.glade:405
+msgid "Custom name:"
+msgstr "Zichtbare naam:"
+
+#: lib/indicator_sound_switcher/prefs.glade:288
+#: lib/indicator_sound_switcher/prefs.glade:441
+msgid "Reset"
+msgstr "Wissen"
+
+#: lib/indicator_sound_switcher/prefs.glade:310
+msgid "Ports:"
+msgstr "Poorten:"
+
+#: lib/indicator_sound_switcher/prefs.glade:369
+msgid "Visible:"
+msgstr "Zichtbaar:"
+
+#: lib/indicator_sound_switcher/prefs.glade:393
+msgid "Always available:"
+msgstr "Altijd aanwezig:"
+
+#: lib/indicator_sound_switcher/prefs.glade:417
+msgid "Preferred profile:"
+msgstr "Profielvoorkeur:"
+
+#: lib/indicator_sound_switcher/prefs.glade:478
+msgid "_Devices"
+msgstr "_Kaarten"

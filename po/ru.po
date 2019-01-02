@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-27 21:31+0200\n"
-"PO-Revision-Date: 2016-09-27 21:31+0200\n"
+"POT-Creation-Date: 2019-01-02 17:57+0100\n"
+"PO-Revision-Date: 2019-01-02 18:04+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -15,34 +15,108 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
-"X-Generator: Poedit 1.8.7.1\n"
+"X-Generator: Poedit 2.0.6\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: indicator-sound-switcher:188
+#: lib/indicator_sound_switcher/indicator.py:168
 msgid "Written by Dmitry Kann"
 msgstr "Автор: Дмитрий Канн"
 
-#: indicator-sound-switcher:804
+#: lib/indicator_sound_switcher/indicator.py:928
 msgid "Inputs"
 msgstr "Входы"
 
-#: indicator-sound-switcher:808
+#: lib/indicator_sound_switcher/indicator.py:936
 msgid "Outputs"
 msgstr "Выходы"
 
-#: indicator-sound-switcher:812
+#: lib/indicator_sound_switcher/indicator.py:943
 msgid "_Refresh"
 msgstr "_Обновить"
 
-#: indicator-sound-switcher:813
+#: lib/indicator_sound_switcher/indicator.py:944
+msgid "_Preferences…"
+msgstr "_Настройки…"
+
+#: lib/indicator_sound_switcher/indicator.py:945
 msgid "_About"
 msgstr "О _программе"
 
-#: indicator-sound-switcher:814
+#: lib/indicator_sound_switcher/indicator.py:946
 msgid "_Quit"
 msgstr "В_ыход"
 
-#: lib/indicator_sound_switcher/port.py:65
+#: lib/indicator_sound_switcher/prefs.py:178
+msgid "Out"
+msgstr "Выход"
+
+#: lib/indicator_sound_switcher/prefs.py:178
+msgid "In"
+msgstr "Вход"
+
+#: lib/indicator_sound_switcher/prefs.py:213
+msgid "(none)"
+msgstr "(нет)"
+
+#: lib/indicator_sound_switcher/port.py:99
 msgid "(unknown device)"
 msgstr "(неизвестное устройство)"
+
+#: lib/indicator_sound_switcher/prefs.glade:39
+msgid "Sound Switcher Indicator Preferences"
+msgstr "Настройки Sound Switcher Indicator"
+
+#: lib/indicator_sound_switcher/prefs.glade:108
+msgid "Show inputs"
+msgstr "Отображать входы"
+
+#: lib/indicator_sound_switcher/prefs.glade:123
+msgid "Show outputs"
+msgstr "Отображать выходы"
+
+#: lib/indicator_sound_switcher/prefs.glade:163
+msgid "_General"
+msgstr "_Общие"
+
+#: lib/indicator_sound_switcher/prefs.glade:187
+msgid "Devices"
+msgstr "Устройства"
+
+#: lib/indicator_sound_switcher/prefs.glade:202
+msgid "Device settings"
+msgstr "Настройки устройства"
+
+#: lib/indicator_sound_switcher/prefs.glade:217
+msgid "Port settings"
+msgstr "Настройки порта"
+
+#: lib/indicator_sound_switcher/prefs.glade:275
+#: lib/indicator_sound_switcher/prefs.glade:405
+msgid "Custom name:"
+msgstr "Использовать имя:"
+
+#: lib/indicator_sound_switcher/prefs.glade:288
+#: lib/indicator_sound_switcher/prefs.glade:441
+msgid "Reset"
+msgstr "Сбросить"
+
+#: lib/indicator_sound_switcher/prefs.glade:310
+msgid "Ports:"
+msgstr "Порты:"
+
+#: lib/indicator_sound_switcher/prefs.glade:369
+msgid "Visible:"
+msgstr "Видим:"
+
+#: lib/indicator_sound_switcher/prefs.glade:393
+msgid "Always available:"
+msgstr "Всегда доступен:"
+
+#: lib/indicator_sound_switcher/prefs.glade:417
+msgid "Preferred profile:"
+msgstr "Предпочтительный профиль:"
+
+#: lib/indicator_sound_switcher/prefs.glade:478
+msgid "_Devices"
+msgstr "_Устройства"
