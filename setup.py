@@ -80,6 +80,7 @@ setup(
     license='GPL3',
     package_dir={'': 'lib'},
     packages=['indicator_sound_switcher'],
+    package_data={'indicator_sound_switcher': ['*.glade']},
     scripts=['indicator-sound-switcher'],
     data_files=data_files + compile_lang_files(),
 )
