@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated with glade 3.22.1 
 
-Copyright (C) 
+Copyright (C)
 
 This file is part of Sound Switcher Indicator.
 
@@ -36,16 +36,35 @@ Author: Dmitry Kann
   </object>
   <object class="GtkDialog" id="prefs_dialog">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Sound Switcher Indicator Preferences</property>
     <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">500</property>
     <property name="icon_name">gtk-preferences</property>
-    <property name="type_hint">dialog</property>
-    <property name="has_resize_grip">True</property>
+    <property name="type_hint">normal</property>
     <signal name="destroy" handler="on_destroy" swapped="no"/>
-    <child>
-      <placeholder/>
+    <child type="titlebar">
+      <object class="GtkHeaderBar">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="title" translatable="yes">Preferences</property>
+        <property name="subtitle" translatable="yes">Sound Switcher Indicator</property>
+        <property name="show_close_button">True</property>
+        <property name="decoration_layout">close,maximize</property>
+        <child>
+          <object class="GtkButton">
+            <property name="label">gtk-refresh</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="use_stock">True</property>
+            <property name="always_show_image">True</property>
+            <signal name="clicked" handler="on_refresh" swapped="no"/>
+          </object>
+          <packing>
+            <property name="pack_type">end</property>
+          </packing>
+        </child>
+      </object>
     </child>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -61,20 +80,7 @@ Author: Dmitry Kann
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton">
-                <property name="label">gtk-close</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
-                <property name="always_show_image">True</property>
-                <signal name="clicked" handler="on_close" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -179,7 +185,6 @@ Author: Dmitry Kann
                 <property name="vexpand">True</property>
                 <property name="row_spacing">6</property>
                 <property name="column_spacing">12</property>
-                <property name="column_homogeneous">True</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
@@ -200,7 +205,7 @@ Author: Dmitry Kann
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Device settings</property>
-                    <property name="justify">center</property>
+                    <property name="xalign">0</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -215,7 +220,7 @@ Author: Dmitry Kann
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Port settings</property>
-                    <property name="justify">center</property>
+                    <property name="xalign">0</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -232,6 +237,7 @@ Author: Dmitry Kann
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
                     <property name="shadow_type">in</property>
+                    <property name="min_content_width">200</property>
                     <child>
                       <object class="GtkViewport">
                         <property name="visible">True</property>

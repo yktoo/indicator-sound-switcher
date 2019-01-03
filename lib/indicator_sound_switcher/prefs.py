@@ -263,10 +263,10 @@ class PreferencesDialog:
         # Make sure config update has run
         self.indicator_refresh_cb()
 
-    def on_close(self, *args):
-        """Signal handler: dialog Close button clicked."""
-        logging.debug('PreferencesDialog.on_close()')
-        self.prefs_dialog.response(Gtk.ResponseType.CLOSE)
+    def on_refresh(self, *args):
+        """Signal handler: Refresh button clicked."""
+        logging.debug('PreferencesDialog.on_refresh()')
+        self.update_widgets()
 
     def on_device_row_selected(self, list_box: Gtk.ListBox, row: Gtk.ListBoxRow):
         """Signal handler: devices list box row (un)selected."""
