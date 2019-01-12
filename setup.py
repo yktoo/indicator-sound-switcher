@@ -64,6 +64,7 @@ data_files = [
     ('share/icons/ubuntu-mono-dark/status/22',  ['icons/ubuntu-mono-dark/indicator-sound-switcher.svg']),
     ('share/icons/ubuntu-mono-light/status/22', ['icons/ubuntu-mono-light/indicator-sound-switcher.svg']),
     ('share/icons/hicolor/22x22/status',        ['icons/default/indicator-sound-switcher.svg']),
+    ('share/icons/hicolor/scalable/status',     ['icons/default/indicator-sound-switcher.svg']),
 
     # Manpage
     ('share/man/man1',                          ['man/indicator-sound-switcher.1']),
