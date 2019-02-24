@@ -596,11 +596,17 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Prepare ports array
             sink_ports = {}
+            sink_name = ''
+            sink_visible = False
+
             # If it's a virtual sink, add a dummy port
             virtual_card = self.is_virtual_card(data.card)
             if virtual_card:
                 port = Port('#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
                 sink_ports[port.name] = port
+                sink_cfg = self.config_devices['virtual']['sinks'][name]
+                sink_name    = sink_cfg['name', '']
+                sink_visible = bool(sink_cfg['visible', True])
 
             # Else iterate through ports[] (array of pointers to structs)
             elif data.ports:
@@ -608,35 +614,33 @@ class SoundSwitcherIndicator(GObject.GObject):
                 while True:
                     port_ptr = data.ports[idx_port]
                     # NULL pointer terminates the array
-                    if port_ptr:
-                        port_struct = port_ptr.contents
-                        port = Port(
-                            port_struct.name.decode(),
-                            port_struct.description.decode(),
-                            '',
-                            port_struct.priority,
-                            port_struct.available != PA_PORT_AVAILABLE_NO,
-                            False,
-                            PA_DIRECTION_OUTPUT,
-                            None,
-                            None,
-                            False)
-                        sink_ports[port.name] = port
-                        logging.debug(
-                            '    + Sink port added: `%s` (`%s`); priority: %d; available: %s',
-                            port.name, port.description, port.priority, YESNO[port.is_available])
-                        idx_port += 1
-                    else:
+                    if not port_ptr:
                         break
 
+                    port_struct = port_ptr.contents
+                    port = Port(
+                        port_struct.name.decode(),
+                        port_struct.description.decode(),
+                        '',
+                        port_struct.priority,
+                        port_struct.available != PA_PORT_AVAILABLE_NO,
+                        False,
+                        PA_DIRECTION_OUTPUT,
+                        None,
+                        None,
+                        False)
+                    sink_ports[port.name] = port
+                    logging.debug(
+                        '    + Sink port added: `%s` (`%s`); priority: %d; available: %s',
+                        port.name, port.description, port.priority, YESNO[port.is_available])
+                    idx_port += 1
+
             # Create and register a new instance of Sink object (this will also set owner_stream in each port)
-            sink_display_name = self.get_virtual_stream_display_name(
-                self.config_devices['virtual']['sinks'][name, ''])
-            sink = Sink(index, name, sink_display_name or '', description, sink_ports, data.card)
+            sink = Sink(index, name, sink_name, description, sink_ports, data.card)
             self.sinks[index] = sink
 
             # If it's a virtual sink and it's visible, create its menu item
-            if virtual_card and sink_display_name is not False and self.item_header_outputs is not None and \
+            if virtual_card and sink_visible and self.item_header_outputs is not None and \
                     self.item_separator_outputs is not None:
                 for port in sink_ports.values():
                     port.menu_item = self.menu_insert_ordered_item(
@@ -724,11 +728,17 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             # Prepare ports array
             source_ports = {}
+            source_name = ''
+            source_visible = False
+
             # If it's a virtual sink, add a dummy port
             virtual_card = self.is_virtual_card(data.card)
             if virtual_card:
                 port = Port('#dummy_in', None, '', -1, True, True, PA_DIRECTION_INPUT, None, None, False)
                 source_ports[port.name] = port
+                source_cfg = self.config_devices['virtual']['sources'][name]
+                source_name    = source_cfg['name', '']
+                source_visible = bool(source_cfg['visible', True])
 
             # Else iterate through ports[] (array of pointers to structs)
             elif data.ports:
@@ -736,35 +746,33 @@ class SoundSwitcherIndicator(GObject.GObject):
                 while True:
                     port_ptr = data.ports[idx_port]
                     # NULL pointer terminates the array
-                    if port_ptr:
-                        port_struct = port_ptr.contents
-                        port = Port(
-                            port_struct.name.decode(),
-                            port_struct.description.decode(),
-                            '',
-                            port_struct.priority,
-                            port_struct.available != PA_PORT_AVAILABLE_NO,
-                            False,
-                            PA_DIRECTION_INPUT,
-                            None,
-                            None,
-                            False)
-                        source_ports[port.name] = port
-                        logging.debug(
-                            '    + Source port added: `%s` (`%s`); priority: %d; available: %s',
-                            port.name, port.description, port.priority, YESNO[port.is_available])
-                        idx_port += 1
-                    else:
+                    if not port_ptr:
                         break
 
+                    port_struct = port_ptr.contents
+                    port = Port(
+                        port_struct.name.decode(),
+                        port_struct.description.decode(),
+                        '',
+                        port_struct.priority,
+                        port_struct.available != PA_PORT_AVAILABLE_NO,
+                        False,
+                        PA_DIRECTION_INPUT,
+                        None,
+                        None,
+                        False)
+                    source_ports[port.name] = port
+                    logging.debug(
+                        '    + Source port added: `%s` (`%s`); priority: %d; available: %s',
+                        port.name, port.description, port.priority, YESNO[port.is_available])
+                    idx_port += 1
+
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
-            source_display_name = self.get_virtual_stream_display_name(
-                self.config_devices['virtual']['sources'][name, ''])
-            source = Source(index, name, source_display_name or '', description, source_ports, data.card)
+            source = Source(index, name, source_name, description, source_ports, data.card)
             self.sources[index] = source
 
             # If it's a virtual source, create its menu item
-            if virtual_card and source_display_name is not False and self.item_header_inputs is not None and \
+            if virtual_card and source_visible and self.item_header_inputs is not None and \
                     self.item_separator_inputs is not None:
                 for port in source_ports.values():
                     port.menu_item = self.menu_insert_ordered_item(
@@ -1090,17 +1098,3 @@ class SoundSwitcherIndicator(GObject.GObject):
         """
         # Assume all indexes bigger than 2e9 are virtual cards
         return card_index > 2000_000_000
-
-    @staticmethod
-    def get_virtual_stream_display_name(stream_cfg):
-        """Determine a display name for the given virtual stream.
-        :param stream_cfg: stream configuration object
-        :return: the display name for the stream, or False if it's to be hidden
-        """
-        # Stream config can be string (stream name), boolean (false to hide the stream) or a proper Config object
-        if isinstance(stream_cfg, Config):
-            return stream_cfg['name', '']
-        elif stream_cfg is False:
-            return False
-        else:
-            return str(stream_cfg)
