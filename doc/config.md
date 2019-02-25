@@ -33,6 +33,16 @@ If this file is present, the following items can be configured:
 | `devices`/(name)/`name` | string  |         | Allows to use a different display name for the device.                        |
 | `devices`/(name)/`ports`| object  |         | Provides configuration items for the device's ports.                          |
 
+The `devices` object contains configuration objects for each device. The name to be used is the PulseAudio's card name, which can be seen in the debug output of `indicator-sound-switcher -vv`. In the below example it's `alsa_card.pci-0000_00_08.0`:
+
+    DEB   + Card[0] added: `alsa_card.pci-0000_00_08.0`
+
+The `ports` object of the device configuration allows to further configure a specific device port in the menu. Likewise, the port's name can be found in the debug output, for example:
+
+    DEB     + Card port added: `analog-output-speaker` (`Speakers`); priority: 10000; direction: 1; available: No
+
+Here `analog-output-speaker` is the port name and `Speakers` is what will be displayed in the menu by default.
+
 The configuration of the port is an object providing the following elements (all are optional):
 
 | Name                    | Type    | Default | Description                                                                                                 |
