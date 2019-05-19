@@ -1097,4 +1097,4 @@ class SoundSwitcherIndicator(GObject.GObject):
         :return: True if the given index corresponds to a virtual card
         """
         # Assume all indexes bigger than 2e9 are virtual cards
-        return card_index > 2000_000_000
+        return card_index > 2000000000
