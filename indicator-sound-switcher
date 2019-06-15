@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright (C) 2012-2018 Dmitry Kann, http://yktoo.com
+Copyright (C) 2012-2019 Dmitry Kann, http://yktoo.com
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
@@ -24,6 +24,9 @@ Note for developers: some PEP8 rules are deliberately neglected here, namely:
 
 import sys
 import logging
+import os
+import tempfile
+import fcntl
 import gettext
 
 from indicator_sound_switcher.indicator import SoundSwitcherIndicator, APP_ID
@@ -52,5 +55,14 @@ if __name__ == "__main__":
     # Parse the command line
     _parse_cmd_line()
 
-    # Instantiate and run the indicator
-    SoundSwitcherIndicator().run()
+    # Check the indicator isn't running yet
+    fd = open(os.path.join(tempfile.gettempdir(), "{}_{}.lock".format(APP_ID, os.getuid())), 'w')
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        # Instantiate and run the indicator
+        logging.info('Starting indicator application')
+        SoundSwitcherIndicator().run()
+
+    except OSError:
+        logging.info('Indicator is already running, exiting')
