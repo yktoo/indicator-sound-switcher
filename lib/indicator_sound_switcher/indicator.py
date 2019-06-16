@@ -1039,7 +1039,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         """
         # Check that there's a successful operation passed
         if not operation:
-            logging.error('PulseAudio operation failed: `%`', name)
+            logging.error('PulseAudio operation failed: `%s`', name)
 
         # Lock the main loop. According to the official PA documentation this ought to happen before the operation is
         # created, but since we only have one worker thread (Gtk thread), no race for PA mainloop is expected and this

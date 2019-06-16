@@ -45,7 +45,7 @@ def _parse_cmd_line():
             break
 
     # Set up logging options
-    logging.basicConfig(level=lvl, format='%(levelname).3s %(message)s')
+    logging.basicConfig(level=lvl, format='%(levelname)-8s %(message)s')
 
 
 if __name__ == "__main__":
