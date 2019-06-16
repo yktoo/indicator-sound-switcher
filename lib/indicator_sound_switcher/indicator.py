@@ -1,5 +1,6 @@
 import os.path
 import logging
+import time
 
 from gi import require_version
 require_version('Gtk', '3.0')
@@ -37,6 +38,9 @@ YESNO = {False: 'No', True: 'Yes'}
 CARD_NONE_SINK   = -1
 CARD_NONE_SOURCE = -2
 
+# Max number of retries to (re)connect to the PulseAudio daemon before giving up
+PULSEAUDIO_MAX_RETRIES = 100
+
 
 # noinspection PyUnusedLocal
 class SoundSwitcherIndicator(GObject.GObject):
@@ -67,6 +71,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.pa_context               = None
         self.pa_context_connected     = False
         self.pa_context_failed        = False
+        self.pa_connecting            = False
 
         # Initialise menu items
         self.item_header_inputs     = None
@@ -83,15 +88,24 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Create a menu
         self.menu = Gtk.Menu()
         self.ind.set_menu(self.menu)
-        self.menu_setup()
 
         # Initialise the PulseAudio interface
         self.pa_mainloop = None
         self.pa_mainloop_api = None
-        if not self.pulseaudio_initialise():
-            # If the initialisation has failed, quit
-            self.pulseaudio_shutdown()
-            exit(1)
+
+        # Setup PulseAudio callbacks
+        self._pacb_card_info          = pa_card_info_cb_t         (self.pacb_card_info)
+        self._pacb_context_notify     = pa_context_notify_cb_t    (self.pacb_context_notify)
+        self._pacb_context_subscribe  = pa_context_subscribe_cb_t (self.pacb_context_subscribe)
+        self._pacb_context_success    = pa_context_success_cb_t   (self.pacb_context_success)
+        self._pacb_server_info        = pa_server_info_cb_t       (self.pacb_server_info)
+        self._pacb_sink_info          = pa_sink_info_cb_t         (self.pacb_sink_info)
+        self._pacb_sink_input_info    = pa_sink_input_info_cb_t   (self.pacb_sink_input_info)
+        self._pacb_source_info        = pa_source_info_cb_t       (self.pacb_source_info)
+        self._pacb_source_output_info = pa_source_output_info_cb_t(self.pacb_source_output_info)
+
+        # Connect to the daemon, this will also refill the menu
+        self.pulseaudio_connect()
 
     # ------------------------------------------------------------------------------------------------------------------
     # Signal handlers
@@ -300,7 +314,13 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Context connection failed
         elif ctxstate == PA_CONTEXT_FAILED:
             self.pa_context_failed = True
-            logging.critical('Context failed')
+            self.pa_context = None
+            logging.warning('Context failed')
+
+            # If we're not connecting, try to reconnect
+            if not self.pa_connecting:
+                logging.info('Reconnecting to PulseAudio')
+                GObject.idle_add(self.pulseaudio_connect)
 
         # Context connection ended - end the mainloop
         elif ctxstate == PA_CONTEXT_TERMINATED:
@@ -869,7 +889,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Run the main event loop
         Gtk.main()
 
-    def menu_append_item(self, label: str=None, activate_signal: callable=None):
+    def menu_append_item(self, label: str = None, activate_signal: callable = None):
         """Add a menu or separator item to the indicator menu.
         :param label: text label for the item. If None, a separator menu item is created.
         :param activate_signal: activate signal handler. If None,  the item will be greyed out.
@@ -953,21 +973,58 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.menu_append_item(_('_About'),        self.on_about)
         self.menu_append_item(_('_Quit'),         self.on_quit)
 
+    def pulseaudio_connect(self):
+        """Try to connect to the PulseAudio daemon up to PULSEAUDIO_MAX_RETRIES times. Exit the app if failed."""
+        self.pa_connecting = True
+        try:
+            # Cleanup and refill the menu with 'static' items
+            self.menu_setup()
+
+            # Loop until we have a connection
+            attempt = 1
+            succeeded = False
+            while attempt <= PULSEAUDIO_MAX_RETRIES and not succeeded:
+                # Try to establish a connection
+                logging.debug('Trying to connect to PulseAudio daemon, attempt #%d', attempt)
+                succeeded = self.pulseaudio_initialise()
+                attempt += 1
+
+            # If connection succeeded
+            if succeeded:
+                # Update PulseAudio environment info
+                self.update_all_pa_items()
+
+                # Subscribe to context-specific daemon state changes
+                self.synchronise_op(
+                    'pa_context_subscribe()',
+                    pa_context_subscribe(
+                        self.pa_context,
+                        PA_SUBSCRIPTION_MASK_CARD       |
+                        PA_SUBSCRIPTION_MASK_SINK       |
+                        PA_SUBSCRIPTION_MASK_SINK_INPUT |
+                        PA_SUBSCRIPTION_MASK_SERVER     |
+                        PA_SUBSCRIPTION_MASK_SOURCE     |
+                        PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
+                        self._pacb_context_success,
+                        None))
+                pa_context_set_subscribe_callback(self.pa_context, self._pacb_context_subscribe, None)
+
+            # Cleanup otherwise
+            else:
+                logging.critical('Failed to connect to PulseAudio, exiting')
+                self.pulseaudio_shutdown()
+
+        finally:
+            self.pa_connecting = False
+
+        # Exit the app if there's no connection
+        if not succeeded:
+            exit(10)
+
     def pulseaudio_initialise(self):
         """Initialise PulseAudio context and related objects.
         :return: True if succeeded
         """
-        # Setup the callbacks
-        self._pacb_card_info          = pa_card_info_cb_t         (self.pacb_card_info)
-        self._pacb_context_notify     = pa_context_notify_cb_t    (self.pacb_context_notify)
-        self._pacb_context_subscribe  = pa_context_subscribe_cb_t (self.pacb_context_subscribe)
-        self._pacb_context_success    = pa_context_success_cb_t   (self.pacb_context_success)
-        self._pacb_server_info        = pa_server_info_cb_t       (self.pacb_server_info)
-        self._pacb_sink_info          = pa_sink_info_cb_t         (self.pacb_sink_info)
-        self._pacb_sink_input_info    = pa_sink_input_info_cb_t   (self.pacb_sink_input_info)
-        self._pacb_source_info        = pa_source_info_cb_t       (self.pacb_source_info)
-        self._pacb_source_output_info = pa_source_output_info_cb_t(self.pacb_source_output_info)
-
         # Create PulseAudio's main loop
         self.pa_mainloop = pa_threaded_mainloop_new()
         self.pa_mainloop_api = pa_threaded_mainloop_get_api(self.pa_mainloop)
@@ -982,28 +1039,13 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Start the main loop
         pa_threaded_mainloop_start(self.pa_mainloop)
 
-        # Wait until the context is connected or failed
-        while not (self.pa_context_connected or self.pa_context_failed):
-            pass
+        # Wait until the context is connected or failed, up to 2 seconds
+        cnt = 0
+        while cnt < 20 and not (self.pa_context_connected or self.pa_context_failed):
+            # Prevent CPU maxout
+            time.sleep(0.1)
+            cnt += 1
 
-        if self.pa_context_connected:
-            # Update PulseAudio environment info
-            self.update_all_pa_items()
-
-            # Subscribe to context-specific daemon state changes
-            self.synchronise_op(
-                'pa_context_subscribe()',
-                pa_context_subscribe(
-                    self.pa_context,
-                    PA_SUBSCRIPTION_MASK_CARD       |
-                    PA_SUBSCRIPTION_MASK_SINK       |
-                    PA_SUBSCRIPTION_MASK_SINK_INPUT |
-                    PA_SUBSCRIPTION_MASK_SERVER     |
-                    PA_SUBSCRIPTION_MASK_SOURCE     |
-                    PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
-                    self._pacb_context_success,
-                    None))
-            pa_context_set_subscribe_callback(self.pa_context, self._pacb_context_subscribe, None)
         return self.pa_context_connected
 
     def pulseaudio_shutdown(self):
