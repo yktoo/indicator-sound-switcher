@@ -3,7 +3,7 @@ Maintainer: Dmitry Kann <yktooo@gmail.com>
 Section: python
 Priority: optional
 Build-Depends:
- debhelper (>= 9),
+ debhelper (>= 11~),
  dh-python,
  python3,
  python3-setuptools,
