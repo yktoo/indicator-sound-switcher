@@ -21,10 +21,7 @@ Depends:
  gir1.2-appindicator3-0.1,
  libpulse0,
  gettext
-Conflicts:
- indicator-sound-switcher (<< 2.0)
 Description: Sound input/output selector indicator
  A simple yet usable application indicator for Ubuntu/Unity. It allows for
  easy switching of the default sound input ("source" in PulseAudio terms) and
  output ("sink") with just a couple of clicks.
-
