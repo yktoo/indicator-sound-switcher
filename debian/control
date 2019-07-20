@@ -19,8 +19,7 @@ Depends:
  python3-gi,
  gir1.2-gtk-3.0 (>= 3.20),
  gir1.2-appindicator3-0.1,
- libpulse0,
- gettext
+ libpulse0
 Description: Sound input/output selector indicator
  A simple yet usable application indicator for Ubuntu/Unity. It allows for
  easy switching of the default sound input ("source" in PulseAudio terms) and
