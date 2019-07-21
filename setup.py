@@ -8,7 +8,7 @@ import shutil
 PO_DIR      = 'po'
 LOCALE_DIR  = 'locale'
 APP_ID      = 'indicator-sound-switcher'
-APP_VERSION = '2.2.0'
+APP_VERSION = '2.2.1'
 
 
 def compile_lang_files() -> list:

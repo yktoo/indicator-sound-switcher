@@ -3,7 +3,7 @@
 # Purpose:
 #   Build distribution packages for Ubuntu
 # Arguments:
-#   1 - Build number, optional. If omitted, "1" is used
+#   1 - Revision number, optional. If omitted, "1" is used
 # Requires:
 #   None
 #-------------------------------------------------------------------------------
@@ -11,7 +11,7 @@
 SETUP_SCRIPT="setup.py"
 DIST_ROOT_DIR="dist"
 PO_DIR="po"
-APP_BUILD=${1:-1}
+REVISION=${1:-1}
 
 # Logs a failure message and exits
 # Parameters:
@@ -28,10 +28,10 @@ APP_NAME=$(sed -ne 's/\s*APP_ID\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRI
 APP_VERSION=$(sed -ne 's/\s*APP_VERSION\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SETUP_SCRIPT")
 [[ -n "$APP_VERSION" ]] || err "Failed to extract application version"
 
-echo "Building ${APP_NAME} version ${APP_VERSION} build ${APP_BUILD}..."
+echo "Building ${APP_NAME} version ${APP_VERSION} revision ${REVISION}..."
 
 # Verify the changelog contains the appropriate line
-app_ver_string="${APP_NAME} (${APP_VERSION}-${APP_BUILD})"
+app_ver_string="${APP_NAME} (${APP_VERSION}-${REVISION})"
 (head -n 1 "debian/changelog" | grep -q "$app_ver_string") ||
   err "The changelog doesn't start with the entry '${app_ver_string}'"
 
@@ -63,5 +63,5 @@ rm -rf "$RELEASE_DIR"
 
 echo "--------------------------------------------------------------------------------"
 echo "Build succeeded. To upload issue the following command:"
-echo "  dput ppa:yktooo/ppa \"$DIST_ROOT_DIR/${APP_NAME}_${APP_VERSION}-${APP_BUILD}_source.changes\""
+echo "  dput ppa:yktooo/ppa \"$DIST_ROOT_DIR/${APP_NAME}_${APP_VERSION}-${REVISION}_source.changes\""
 echo "--------------------------------------------------------------------------------"
