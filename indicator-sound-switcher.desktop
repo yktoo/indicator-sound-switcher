@@ -8,4 +8,5 @@ Name=Sound Switcher Indicator
 StartupNotify=true
 Terminal=false
 Type=Application
+Keywords=sound;audio;sink;control;switch;indicator;
 X-GNOME-Autostart-enabled=true

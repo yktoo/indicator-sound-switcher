@@ -1,8 +1,22 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: indicator-sound-switcher
 Source: https://github.com/yktoo/indicator-sound-switcher
 
 Files: *
-Copyright: Copyright (C) 2013 Dmitry Kann
+Copyright: 2012-2019, Dmitry Kann
 License: GPL-3+
- The full text of the GPL is distributed in
- /usr/share/common-licenses/GPL-3 on Debian systems.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the full text of the GNU General Public License can be
+ found in the file `/usr/share/common-licenses/GPL'.
