@@ -2,6 +2,7 @@ indicator-sound-switcher (2.2.1-1) disco; urgency=low
 
   * Reconnect to PulseAudio if the connection is lost, up to 100 times (#45)
   * Don't allow multiple indicator instances for same user (#60)
+  * Add support for using Ayatana AppIndicators (#78)
   * Virtual port config is always an object, too (b3276c58)
   * Downgrade Python requirement from 3.6 to 3.5 (#72)
   * Make app description consistent (#77)
