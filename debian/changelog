@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.2.1-2) disco; urgency=low
+
+  * Retries are too frequent when reconnecting to PulseAudio (#79)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 21 Jul 2019 16:59:10 +0200
+
 indicator-sound-switcher (2.2.1-1) disco; urgency=low
 
   * Reconnect to PulseAudio if the connection is lost, up to 100 times (#45)

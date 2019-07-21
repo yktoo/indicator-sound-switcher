@@ -988,10 +988,14 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Loop until we have a connection
             attempt = 1
             succeeded = False
-            while attempt <= PULSEAUDIO_MAX_RETRIES and not succeeded:
+            while attempt <= PULSEAUDIO_MAX_RETRIES:
                 # Try to establish a connection
                 logging.debug('Trying to connect to PulseAudio daemon, attempt #%d', attempt)
                 succeeded = self.pulseaudio_initialise()
+                if succeeded:
+                    break
+                # Sleep 2 seconds on a failure
+                time.sleep(2)
                 attempt += 1
 
             # If connection succeeded
