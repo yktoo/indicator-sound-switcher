@@ -18,7 +18,7 @@ Depends:
  ${python3:Depends},
  python3-gi,
  gir1.2-gtk-3.0 (>= 3.20),
- gir1.2-appindicator3-0.1,
+ gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1,
  libpulse0
 Description: Sound input/output selector indicator
  It shows an icon in the indicator area or the system tray (whatever is
