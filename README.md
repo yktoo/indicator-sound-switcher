@@ -1,8 +1,8 @@
 # Sound Switcher Indicator
 
-Sound input/output selector indicator for Ubuntu/GNOME.
+Sound input/output selector application for Linux.
 
-It shows an icon in the GNOME Panel. The icon's menu allows you to switch the current sound input and output (i.e. *source ports* and *sink ports* in PulseAudio's terms, respectively) with just two clicks:
+It shows an icon in the indicator area or the system tray (whatever is available in your desktop environment). The icon's menu allows you to switch the current sound input and output (i.e. *source ports* and *sink ports* in PulseAudio's terms, respectively) with just two clicks:
 
 ![Screenshot of the indicator](doc/menu.png)
 

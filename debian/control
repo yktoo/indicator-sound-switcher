@@ -21,6 +21,7 @@ Depends:
  gir1.2-appindicator3-0.1,
  libpulse0
 Description: Sound input/output selector indicator
- A simple yet usable application indicator for Ubuntu/Unity. It allows for
- easy switching of the default sound input ("source" in PulseAudio terms) and
- output ("sink") with just a couple of clicks.
+ It shows an icon in the indicator area or the system tray (whatever is
+ available in your desktop environment). The icon's menu allows you to switch
+ the current sound input and output (i.e. source and sink ports in
+ PulseAudio's terms, respectively) with just two clicks.
