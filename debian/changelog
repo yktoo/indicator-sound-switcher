@@ -1,4 +1,4 @@
-indicator-sound-switcher (2.2.1-2) disco; urgency=low
+indicator-sound-switcher (2.2.2-1) disco; urgency=low
 
   * Retries are too frequent when reconnecting to PulseAudio (#79)
 
