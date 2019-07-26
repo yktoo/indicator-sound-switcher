@@ -18,10 +18,11 @@ def compile_lang_files() -> list:
     # Get a canonical locale path
     locale_dir = os.path.abspath(LOCALE_DIR)
 
+    # Get a canonical path to the .po dir
+    po_dir = os.path.abspath(PO_DIR)
+
     # Installing/packaging from the source tree (the 'po' dir is available): compile .po into .mo
-    if os.path.isdir(PO_DIR):
-        # Get a canonical path to the .po dir
-        po_dir = os.path.abspath(PO_DIR)
+    if os.path.isdir(po_dir):
         # Remove the locale dir altogether, if any
         if os.path.isdir(locale_dir):
             shutil.rmtree(locale_dir)
@@ -36,12 +37,15 @@ def compile_lang_files() -> list:
                 mo_dir = os.path.join(locale_dir, lang, 'LC_MESSAGES')
                 os.makedirs(mo_dir)
                 # Compile the .po into a .mo
+                print('INFO: Compiling {} into {}/{}.mo'.format(in_file, mo_dir, APP_ID))
                 os.system(
                     'msgfmt "{}" -o "{}"'.format(os.path.join(po_dir, in_file), os.path.join(mo_dir, APP_ID + '.mo')))
+    else:
+        print('WARNING: Directory {} doesn\'t exist, no .po locale files available'.format(po_dir))
 
-    # Check a locale dir is there
+    # Check the locale dir is there
     if not os.path.isdir(locale_dir):
-        print('WARNING: Directory {} doesn\'t exist, no locale files will be included.'.format(locale_dir))
+        print('WARNING: Directory {} doesn\'t exist, no locale files will be included'.format(locale_dir))
         return []
 
     # Return all available .mo translation files to the list data files
