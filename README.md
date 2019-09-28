@@ -1,3 +1,6 @@
+[![GitHub release](https://img.shields.io/github/v/release/yktoo/indicator-sound-switcher.svg)](https://github.com/yktoo/indicator-sound-switcher/releases/latest)
+[![GitHub](https://img.shields.io/github/license/yktoo/indicator-sound-switcher.svg)](LICENSE)
+
 # Sound Switcher Indicator
 
 Sound input/output selector application for Linux.
