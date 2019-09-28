@@ -1,5 +1,5 @@
 [![GitHub release](https://img.shields.io/github/v/release/yktoo/indicator-sound-switcher.svg)](https://github.com/yktoo/indicator-sound-switcher/releases/latest)
-[![GitHub](https://img.shields.io/github/license/yktoo/indicator-sound-switcher.svg)](LICENSE)
+[![GitHub](https://img.shields.io/github/license/yktoo/indicator-sound-switcher.svg)](COPYING)
 
 # Sound Switcher Indicator
 
