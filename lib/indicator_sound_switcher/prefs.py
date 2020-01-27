@@ -2,7 +2,7 @@ import logging
 import os
 from threading import Timer
 
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango, GLib, Gdk
 
 from . import utils
 from .config import Config
@@ -352,8 +352,41 @@ class PreferencesDialog:
             cfg['preferred_profile'] = val or None
             self.schedule_refresh()
 
+    def on_port_set_shortcut_clicked(self, btn: Gtk.Button):
+        """Signal handler: Port keyboard shortcut button clicked."""
+        win = KeyboardShortcutWindow()
+        win.show_all()
+        while win.grabbing:
+            Gtk.main_iteration()
+        win.destroy()
+
     @staticmethod
     def on_entry_clear_click(entry, icon_pos, event):
-        """Event handler: click on the clear text icon in a text entry."""
+        """Signal handler: click on the clear text icon in a text entry."""
         if icon_pos == Gtk.EntryIconPosition.SECONDARY:
             entry.set_text('')
+
+
+class KeyboardShortcutWindow(Gtk.Window):
+    """Window that allows to grab a keyboard shortcut."""
+
+    def __init__(self):
+        Gtk.Window.__init__(self, title=_("Keyboard shortcut"))
+        self.shortcut = None
+        self.grabbing = True
+
+        # Add a label
+        label = Gtk.Label("Press the desired key combination, Esc to cancel, or Backspace to remove")
+        self.add(label)
+        self.connect('key-press-event', self.on_key_press)
+
+        # Grab the keyboard
+        self.grab_add()
+        ###if Gdk.keyboard_grab(self, False, Gdk.CURRENT_TIME) != Gdk.GrabStatus.SUCCESS:
+        ###    logging.error('Failed to grab the keyboard')
+
+    def on_key_press(self, widget, event: Gdk.EventKey):
+        """Signal handler: key pressed."""
+        logging.debug('Key pressed: %s', event.get_keycode())
+        self.grab_remove()
+        self.grabbing = False
