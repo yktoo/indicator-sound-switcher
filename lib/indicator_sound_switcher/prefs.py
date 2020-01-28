@@ -354,11 +354,13 @@ class PreferencesDialog:
 
     def on_port_set_shortcut_clicked(self, btn: Gtk.Button):
         """Signal handler: Port keyboard shortcut button clicked."""
-        win = KeyboardShortcutWindow()
-        win.show_all()
-        while win.grabbing:
-            Gtk.main_iteration()
-        win.destroy()
+        dlg = KeyboardShortcutDialog(self._dlg.prefs_dialog)
+        shortcut = dlg.run()
+        dlg.destroy()
+
+        if shortcut is not None:
+            # TODO update the port object
+            self.b_port_set_shortcut.set_label(utils.get_key_name(*shortcut))
 
     @staticmethod
     def on_entry_clear_click(entry, icon_pos, event):
@@ -367,26 +369,42 @@ class PreferencesDialog:
             entry.set_text('')
 
 
-class KeyboardShortcutWindow(Gtk.Window):
+class KeyboardShortcutDialog(Gtk.Dialog):
     """Window that allows to grab a keyboard shortcut."""
 
-    def __init__(self):
-        Gtk.Window.__init__(self, title=_("Keyboard shortcut"))
+    def __init__(self, parent):
+        Gtk.Dialog.__init__(self, _("Keyboard shortcut"), parent, 0)
         self.shortcut = None
-        self.grabbing = True
+        self.set_border_width(32)
 
         # Add a label
-        label = Gtk.Label("Press the desired key combination, Esc to cancel, or Backspace to remove")
-        self.add(label)
+        label = Gtk.Label(xalign=0.5, yalign=0.5)
+        label.set_markup(
+            _('Press the desired key combination, <b>Esc</b> to cancel, or <b>Backspace</b> to remove any shortcut.'))
+        self.get_content_area().pack_start(label, True, True, 0)
         self.connect('key-press-event', self.on_key_press)
-
-        # Grab the keyboard
-        self.grab_add()
-        ###if Gdk.keyboard_grab(self, False, Gdk.CURRENT_TIME) != Gdk.GrabStatus.SUCCESS:
-        ###    logging.error('Failed to grab the keyboard')
+        self.show_all()
 
     def on_key_press(self, widget, event: Gdk.EventKey):
         """Signal handler: key pressed."""
-        logging.debug('Key pressed: %s', event.get_keycode())
-        self.grab_remove()
-        self.grabbing = False
+        keyval = event.get_keyval()[1]
+        name = Gdk.keyval_name(keyval)
+
+        # For some reason event.is_modifier == 0 here, even for modifier keys, so we need to resort to checking by name
+        if name not in [
+                'Shift_L', 'Shift_R', 'Control_L', 'Control_R', 'Meta_L', 'Meta_R', 'Alt_L', 'Alt_R', 'Super_L',
+                'Super_R', 'Hyper_L', 'Hyper_R']:
+            logging.debug('Key pressed: state=%s, keyval=%d', event.state, keyval)
+            self.shortcut = (
+                event.state &
+                (Gdk.ModifierType.META_MASK | Gdk.ModifierType.SUPER_MASK | Gdk.ModifierType.HYPER_MASK |
+                 Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK),
+                keyval)
+            self.response(Gtk.ResponseType.ACCEPT)
+        return True
+
+    def run(self):
+        """Show the dialog and block until it's closed.
+        :return: tuple (state, keyval) of the key captured or None if the dialog has been closed."""
+        super().run()
+        return self.shortcut
