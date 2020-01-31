@@ -217,6 +217,9 @@ class PreferencesDialog:
                     self.pref_profile_store.append([name, desc])
             self.cb_port_pref_profile.set_active_id(port_cfg['preferred_profile', ''] or '')
 
+            # Update port's keyboard shortcut
+            self.b_port_set_shortcut.set_label(port_cfg['shortcut', ''] or _('(none)'))
+
         # Enable widgets
         self.enable_port_props_widgets()
 
@@ -354,13 +357,36 @@ class PreferencesDialog:
 
     def on_port_set_shortcut_clicked(self, btn: Gtk.Button):
         """Signal handler: Port keyboard shortcut button clicked."""
+        cfg = self.get_current_port_config()
+        if cfg is None:
+            return
+
+        # Show a grab shortcut dialog
         dlg = KeyboardShortcutDialog(self._dlg.prefs_dialog)
         shortcut = dlg.run()
         dlg.destroy()
 
-        if shortcut is not None:
-            # TODO update the port object
-            self.b_port_set_shortcut.set_label(utils.get_key_name(*shortcut))
+        # None means grabbing was canceled
+        if shortcut is None:
+            return
+
+        # So does Escape
+        key_name = Gtk.accelerator_name(*shortcut)
+        if key_name == 'Escape':
+            return
+
+        # BackSpace means shortkey removal
+        if key_name == 'BackSpace':
+            key_name = ''
+
+        # TODO Remove any current mapping of this shortcut
+
+        # Update the button and the port config
+        self.b_port_set_shortcut.set_label(key_name or _('(none)'))
+        cfg['shortcut'] = key_name
+
+        # Schedule a delayed setting refresh
+        self.schedule_refresh()
 
     @staticmethod
     def on_entry_clear_click(entry, icon_pos, event):
@@ -370,7 +396,7 @@ class PreferencesDialog:
 
 
 class KeyboardShortcutDialog(Gtk.Dialog):
-    """Window that allows to grab a keyboard shortcut."""
+    """Dialog that allows to grab a keyboard shortcut."""
 
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, _("Keyboard shortcut"), parent, 0)
@@ -380,7 +406,7 @@ class KeyboardShortcutDialog(Gtk.Dialog):
         # Add a label
         label = Gtk.Label(xalign=0.5, yalign=0.5)
         label.set_markup(
-            _('Press the desired key combination, <b>Esc</b> to cancel, or <b>Backspace</b> to remove any shortcut.'))
+            _('Press the desired key combination, <b>Backspace</b> to remove any shortcut, or <b>Esc</b> to cancel.'))
         self.get_content_area().pack_start(label, True, True, 0)
         self.connect('key-press-event', self.on_key_press)
         self.show_all()
@@ -396,10 +422,10 @@ class KeyboardShortcutDialog(Gtk.Dialog):
                 'Super_R', 'Hyper_L', 'Hyper_R']:
             logging.debug('Key pressed: state=%s, keyval=%d', event.state, keyval)
             self.shortcut = (
+                keyval,
                 event.state &
                 (Gdk.ModifierType.META_MASK | Gdk.ModifierType.SUPER_MASK | Gdk.ModifierType.HYPER_MASK |
-                 Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK),
-                keyval)
+                 Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK))
             self.response(Gtk.ResponseType.ACCEPT)
         return True
 

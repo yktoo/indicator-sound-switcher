@@ -18,7 +18,7 @@ from .lib_pulseaudio import *
 from .card import CardProfile, Card
 from .port import Port
 from .stream import Source, Sink
-from .config import Config
+from .config import Config, KeyboardManager
 from .prefs import PreferencesDialog
 
 # Global definitions
@@ -89,6 +89,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.config_devices = None
         self.config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
         self.config_load()
+
+        # Initialise the keyboard manager
+        self.keyboard_manager = KeyboardManager(self.config, self.on_port_keyboard_shortcut)
+        self.keyboard_manager.bind_keys()
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -206,93 +210,29 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_refresh(self, *args):
         """Signal handler: Refresh item clicked."""
         logging.debug('.on_refresh()')
+        self.keyboard_manager.bind_keys()
         self.menu_setup()
         self.update_all_pa_items()
 
     def on_select_port(self, widget, data):
         """Signal handler: port selection item clicked."""
         if widget.get_active():
-            # Fetch card index from the buf tuple
-            idx_card = data[0]
+            self.activate_port(*data)
 
-            # If it's a dummy (virtual) card sink, buf[1] is the sink's index
-            if idx_card == CARD_NONE_SINK:
-                port       = None
-                idx_stream = data[1]
-                stream     = self.sinks[idx_stream]
-                is_output  = True
-                logging.info('# Virtual sink[%d] `%s` selected', idx_stream, stream.name)
+    def on_port_keyboard_shortcut(self, shortcut, data):
+        """Signal handler: port selected by a keyboard shortcut."""
+        logging.debug('.on_port_keyboard_shortcut(`%s`, `%s`)', shortcut, data)
+        device_name, port_name = data
 
-            # If it's a dummy (virtual) card source, buf[1] is the source's index
-            elif idx_card == CARD_NONE_SOURCE:
-                port       = None
-                idx_stream = data[1]
-                stream     = self.sources[idx_stream]
-                is_output  = False
-                logging.info('# Virtual source[%d] `%s` selected', idx_stream, stream.name)
+        # Try to find the card by name
+        for idx_card in self.cards.keys():
+            if self.cards[idx_card].name == device_name:
+                # Found - activate the port
+                self.activate_port(idx_card, port_name)
+                return
 
-            # Otherwise it's a real device and buf[1] is the port's name
-            else:
-                port_name = data[1]
-
-                # Find the card and its port
-                card       = self.cards[idx_card]
-                port       = card.ports[port_name]
-                is_output  = port.is_output
-                logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
-
-                # Try to find a matching stream and its port
-                stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
-
-                # If no stream found, that's an error
-                if stream is None:
-                    logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
-                    return
-
-                # Switch profile if necessary
-                self.card_switch_profile(port, stream_port is not None)
-
-            # Switching output
-            if is_output:
-                # Change the default sink
-                self.synchronise_op(
-                    'pa_context_set_default_sink()',
-                    pa_context_set_default_sink(self.pa_context, stream.name.encode(), self._pacb_context_success, None)
-                )
-
-                # Change the active port, if it's not a dummy one
-                if port is not None and not port.is_dummy:
-                    pa_context_set_sink_port_by_index(
-                        self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None)
-
-                # Move all active sink inputs to the selected sink
-                for idx in self.sink_inputs.keys():
-                    self.synchronise_op(
-                        'pa_context_move_sink_input_by_index()',
-                        pa_context_move_sink_input_by_index(
-                            self.pa_context, idx, stream.index, self._pacb_context_success, None))
-
-            # Switching input
-            else:
-                # Change the default source
-                self.synchronise_op(
-                    'pa_context_set_default_source()',
-                    pa_context_set_default_source(
-                        self.pa_context, stream.name.encode(), self._pacb_context_success, None))
-
-                # Change the active port, if it's not a dummy one
-                if port is not None and not port.is_dummy:
-                    self.synchronise_op(
-                        'pa_context_set_source_port_by_index()',
-                        pa_context_set_source_port_by_index(
-                            self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None))
-
-                # Move all active source outputs to the selected source
-                for idx in self.source_outputs.keys():
-                    self.synchronise_op(
-                        'pa_context_move_source_output_by_index()',
-                        pa_context_move_source_output_by_index(
-                            self.pa_context, idx, stream.index, self._pacb_context_success, None))
+        # Not found
+        logging.warning('Failed to find card `%s` among the available devices', device_name)
 
     # ------------------------------------------------------------------------------------------------------------------
     # PulseAudio callbacks
@@ -876,6 +816,96 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Write the configuration out to the corresponding file."""
         self.config.save_to_file(self.config_file_name)
 
+    def activate_port(self, idx_card: int, stream_or_port):
+        """Switch input or output to the given port or virtual stream.
+        :param idx_card:       device index in the cards[] list
+        :param stream_or_port: either stream index if idx_card refers to a dummy sink/source, or name of the port on the
+                               card given by idx_card
+        """
+        # If it's a dummy (virtual) card sink, buf[1] is the sink's index
+        if idx_card == CARD_NONE_SINK:
+            port       = None
+            idx_stream = stream_or_port
+            stream     = self.sinks[idx_stream]
+            is_output  = True
+            logging.info('# Virtual sink[%d] `%s` selected', idx_stream, stream.name)
+
+        # If it's a dummy (virtual) card source, buf[1] is the source's index
+        elif idx_card == CARD_NONE_SOURCE:
+            port       = None
+            idx_stream = stream_or_port
+            stream     = self.sources[idx_stream]
+            is_output  = False
+            logging.info('# Virtual source[%d] `%s` selected', idx_stream, stream.name)
+
+        # Otherwise it's a real device and buf[1] is the port's name
+        else:
+            port_name = stream_or_port
+
+            # Find the card and validate its port
+            card = self.cards[idx_card]
+            if port_name not in card.ports:
+                logging.warning('# Failed to find port `%s` on card `%s`', port_name, card.name)
+                return
+
+            port = card.ports[port_name]
+            is_output = port.is_output
+            logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
+
+            # Try to find a matching stream and its port
+            stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
+
+            # If no stream found, that's an error
+            if stream is None:
+                logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
+                return
+
+            # Switch profile if necessary
+            self.card_switch_profile(port, stream_port is not None)
+
+        # Switching output
+        if is_output:
+            # Change the default sink
+            self.synchronise_op(
+                'pa_context_set_default_sink()',
+                pa_context_set_default_sink(self.pa_context, stream.name.encode(), self._pacb_context_success, None)
+            )
+
+            # Change the active port, if it's not a dummy one
+            if port is not None and not port.is_dummy:
+                pa_context_set_sink_port_by_index(
+                    self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None)
+
+            # Move all active sink inputs to the selected sink
+            for idx in self.sink_inputs.keys():
+                self.synchronise_op(
+                    'pa_context_move_sink_input_by_index()',
+                    pa_context_move_sink_input_by_index(
+                        self.pa_context, idx, stream.index, self._pacb_context_success, None))
+
+        # Switching input
+        else:
+            # Change the default source
+            self.synchronise_op(
+                'pa_context_set_default_source()',
+                pa_context_set_default_source(
+                    self.pa_context, stream.name.encode(), self._pacb_context_success, None))
+
+            # Change the active port, if it's not a dummy one
+            if port is not None and not port.is_dummy:
+                self.synchronise_op(
+                    'pa_context_set_source_port_by_index()',
+                    pa_context_set_source_port_by_index(
+                        self.pa_context, stream.index, port.name.encode(), self._pacb_context_success, None))
+
+            # Move all active source outputs to the selected source
+            for idx in self.source_outputs.keys():
+                self.synchronise_op(
+                    'pa_context_move_source_output_by_index()',
+                    pa_context_move_source_output_by_index(
+                        self.pa_context, idx, stream.index, self._pacb_context_success, None))
+
+
     def activate_sink(self, name: str):
         """Activate a sink by its name."""
         logging.debug('* Activated sink: `%s`', name)
@@ -1080,6 +1110,12 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Shutdown PulseAudio
         self.pulseaudio_shutdown()
+
+        # Shutdown the keyboard manager
+        if self.keyboard_manager:
+            self.keyboard_manager.shutdown()
+
+        # Quit
         Gtk.main_quit()
 
     def synchronise_op(self, name: str, operation):
