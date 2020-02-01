@@ -85,14 +85,13 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.item_separator_outputs = None
 
         # Load configuration, if any
-        self.config = None
-        self.config_devices = None
         self.config_file_name = os.path.join(GLib.get_user_config_dir(), APP_ID + '.json')
-        self.config_load()
+        self.config           = self.config_load()
+        self.config_devices   = self.config['devices']
 
         # Initialise the keyboard manager
-        self.keyboard_manager = KeyboardManager(self.config, self.on_port_keyboard_shortcut)
-        self.keyboard_manager.bind_keys()
+        self.keyboard_manager = KeyboardManager(self.on_port_keyboard_shortcut)
+        self.keyboard_manager.bind_keys(self.config)
 
         # Create a menu
         self.menu = Gtk.Menu()
@@ -210,7 +209,7 @@ class SoundSwitcherIndicator(GObject.GObject):
     def on_refresh(self, *args):
         """Signal handler: Refresh item clicked."""
         logging.debug('.on_refresh()')
-        self.keyboard_manager.bind_keys()
+        self.keyboard_manager.bind_keys(self.config)
         self.menu_setup()
         self.update_all_pa_items()
 
@@ -807,10 +806,9 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Other methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def config_load(self):
+    def config_load(self) -> Config:
         """Read the configuration from the corresponding file."""
-        self.config = Config.load_from_file(self.config_file_name)
-        self.config_devices = self.config['devices']
+        return Config.load_from_file(self.config_file_name)
 
     def config_save(self):
         """Write the configuration out to the corresponding file."""
@@ -904,7 +902,6 @@ class SoundSwitcherIndicator(GObject.GObject):
                     'pa_context_move_source_output_by_index()',
                     pa_context_move_source_output_by_index(
                         self.pa_context, idx, stream.index, self._pacb_context_success, None))
-
 
     def activate_sink(self, name: str):
         """Activate a sink by its name."""

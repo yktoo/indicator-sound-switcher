@@ -218,7 +218,7 @@ class PreferencesDialog:
             self.cb_port_pref_profile.set_active_id(port_cfg['preferred_profile', ''] or '')
 
             # Update port's keyboard shortcut
-            self.b_port_set_shortcut.set_label(port_cfg['shortcut', ''] or _('(none)'))
+            self.b_port_set_shortcut.set_label(port_cfg['shortcut', None] or _('(none)'))
 
         # Enable widgets
         self.enable_port_props_widgets()
@@ -259,6 +259,16 @@ class PreferencesDialog:
                     port_cfg = {}
                     device_cfg['ports'][row.port_name] = port_cfg
         return port_cfg
+
+    def remove_shortcut_binding(self, shortcut: str):
+        """Scan every port's config and remove the given shortcut if it's bound to it.
+        :param shortcut: shortcut whose binding is to be removed
+        """
+        # Scan all ports of all devices and remove any current mapping of this shortcut
+        for device_cfg in self.indicator.config['devices'].values():
+            for port_cfg in device_cfg['ports'].values():
+                if port_cfg['shortcut', None] == shortcut:
+                    port_cfg['shortcut'] = None
 
     def on_destroy(self, dlg):
         """Signal handler: dialog destroying."""
@@ -377,9 +387,11 @@ class PreferencesDialog:
 
         # BackSpace means shortkey removal
         if key_name == 'BackSpace':
-            key_name = ''
+            key_name = None
 
-        # TODO Remove any current mapping of this shortcut
+        # Remove any current mapping of this shortcut
+        if key_name:
+            self.remove_shortcut_binding(key_name)
 
         # Update the button and the port config
         self.b_port_set_shortcut.set_label(key_name or _('(none)'))

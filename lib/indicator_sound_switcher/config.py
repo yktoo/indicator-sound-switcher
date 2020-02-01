@@ -109,48 +109,50 @@ class Config(dict):
 class KeyboardManager:
     """Utility class for managing keyboards shortcuts."""
 
-    def __init__(self, config, on_port_selected: callable):
+    def __init__(self, on_port_selected: callable):
         """Constructor.
-        :param config: Config object
         :param on_port_selected: callback that receives the port once the corresponding shortcut has been pressed
         """
-        self.config = config
         self.current_mappings = {}  # Dictionary of tuples: shortcut => (device_name, port_name)
         self.on_port_selected = on_port_selected
         Keybinder.init()
 
-    def bind_keys(self):
-        """Updates key bindings based on the current configuration."""
+    def bind_keys(self, config: Config):
+        """Updates key bindings based on the current configuration.
+        :param config: Config object to take keyboard shortcuts from
+        """
+        logging.debug('KeyboardManager.bind_keys()')
         new_mappings = {}
 
         # Scan all ports of all devices
-        for device_name, device_cfg in self.config['devices'].items():
+        for device_name, device_cfg in config['devices'].items():
             for port_name, port_cfg in device_cfg['ports'].items():
                 # If there's a shortcut
-                shortcut = port_cfg['shortcut', '']
+                shortcut = port_cfg['shortcut', None]
                 if shortcut:
                     new_mapping = (device_name, port_name)
+
                     # If the key combination is already mapped, move on to the next item
-                    if shortcut in self.current_mappings and self.current_mappings[shortcut] == new_mapping:
-                        continue
+                    if shortcut not in self.current_mappings or self.current_mappings[shortcut] != new_mapping:
+                        # Unmap the current assignment, if needed
+                        if shortcut in self.current_mappings:
+                            Keybinder.unbind(shortcut)
+                            logging.debug('  - Keyboard shortcut `%s` is remapped, unbound', shortcut)
 
-                    # Unmap the current assignment, if needed
-                    if shortcut in self.current_mappings:
-                        Keybinder.unbind(shortcut)
-                        logging.debug('Keyboard shortcut %s is remapped, unbound', shortcut)
+                        # Map the keyboard shortcut
+                        if Keybinder.bind(shortcut, self.on_port_selected, new_mapping):
+                            logging.debug('  - Bound keyboard shortcut `%s` to `%s`', shortcut, new_mapping)
+                        else:
+                            logging.warning('Failed to bind keyboard shortcut `%s` to `%s`', shortcut, new_mapping)
 
-                    # Map the keyboard shortcut
-                    if Keybinder.bind(shortcut, self.on_port_selected, new_mapping):
-                        logging.debug('Bound keyboard shortcut %s to %s', shortcut, new_mapping)
-                    else:
-                        logging.warning('Failed to bind keyboard shortcut %s to %s', shortcut, new_mapping)
+                    # Remember the mapping in new_mappings
                     new_mappings[shortcut] = new_mapping
 
         # Remove key mappings that no longer exist
         for shortcut in self.current_mappings.keys():
             if shortcut not in new_mappings:
                 Keybinder.unbind(shortcut)
-                logging.debug("Keyboard shortcut %s isn't used anymore, unbound", shortcut)
+                logging.debug("  - Keyboard shortcut `%s` isn't used anymore, unbound", shortcut)
 
         # Save the new mappings for future reference
         self.current_mappings = new_mappings
@@ -160,5 +162,5 @@ class KeyboardManager:
         logging.debug('KeybordManager.shutdown()')
         for shortcut in self.current_mappings.keys():
             Keybinder.unbind(shortcut)
-            logging.debug('Unbound keyboard shortcut %s', shortcut)
+            logging.debug('  - Unbound keyboard shortcut `%s`', shortcut)
         self.current_mappings = {}
