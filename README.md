@@ -11,7 +11,9 @@ It shows an icon in the indicator area or the system tray (whatever is available
 
 The application makes use of the native PulseAudio API (version 4.0 or newer is required).
 
-For details see http://yktoo.com/software/indicator-sound-switcher
+For details see:
+* http://yktoo.com/en/software/indicator-sound-switcher/ (English)
+* http://yktoo.com/ru/software/indicator-sound-switcher/ (русский)
 
 * [Installation](doc/install.md)
 * [Configuration](doc/config.md)
