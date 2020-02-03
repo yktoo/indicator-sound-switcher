@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.0-1) eoan; urgency=low
+
+  * Add global keyboard shortcuts for switching ports (#38)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Mon, 03 Feb 2020 19:51:54 +0100
+
 indicator-sound-switcher (2.2.2-1) disco; urgency=low
 
   * Retries are too frequent when reconnecting to PulseAudio (#79)

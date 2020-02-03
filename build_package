@@ -1,24 +1,31 @@
 #!/bin/bash
 #-------------------------------------------------------------------------------
-# Purpose:
-#   Build distribution packages for Ubuntu
-# Arguments:
-#   1 - Revision number, optional. If omitted, "1" is used
-# Requires:
-#   None
+# Purpose
+#     Build distribution packages for Ubuntu
+# Synapsis
+#     build_package [options] [revision]
+# Options
+#     -b  build binary package (instead of source)
+# Arguments
+#     revision Revision number, optional. If omitted, "1" is used
+# Requirements
+#     devscripts
+#     debhelper
 #-------------------------------------------------------------------------------
 
 SETUP_SCRIPT="setup.py"
 DIST_ROOT_DIR="dist"
 PO_DIR="po"
+do_binary=0
+[[ "$1" == "-b" ]] && do_binary=1 && shift
 REVISION=${1:-1}
 
 # Logs a failure message and exits
 # Parameters:
 #   1 - message
 err() {
-  echo "ERROR: $1" >&2
-  exit 1
+    echo "ERROR: $1" >&2
+    exit 1
 }
 
 # Extract name and version values from the setup script file
@@ -33,7 +40,7 @@ echo "Building ${APP_NAME} version ${APP_VERSION} revision ${REVISION}..."
 # Verify the changelog contains the appropriate line
 app_ver_string="${APP_NAME} (${APP_VERSION}-${REVISION})"
 (head -n 1 "debian/changelog" | grep -q "$app_ver_string") ||
-  err "The changelog doesn't start with the entry '${app_ver_string}'"
+    err "The changelog doesn't start with the entry '${app_ver_string}'"
 
 # Initial cleanup: clean the dist dirs
 [[ ! -d "$DIST_ROOT_DIR" ]] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
@@ -52,16 +59,24 @@ tar --directory "$DIST_ROOT_DIR" -xzf "$TARBALL_NAME" "${APP_NAME}-${APP_VERSION
 RELEASE_DIR="${DIST_ROOT_DIR}/${APP_NAME}-${APP_VERSION}"
 cp -r debian "$RELEASE_DIR" || err "Copying debian/ into $RELEASE_DIR failed"
 
-# Build a Debian source package
+# Build a Debian package
+if ((do_binary == 0)); then
+    DEBUILD_FLAGS="-S -sa"
+else
+    DEBUILD_FLAGS="-b"
+fi
 pushd .
 cd "$RELEASE_DIR"
-debuild -S -sa || err "Building Debian package failed"
+debuild $DEBUILD_FLAGS || err "Building Debian package failed"
 popd >/dev/null
 
 # Cleanup: remove the release dir
 rm -rf "$RELEASE_DIR"
 
-echo "--------------------------------------------------------------------------------"
-echo "Build succeeded. To upload issue the following command:"
-echo "  dput ppa:yktooo/ppa \"$DIST_ROOT_DIR/${APP_NAME}_${APP_VERSION}-${REVISION}_source.changes\""
-echo "--------------------------------------------------------------------------------"
+# If it was a source package
+if ((do_binary == 0)); then
+    echo "--------------------------------------------------------------------------------"
+    echo "Build succeeded. To upload issue the following command:"
+    echo "  dput ppa:yktooo/ppa \"$DIST_ROOT_DIR/${APP_NAME}_${APP_VERSION}-${REVISION}_source.changes\""
+    echo "--------------------------------------------------------------------------------"
+fi
