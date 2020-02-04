@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 
+<!-- Generated with glade 3.22.1
 
 Copyright (C)
 
@@ -480,7 +480,7 @@ Author: Dmitry Kann
                     </child>
                     <child>
                       <object class="GtkButton" id="b_port_set_shortcut">
-                        <property name="label" translatable="yes">...</property>
+                        <property name="label" translatable="yes"/>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>

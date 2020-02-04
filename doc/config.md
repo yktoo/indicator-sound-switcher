@@ -51,6 +51,7 @@ The configuration of the port is an object providing the following elements (all
 | `name`                  | string  |         | Alternative display name for the port (menu item text).                                                     |
 | `preferred_profile`     | string  |         | Profile name to switch to by default when the menu item is selected. If not given, and the currently selected profile doesn't support this port, a profile with the maximum priority will be picked. |
 | `always_available`      | boolean | false   | If `true`, the corresponding menu item will be displayed disregarding whether or not the port is available. |
+| `shortcut`              | string  |         | Global keyboard shortcut for switching to this port                                                         |
 
 Here's a sample configuration file:
 
@@ -67,7 +68,8 @@ Here's a sample configuration file:
                 "analog-input-microphone": {
                     "name": "Mike",
                     "preferred_profile": "output:analog-stereo+input:analog-stereo",
-                    "always_available": true
+                    "always_available": true,
+                    "shortcut": "<Primary><Alt>7"
                 }
             }
         },
@@ -90,8 +92,8 @@ It says that:
 
 * The `Inputs` section will be hidden.
 * The device `alsa_card.pci-0000_00_06.0` will be referred to as `My lovely card`, and
-  * Its speaker output will be called `Boombox`,
-  * Its S/PDIF port will be hidden from the menu,
-  * Its microphone input will be called `Mike`, activate the duplex (input+output) profile when selected, and be shown even when isn't available.
+    * Its speaker output will be called `Boombox`,
+    * Its S/PDIF port will be hidden from the menu,
+    * Its microphone input will be called `Mike`, activate the duplex (input+output) profile when selected, and be shown even when isn't available. You can switch to it using the `Ctrl+Alt+7` key combo.
 * The device `alsa_card.pci-0000_01_00.1` will be named `HDMI Audio` in the menu items.
 * For the rest all the defaults will apply.
