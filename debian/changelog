@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.1-1) eoan; urgency=low
+
+  * Use directory of setup.py when looking for .po files (#82)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Mon, 25 May 2020 17:48:39 +0200
+
 indicator-sound-switcher (2.3.0-1) eoan; urgency=low
 
   * Add global keyboard shortcuts for switching ports (#38)

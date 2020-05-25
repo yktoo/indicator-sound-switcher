@@ -5,21 +5,18 @@ import os
 import shutil
 
 
-PO_DIR      = 'po'
-LOCALE_DIR  = 'locale'
 APP_ID      = 'indicator-sound-switcher'
-APP_VERSION = '2.3.0'
+APP_VERSION = '2.3.1'
 
 
 def compile_lang_files() -> list:
     """(Re)generate .mo files from the available .po files, if any
     :return: list of .mo files to be packaged or installed
     """
-    # Get a canonical locale path
-    locale_dir = os.path.abspath(LOCALE_DIR)
-
-    # Get a canonical path to the .po dir
-    po_dir = os.path.abspath(PO_DIR)
+    # Get canonical directory paths
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    locale_dir = os.path.join(root_dir, 'locale')
+    po_dir = os.path.join(root_dir, 'po')
 
     # Installing/packaging from the source tree (the 'po' dir is available): compile .po into .mo
     if os.path.isdir(po_dir):
@@ -52,7 +49,7 @@ def compile_lang_files() -> list:
     return [
         (
             'share/locale/{}/LC_MESSAGES'.format(lang),
-            [os.path.join(LOCALE_DIR, lang, 'LC_MESSAGES', APP_ID + '.mo')]
+            [os.path.join('locale', lang, 'LC_MESSAGES', APP_ID + '.mo')]
         ) for lang in os.listdir(locale_dir)
     ]
 
