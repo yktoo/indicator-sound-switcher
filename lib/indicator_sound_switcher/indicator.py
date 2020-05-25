@@ -24,8 +24,7 @@ from .prefs import PreferencesDialog
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
 APP_NAME    = 'Sound Switcher Indicator'
-APP_ICON    = 'indicator-sound-switcher'
-APP_VERSION = '2.3.0'
+APP_VERSION = '2.3.1'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -55,7 +54,10 @@ class SoundSwitcherIndicator(GObject.GObject):
         GObject.GObject.__init__(self)
 
         # Create the indicator object
-        self.ind = AppIndicator.Indicator.new(APP_ID, APP_ICON, AppIndicator.IndicatorCategory.HARDWARE)
+        self.ind = AppIndicator.Indicator.new(
+            APP_ID,
+            'indicator-sound-switcher-symbolic',
+            AppIndicator.IndicatorCategory.HARDWARE)
         self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
         # Initialise PulseAudio object lists and references
@@ -192,7 +194,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         dialog.set_version(APP_VERSION)
         dialog.set_website('http://yktoo.com')
         dialog.set_website_label('yktoo.com')
-        dialog.set_logo_icon_name(APP_ICON)
+        dialog.set_logo_icon_name('indicator-sound-switcher')
         dialog.connect('response', lambda *largs: dialog.destroy())
         dialog.run()
 
