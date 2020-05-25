@@ -46,7 +46,7 @@ app_ver_string="${APP_NAME} (${APP_VERSION}-${REVISION})"
 [[ ! -d "$DIST_ROOT_DIR" ]] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
 
 # Run the setup script to create a source tarball
-python3 "$SETUP_SCRIPT" --quiet sdist --owner=root --group=root || err "Building source tarball failed"
+python3 "$SETUP_SCRIPT" sdist --owner=root --group=root || err "Building source tarball failed"
 
 # Add '.orig' and change '-' to '_' before version in tarball's name
 TARBALL_NAME="${DIST_ROOT_DIR}/${APP_NAME}_${APP_VERSION}.orig.tar.gz"

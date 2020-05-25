@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.2-1) eoan; urgency=low
+
+  * Explicitly include .po and exclude .mo in source distribution (#82)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Mon, 25 May 2020 18:41:22 +0200
+
 indicator-sound-switcher (2.3.1-1) eoan; urgency=low
 
   * Use directory of setup.py when looking for .po files (#82)
