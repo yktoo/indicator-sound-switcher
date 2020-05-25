@@ -1,8 +1,8 @@
 [Desktop Entry]
 Categories=AudioVideo;
 Comment=Sound input/output selector indicator.
-Comment[nl]=Индикатор для выбора входа и выхода звука.
-Comment[ru]=Indicator applicatie om geluidsin- en uitgang te switchen.
+Comment[ru]=Индикатор для выбора входа и выхода звука.
+Comment[nl]=Indicator applicatie om geluidsin- en uitgang te switchen.
 Exec=indicator-sound-switcher
 Hidden=False
 Icon=indicator-sound-switcher
