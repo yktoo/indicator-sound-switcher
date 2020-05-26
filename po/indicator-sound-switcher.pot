@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-02 17:57+0100\n"
+"POT-Creation-Date: 2020-05-26 18:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,32 +17,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: lib/indicator_sound_switcher/indicator.py:168
-msgid "Written by Dmitry Kann"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:928
-msgid "Inputs"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:936
-msgid "Outputs"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:943
-msgid "_Refresh"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:944
-msgid "_Preferences…"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:945
-msgid "_About"
-msgstr ""
-
-#: lib/indicator_sound_switcher/indicator.py:946
-msgid "_Quit"
+#: lib/indicator_sound_switcher/port.py:99
+msgid "(unknown device)"
 msgstr ""
 
 #: lib/indicator_sound_switcher/prefs.py:178
@@ -54,67 +30,111 @@ msgid "In"
 msgstr ""
 
 #: lib/indicator_sound_switcher/prefs.py:213
+#: lib/indicator_sound_switcher/prefs.py:221
+#: lib/indicator_sound_switcher/prefs.py:397
 msgid "(none)"
 msgstr ""
 
-#: lib/indicator_sound_switcher/port.py:99
-msgid "(unknown device)"
+#: lib/indicator_sound_switcher/prefs.py:414
+msgid "Keyboard shortcut"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:39
-msgid "Sound Switcher Indicator Preferences"
+#: lib/indicator_sound_switcher/prefs.py:421
+msgid ""
+"Press the desired key combination, <b>Backspace</b> to remove any shortcut, "
+"or <b>Esc</b> to cancel."
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:108
+#: lib/indicator_sound_switcher/indicator.py:192
+msgid "Written by Dmitry Kann"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:990
+msgid "Inputs"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:998
+msgid "Outputs"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:1005
+msgid "_Refresh"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:1006
+msgid "_Preferences…"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:1007
+msgid "_About"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:1008
+msgid "_Quit"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:49
+msgid "Preferences"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:50
+msgid "Sound Switcher Indicator"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:114
 msgid "Show inputs"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:123
+#: lib/indicator_sound_switcher/prefs.glade:129
 msgid "Show outputs"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:163
+#: lib/indicator_sound_switcher/prefs.glade:169
 msgid "_General"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:187
+#: lib/indicator_sound_switcher/prefs.glade:192
 msgid "Devices"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:202
+#: lib/indicator_sound_switcher/prefs.glade:207
 msgid "Device settings"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:217
+#: lib/indicator_sound_switcher/prefs.glade:222
 msgid "Port settings"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:275
-#: lib/indicator_sound_switcher/prefs.glade:405
+#: lib/indicator_sound_switcher/prefs.glade:281
+#: lib/indicator_sound_switcher/prefs.glade:411
 msgid "Custom name:"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:288
-#: lib/indicator_sound_switcher/prefs.glade:441
+#: lib/indicator_sound_switcher/prefs.glade:294
+#: lib/indicator_sound_switcher/prefs.glade:447
 msgid "Reset"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:310
+#: lib/indicator_sound_switcher/prefs.glade:316
 msgid "Ports:"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:369
+#: lib/indicator_sound_switcher/prefs.glade:375
 msgid "Visible:"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:393
+#: lib/indicator_sound_switcher/prefs.glade:399
 msgid "Always available:"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:417
+#: lib/indicator_sound_switcher/prefs.glade:423
 msgid "Preferred profile:"
 msgstr ""
 
-#: lib/indicator_sound_switcher/prefs.glade:478
+#: lib/indicator_sound_switcher/prefs.glade:474
+msgid "Keyboard shortcut:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:509
 msgid "_Devices"
 msgstr ""

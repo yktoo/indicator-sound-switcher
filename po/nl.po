@@ -7,44 +7,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-02 17:57+0100\n"
-"PO-Revision-Date: 2019-01-02 18:07+0100\n"
-"Last-Translator: \n"
+"POT-Creation-Date: 2020-05-26 18:43+0200\n"
+"PO-Revision-Date: 2020-05-26 18:50+0200\n"
+"Last-Translator: Dmitry Kann <yktooo@gmail.com>\n"
 "Language-Team: \n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.3.1\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/indicator_sound_switcher/indicator.py:168
-msgid "Written by Dmitry Kann"
-msgstr "Auteur: Dmitry Kann"
-
-#: lib/indicator_sound_switcher/indicator.py:928
-msgid "Inputs"
-msgstr "Ingangen"
-
-#: lib/indicator_sound_switcher/indicator.py:936
-msgid "Outputs"
-msgstr "Uitgangen"
-
-#: lib/indicator_sound_switcher/indicator.py:943
-msgid "_Refresh"
-msgstr "_Verversen"
-
-#: lib/indicator_sound_switcher/indicator.py:944
-msgid "_Preferences…"
-msgstr "_Instellingen…"
-
-#: lib/indicator_sound_switcher/indicator.py:945
-msgid "_About"
-msgstr "_Over"
-
-#: lib/indicator_sound_switcher/indicator.py:946
-msgid "_Quit"
-msgstr "_Afsluiten"
+#: lib/indicator_sound_switcher/port.py:99
+msgid "(unknown device)"
+msgstr "(onbekende kaart)"
 
 #: lib/indicator_sound_switcher/prefs.py:178
 msgid "Out"
@@ -55,67 +31,113 @@ msgid "In"
 msgstr "Ingang"
 
 #: lib/indicator_sound_switcher/prefs.py:213
+#: lib/indicator_sound_switcher/prefs.py:221
+#: lib/indicator_sound_switcher/prefs.py:397
 msgid "(none)"
 msgstr "(geen)"
 
-#: lib/indicator_sound_switcher/port.py:99
-msgid "(unknown device)"
-msgstr "(onbekende kaart)"
+#: lib/indicator_sound_switcher/prefs.py:414
+msgid "Keyboard shortcut"
+msgstr "Sneltoets"
 
-#: lib/indicator_sound_switcher/prefs.glade:39
-msgid "Sound Switcher Indicator Preferences"
-msgstr "Instellingen van Sound Switcher Indicator"
+#: lib/indicator_sound_switcher/prefs.py:421
+msgid ""
+"Press the desired key combination, <b>Backspace</b> to remove any shortcut, "
+"or <b>Esc</b> to cancel."
+msgstr ""
+"Druk op de gewenste toetscombinatie, <b>Backspace</b> om de snelkoppeling "
+"te verwijderen of <b>Esc</b> om te annuleren."
 
-#: lib/indicator_sound_switcher/prefs.glade:108
+#: lib/indicator_sound_switcher/indicator.py:192
+msgid "Written by Dmitry Kann"
+msgstr "Auteur: Dmitry Kann"
+
+#: lib/indicator_sound_switcher/indicator.py:990
+msgid "Inputs"
+msgstr "Ingangen"
+
+#: lib/indicator_sound_switcher/indicator.py:998
+msgid "Outputs"
+msgstr "Uitgangen"
+
+#: lib/indicator_sound_switcher/indicator.py:1005
+msgid "_Refresh"
+msgstr "_Verversen"
+
+#: lib/indicator_sound_switcher/indicator.py:1006
+msgid "_Preferences…"
+msgstr "_Instellingen…"
+
+#: lib/indicator_sound_switcher/indicator.py:1007
+msgid "_About"
+msgstr "_Over"
+
+#: lib/indicator_sound_switcher/indicator.py:1008
+msgid "_Quit"
+msgstr "_Afsluiten"
+
+#: lib/indicator_sound_switcher/prefs.glade:49
+msgid "Preferences"
+msgstr "Instellingen"
+
+#: lib/indicator_sound_switcher/prefs.glade:50
+msgid "Sound Switcher Indicator"
+msgstr "Sound Switcher Indicator"
+
+#: lib/indicator_sound_switcher/prefs.glade:114
 msgid "Show inputs"
 msgstr "Ingangen tonen"
 
-#: lib/indicator_sound_switcher/prefs.glade:123
+#: lib/indicator_sound_switcher/prefs.glade:129
 msgid "Show outputs"
 msgstr "Uitgangen tonen"
 
-#: lib/indicator_sound_switcher/prefs.glade:163
+#: lib/indicator_sound_switcher/prefs.glade:169
 msgid "_General"
 msgstr "_Algemeen"
 
-#: lib/indicator_sound_switcher/prefs.glade:187
+#: lib/indicator_sound_switcher/prefs.glade:192
 msgid "Devices"
 msgstr "Kaarten"
 
-#: lib/indicator_sound_switcher/prefs.glade:202
+#: lib/indicator_sound_switcher/prefs.glade:207
 msgid "Device settings"
 msgstr "Kaartinstellingen"
 
-#: lib/indicator_sound_switcher/prefs.glade:217
+#: lib/indicator_sound_switcher/prefs.glade:222
 msgid "Port settings"
 msgstr "Poortinstellingen"
 
-#: lib/indicator_sound_switcher/prefs.glade:275
-#: lib/indicator_sound_switcher/prefs.glade:405
+#: lib/indicator_sound_switcher/prefs.glade:281
+#: lib/indicator_sound_switcher/prefs.glade:411
 msgid "Custom name:"
 msgstr "Zichtbare naam:"
 
-#: lib/indicator_sound_switcher/prefs.glade:288
-#: lib/indicator_sound_switcher/prefs.glade:441
+#: lib/indicator_sound_switcher/prefs.glade:294
+#: lib/indicator_sound_switcher/prefs.glade:447
 msgid "Reset"
 msgstr "Wissen"
 
-#: lib/indicator_sound_switcher/prefs.glade:310
+#: lib/indicator_sound_switcher/prefs.glade:316
 msgid "Ports:"
 msgstr "Poorten:"
 
-#: lib/indicator_sound_switcher/prefs.glade:369
+#: lib/indicator_sound_switcher/prefs.glade:375
 msgid "Visible:"
 msgstr "Zichtbaar:"
 
-#: lib/indicator_sound_switcher/prefs.glade:393
+#: lib/indicator_sound_switcher/prefs.glade:399
 msgid "Always available:"
 msgstr "Altijd aanwezig:"
 
-#: lib/indicator_sound_switcher/prefs.glade:417
+#: lib/indicator_sound_switcher/prefs.glade:423
 msgid "Preferred profile:"
 msgstr "Profielvoorkeur:"
 
-#: lib/indicator_sound_switcher/prefs.glade:478
+#: lib/indicator_sound_switcher/prefs.glade:474
+msgid "Keyboard shortcut:"
+msgstr "Sneltoets:"
+
+#: lib/indicator_sound_switcher/prefs.glade:509
 msgid "_Devices"
 msgstr "_Kaarten"
