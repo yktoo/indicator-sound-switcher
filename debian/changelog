@@ -1,3 +1,10 @@
+indicator-sound-switcher (2.3.3-1) eoan; urgency=low
+
+  * Fix broken SVG icons (#87)
+  * Update RU, NL translations
+
+ -- Dmitry Kann <yktooo@gmail.com>  Mon, 26 May 2020 18:57:12 +0200
+
 indicator-sound-switcher (2.3.2-1) eoan; urgency=low
 
   * Explicitly include .po and exclude .mo in source distribution (#82)
