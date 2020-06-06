@@ -44,6 +44,9 @@ class PreferencesDialog:
         self.builder = Gtk.Builder()
         self.builder.add_from_file(os.path.join(os.path.dirname(__file__), 'prefs.glade'))
 
+        # Remove the 2-pixel "aura" around the notebook
+        self.prefs_dialog.get_content_area().set_border_width(0)
+
         # Create a text renderer for preferred profiles to support ellipsizing the text
         renderer_text = Gtk.CellRendererText()
         renderer_text.props.ellipsize = Pango.EllipsizeMode.END
