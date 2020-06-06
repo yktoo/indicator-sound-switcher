@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.4-1) eoan; urgency=low
+
+  * Fix symbolic icons (#88)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Mon, 06 Jun 2020 14:21:16 +0200
+
 indicator-sound-switcher (2.3.3-1) eoan; urgency=low
 
   * Fix broken SVG icons (#87)

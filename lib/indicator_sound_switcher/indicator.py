@@ -24,7 +24,7 @@ from .prefs import PreferencesDialog
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
 APP_NAME    = 'Sound Switcher Indicator'
-APP_VERSION = '2.3.3'
+APP_VERSION = '2.3.4'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.

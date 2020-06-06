@@ -6,7 +6,7 @@ import shutil
 
 
 APP_ID      = 'indicator-sound-switcher'
-APP_VERSION = '2.3.3'
+APP_VERSION = '2.3.4'
 
 
 def compile_lang_files() -> list:
