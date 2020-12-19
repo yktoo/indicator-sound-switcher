@@ -1,0 +1,53 @@
+name: indicator-sound-switcher
+version: '2.3.4'
+summary: Sound input/output selector application for Linux.
+description: |
+  It shows an icon in the indicator area or the system tray (whatever is available in your desktop environment). The icon's menu allows you to switch the current sound input and output
+
+grade: stable
+confinement: strict
+base: core18
+
+parts:
+  indicator-sound-switcher:
+    plugin: python
+    python-version: python3
+    source: .
+    build-packages:
+      - gettext
+    stage-packages:
+      - gir1.2-ayatanaappindicator3-0.1
+      - gir1.2-keybinder-3.0
+      - libayatana-appindicator3-1
+      - libayatana-indicator3-7
+      - libkeybinder-3.0-0
+      - python3-gi
+
+  autolaunch:
+    plugin: dump
+    source: .
+    organize:
+      snap/local/autostart.sh: bin/
+      icons/indicator-sound-switcher-symbolic.svg: usr/share/icons/hicolor/scalable/status/
+    prime:
+      - -debian
+      - -doc
+      - -man
+      - -po
+      - -AUTHORS
+      - -build_package
+      - -COPYING
+      - -MANIFEST.in
+      - -README.md
+      - -setup.py
+      - -indicator-sound-switcher
+      - -indicator-sound-switcher.desktop
+
+apps:
+  indicator-sound-switcher:
+    command: desktop-launch $SNAP/bin/autostart.sh $SNAP/bin/indicator-sound-switcher
+    autostart: indicator-sound-switcher.desktop
+    extensions: [gnome-3-28]
+    plugs:
+      - audio-playback
+
