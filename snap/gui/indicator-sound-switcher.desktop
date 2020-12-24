@@ -1,0 +1,14 @@
+[Desktop Entry]
+Categories=AudioVideo;
+Comment=Sound input/output selector indicator.
+Comment[ru]=Индикатор для выбора входа и выхода звука.
+Comment[nl]=Indicator applicatie om geluidsin- en uitgang te switchen.
+Exec=indicator-sound-switcher
+Hidden=False
+Icon=${SNAP}/meta/gui/indicator-sound-switcher.svg
+Name=Sound Switcher Indicator
+StartupNotify=true
+Terminal=false
+Type=Application
+Keywords=sound;audio;sink;control;switch;indicator;
+X-GNOME-Autostart-enabled=true
