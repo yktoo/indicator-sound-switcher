@@ -1,5 +1,5 @@
 include AUTHORS
 include COPYING
 include README.md
-include po/*.po
+recursive-include po *
 prune locale/*

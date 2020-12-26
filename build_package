@@ -15,7 +15,6 @@
 
 SETUP_SCRIPT="setup.py"
 DIST_ROOT_DIR="dist"
-PO_DIR="po"
 do_binary=0
 [[ "$1" == "-b" ]] && do_binary=1 && shift
 REVISION=${1:-1}
@@ -46,7 +45,7 @@ app_ver_string="${APP_NAME} (${APP_VERSION}-${REVISION})"
 [[ ! -d "$DIST_ROOT_DIR" ]] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"
 
 # Run the setup script to create a source tarball
-python3 "$SETUP_SCRIPT" sdist --owner=root --group=root || err "Building source tarball failed"
+python3 "$SETUP_SCRIPT" sdist || err "Building source tarball failed"
 
 # Add '.orig' and change '-' to '_' before version in tarball's name
 TARBALL_NAME="${DIST_ROOT_DIR}/${APP_NAME}_${APP_VERSION}.orig.tar.gz"
@@ -66,9 +65,9 @@ else
     DEBUILD_FLAGS="-b"
 fi
 pushd .
-cd "$RELEASE_DIR"
+cd "$RELEASE_DIR" || err "Failed to cd $RELEASE_DIR"
 debuild $DEBUILD_FLAGS || err "Building Debian package failed"
-popd >/dev/null
+popd >/dev/null || err "popd failed"
 
 # Cleanup: remove the release dir
 rm -rf "$RELEASE_DIR"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 import os
 import shutil
 
@@ -79,8 +79,11 @@ setup(
     url='https://github.com/yktoo/indicator-sound-switcher',
     license='GPL3',
     package_dir={'': 'lib'},
-    packages=['indicator_sound_switcher'],
+    packages=find_packages(where='lib'),
     package_data={'indicator_sound_switcher': ['*.glade']},
-    scripts=['indicator-sound-switcher'],
+    python_requires='>=3.5',
+    entry_points={
+        'console_scripts': ['indicator-sound-switcher=indicator_sound_switcher:main'],
+    },
     data_files=data_files + compile_lang_files(),
 )

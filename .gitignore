@@ -7,3 +7,4 @@ MANIFEST
 *.mo
 *.iml
 *.*~
+*.egg-info/
