@@ -1,12 +1,29 @@
 name: indicator-sound-switcher
-version: '2.3.4'
-summary: Sound input/output selector application for Linux.
-description: |
-  It shows an icon in the indicator area or the system tray (whatever is available in your desktop environment). The icon's menu allows you to switch the current sound input and output
-
-grade: stable
-confinement: strict
 base: core18
+adopt-info: indicator-sound-switcher
+summary: Sound input/output selector application for Linux
+title: Sound Switcher Indicator
+description: |
+  Sound Switcher Indicator shows an icon in the indicator area or the
+  system tray (whatever is available in your desktop environment).
+  The icon's menu allows you to switch the current sound input and
+  output with a single click.
+
+  The appearance of the menu can be customised. For example, devices
+  and ports can be given custom display names, hidden etc.
+
+icon: icons/indicator-sound-switcher.svg
+license: GPL-3.0
+confinement: devmode
+
+apps:
+  indicator-sound-switcher:
+    command: desktop-launch $SNAP/bin/autostart.sh $SNAP/bin/indicator-sound-switcher
+    autostart: indicator-sound-switcher.desktop
+    extensions:
+      - gnome-3-28
+    plugs:
+      - audio-playback
 
 parts:
   indicator-sound-switcher:
@@ -23,31 +40,23 @@ parts:
       - libkeybinder-3.0-0
       - python3-gi
 
-  autolaunch:
+    override-pull: |
+      snapcraftctl pull
+
+      # Use version from setup.py
+      version="$(sed -ne 's/\s*APP_VERSION\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' setup.py)"
+      snapcraftctl set-version "$version"
+      snapcraftctl set-grade "stable"
+
+      # Fix icon path in the .desktop
+      sed -i -E 's!^Icon=.*!Icon=/usr/share/icons/hicolor/scalable/status/indicator-sound-switcher.svg!' indicator-sound-switcher.desktop
+
+  resources:
     plugin: dump
     source: .
     organize:
+      icons: usr/share/icons/hicolor/scalable/status
       snap/local/autostart.sh: bin/
-      icons/indicator-sound-switcher-symbolic.svg: usr/share/icons/hicolor/scalable/status/
-    prime:
-      - -debian
-      - -doc
-      - -man
-      - -po
-      - -AUTHORS
-      - -build_package
-      - -COPYING
-      - -MANIFEST.in
-      - -README.md
-      - -setup.py
-      - -indicator-sound-switcher
-      - -indicator-sound-switcher.desktop
-
-apps:
-  indicator-sound-switcher:
-    command: desktop-launch $SNAP/bin/autostart.sh $SNAP/bin/indicator-sound-switcher
-    autostart: indicator-sound-switcher.desktop
-    extensions: [gnome-3-28]
-    plugs:
-      - audio-playback
-
+    stage:
+      - usr/
+      - bin/
