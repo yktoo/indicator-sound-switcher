@@ -6,3 +6,6 @@
 override_dh_auto_clean:
 	dh_auto_clean
 	rm -rf locale/
+
+override_dh_auto_test:
+	# Do nothing as we have no tests yet
