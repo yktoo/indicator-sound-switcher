@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.5.2-1) focal; urgency=low
+
+  * Determine app version based on the installed package
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 27 Dec 2020 20:25:24 +0200
+
 indicator-sound-switcher (2.3.5.1-1) focal; urgency=low
 
   * No-change commit to address Launchpad failure

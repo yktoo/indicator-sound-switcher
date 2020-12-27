@@ -37,9 +37,8 @@ APP_VERSION=$(sed -ne 's/\s*APP_VERSION\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' "$SE
 echo "Building ${APP_NAME} version ${APP_VERSION} revision ${REVISION}..."
 
 # Verify the changelog contains the appropriate line
-app_ver_string="${APP_NAME} (${APP_VERSION}-${REVISION})"
-(head -n 1 "debian/changelog" | grep -q "$app_ver_string") ||
-    err "The changelog doesn't start with the entry '${app_ver_string}'"
+[[ "$(dpkg-parsechangelog -S version)" == "$APP_VERSION-$REVISION" ]] ||
+    err "The changelog doesn't start with the entry for version $APP_VERSION-$REVISION"
 
 # Initial cleanup: clean the dist dirs
 [[ ! -d "$DIST_ROOT_DIR" ]] || rm -rf "$DIST_ROOT_DIR" || err "Removing $DIST_ROOT_DIR failed"

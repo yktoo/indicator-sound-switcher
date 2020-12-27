@@ -1,6 +1,7 @@
 import os.path
 import logging
 import time
+import pkg_resources
 
 import gi
 
@@ -24,7 +25,6 @@ from .prefs import PreferencesDialog
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
 APP_NAME    = 'Sound Switcher Indicator'
-APP_VERSION = '2.3.5'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
 by the Free Software Foundation.
@@ -36,6 +36,9 @@ PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/"""
+
+# Determine app version
+APP_VERSION = pkg_resources.require(APP_ID)[0].version
 
 YESNO = {False: 'No', True: 'Yes'}
 
