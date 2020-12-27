@@ -14,11 +14,12 @@ description: |
 
 icon: icons/indicator-sound-switcher.svg
 license: GPL-3.0
-confinement: devmode
+confinement: strict
 
 apps:
   indicator-sound-switcher:
-    command: desktop-launch $SNAP/bin/autostart.sh $SNAP/bin/indicator-sound-switcher
+    command: desktop-launch $SNAP/bin/launch.sh $SNAP/bin/indicator-sound-switcher
+    desktop: share/applications/indicator-sound-switcher.desktop
     autostart: indicator-sound-switcher.desktop
     extensions:
       - gnome-3-28
@@ -56,7 +57,7 @@ parts:
     source: .
     organize:
       icons: usr/share/icons/hicolor/scalable/status
-      snap/local/autostart.sh: bin/
+      snap/local/launch.sh: bin/
     stage:
       - usr/
       - bin/
