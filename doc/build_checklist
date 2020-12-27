@@ -6,3 +6,5 @@ To release a new build:
 3. Add change info into ./debian/changelog
 4. Run ./build_package to build a source tarball and the accompanying files
 5. Run the dput command displayed by build_package
+6. Create snap: snapcraft clean && snapcraft snap
+7. Upload snap: snapcraft upload --release=stable indicator-sound-switcher*.snap

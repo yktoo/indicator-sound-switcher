@@ -1,3 +1,11 @@
+indicator-sound-switcher (2.3.5-1) focal; urgency=low
+
+  * Add snap package (#97); thanks to @eth481642 (Dmitry Maximov)
+  * Fix requirements in documentation (#98)
+  * chore: Migrate setup.py to setuptools
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 27 Dec 2020 14:41:09 +0200
+
 indicator-sound-switcher (2.3.4-1) eoan; urgency=low
 
   * Fix symbolic icons (#88)
