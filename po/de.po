@@ -7,41 +7,137 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-07-28 15:59+0200\n"
-"PO-Revision-Date: 2017-07-28 16:06+0200\n"
+"POT-Creation-Date: 2021-01-01 16:35+0100\n"
+"PO-Revision-Date: 2021-01-01 16:46+0100\n"
+"Last-Translator: Philipp Kiemle <philipp.kiemle@gmail.com>\n"
 "Language-Team: \n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: vim\n"
-"Last-Translator: Simon Harhues\n"
+"X-Generator: Poedit 2.4.1\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: de\n"
 
-#: indicator-sound-switcher:188
+#: lib/indicator_sound_switcher/prefs.glade:49
+msgid "Preferences"
+msgstr "Einstellungen"
+
+#: lib/indicator_sound_switcher/prefs.glade:50
+msgid "Sound Switcher Indicator"
+msgstr "Sound Switcher Indicator"
+
+#: lib/indicator_sound_switcher/prefs.glade:111
+msgid "Show inputs"
+msgstr "Eingänge anzeigen"
+
+#: lib/indicator_sound_switcher/prefs.glade:126
+msgid "Show outputs"
+msgstr "Ausgänge anzeigen"
+
+#: lib/indicator_sound_switcher/prefs.glade:166
+msgid "_General"
+msgstr "All_gemein"
+
+#: lib/indicator_sound_switcher/prefs.glade:189
+msgid "Devices"
+msgstr "Geräte"
+
+#: lib/indicator_sound_switcher/prefs.glade:204
+msgid "Device settings"
+msgstr "Geräteeinstellungen"
+
+#: lib/indicator_sound_switcher/prefs.glade:219
+msgid "Port settings"
+msgstr "Port-Einstellungen"
+
+#: lib/indicator_sound_switcher/prefs.glade:278
+#: lib/indicator_sound_switcher/prefs.glade:408
+msgid "Custom name:"
+msgstr "Eigener Name:"
+
+#: lib/indicator_sound_switcher/prefs.glade:291
+#: lib/indicator_sound_switcher/prefs.glade:444
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: lib/indicator_sound_switcher/prefs.glade:313
+msgid "Ports:"
+msgstr "Ports:"
+
+#: lib/indicator_sound_switcher/prefs.glade:372
+msgid "Visible:"
+msgstr "Sichtbar:"
+
+#: lib/indicator_sound_switcher/prefs.glade:396
+msgid "Always available:"
+msgstr "Immer verfügbar:"
+
+#: lib/indicator_sound_switcher/prefs.glade:420
+msgid "Preferred profile:"
+msgstr "Bevorzugtes Profil:"
+
+#: lib/indicator_sound_switcher/prefs.glade:471
+msgid "Keyboard shortcut:"
+msgstr "Tastenkombination:"
+
+#: lib/indicator_sound_switcher/prefs.glade:505
+msgid "_Devices"
+msgstr "_Geräte"
+
+#: lib/indicator_sound_switcher/prefs.py:181
+msgid "Out"
+msgstr "Ausgang"
+
+#: lib/indicator_sound_switcher/prefs.py:181
+msgid "In"
+msgstr "In"
+
+#: lib/indicator_sound_switcher/prefs.py:216
+#: lib/indicator_sound_switcher/prefs.py:224
+#: lib/indicator_sound_switcher/prefs.py:400
+msgid "(none)"
+msgstr "(keine)"
+
+#: lib/indicator_sound_switcher/prefs.py:417
+msgid "Keyboard shortcut"
+msgstr "Tastenkombination"
+
+#: lib/indicator_sound_switcher/prefs.py:424
+msgid ""
+"Press the desired key combination, <b>Backspace</b> to remove any shortcut, "
+"or <b>Esc</b> to cancel."
+msgstr ""
+"Drücken Sie die gewünschte Tastenkombination, <b>Löschtaste</b> zum "
+"Entfernen der Kombination oder <b>Esc</b> zum abbrechen."
+
+#: lib/indicator_sound_switcher/indicator.py:195
 msgid "Written by Dmitry Kann"
 msgstr "Geschrieben von Dmitry Kann"
 
-#: indicator-sound-switcher:804
+#: lib/indicator_sound_switcher/indicator.py:993
 msgid "Inputs"
 msgstr "Eingänge"
 
-#: indicator-sound-switcher:808
+#: lib/indicator_sound_switcher/indicator.py:1001
 msgid "Outputs"
 msgstr "Ausgänge"
 
-#: indicator-sound-switcher:812
+#: lib/indicator_sound_switcher/indicator.py:1008
 msgid "_Refresh"
 msgstr "_Aktualisieren"
 
-#: indicator-sound-switcher:813
+#: lib/indicator_sound_switcher/indicator.py:1009
+msgid "_Preferences…"
+msgstr "_Einstellungen …"
+
+#: lib/indicator_sound_switcher/indicator.py:1010
 msgid "_About"
 msgstr "_Info"
 
-#: indicator-sound-switcher:814
+#: lib/indicator_sound_switcher/indicator.py:1011
 msgid "_Quit"
 msgstr "_Beenden"
 
-#: lib/indicator_sound_switcher/port.py:65
+#: lib/indicator_sound_switcher/port.py:99
 msgid "(unknown device)"
-msgstr "(unbekannte Karte)"
+msgstr "(unbekanntes Gerät)"
