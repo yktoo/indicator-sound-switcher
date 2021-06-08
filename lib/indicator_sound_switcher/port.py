@@ -42,7 +42,7 @@ class Port(GObject.GObject):
         """Constructor.
         :param name:          (Internal) name of the port
         :param description:   Default 'human friendly' name of the port
-        :param display_name:  Port display name overriden by user. If empty, description is to be used
+        :param display_name:  Port display name overridden by user. If empty, description is to be used
         :param priority:      Port priority as reported by PulseAudio
         :param is_available:  Whether the port is available for the user
         :param is_visible:    Whether the port is visible for the user

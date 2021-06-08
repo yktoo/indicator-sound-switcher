@@ -1122,7 +1122,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def synchronise_op(self, name: str, operation):
         """Turn an asynchronous PulseAudio operation into a synchronous one by waiting on the operation to complete.
-        Finally unreference the operation object.
+        Finally dereference the operation object.
         :param name: operation name for logging purposes
         :param operation: PulseAudio operation to execute
         """

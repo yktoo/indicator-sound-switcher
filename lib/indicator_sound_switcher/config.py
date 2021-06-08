@@ -159,7 +159,7 @@ class KeyboardManager:
 
     def shutdown(self):
         """Remove all keyboard bindings."""
-        logging.debug('KeybordManager.shutdown()')
+        logging.debug('KeyboardManager.shutdown()')
         for shortcut in self.current_mappings.keys():
             Keybinder.unbind(shortcut)
             logging.debug('  - Unbound keyboard shortcut `%s`', shortcut)
