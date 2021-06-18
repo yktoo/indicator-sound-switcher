@@ -9,12 +9,13 @@ It shows an icon in the indicator area or the system tray (whatever is available
 
 ![Screenshot of the indicator](doc/menu.png)
 
-The application makes use of the native PulseAudio API (version 4.0 or newer is required).
+The application makes use of the native PulseAudio API.
 
 For details see:
 * http://yktoo.com/en/software/indicator-sound-switcher/ (English)
 * http://yktoo.com/ru/software/indicator-sound-switcher/ (русский)
 
+More in the documentation:
 * [Installation](doc/install.md)
 * [Configuration](doc/config.md)
 * [Localisation](doc/i18n.md)
