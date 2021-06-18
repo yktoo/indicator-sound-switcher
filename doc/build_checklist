@@ -1,3 +1,8 @@
+Prerequisites
+-------------
+
+sudo apt-get install -y devscripts debhelper dh-python
+
 To release a new build:
 -----------------------
 
