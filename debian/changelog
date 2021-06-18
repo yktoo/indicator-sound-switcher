@@ -1,4 +1,4 @@
-indicator-sound-switcher (2.3.6) hirsute; urgency=low
+indicator-sound-switcher (2.3.6-1) hirsute; urgency=low
 
   * Allow assigning same keyboard shortcut to multiple ports (#106)
   * Display card's vendor and product name in Preferences (#105)
