@@ -1,10 +1,9 @@
 To release a new build:
 -----------------------
 
-1. Update app version in the header of ./lib/indicator_sound_switcher/indicator.py
-2. Update app version in the header of ./setup.py
-3. Add change info into ./debian/changelog
-4. Run ./build_package to build a source tarball and the accompanying files
-5. Run the dput command displayed by build_package
-6. Create snap: snapcraft clean && snapcraft snap
-7. Upload snap: snapcraft upload --release=stable indicator-sound-switcher*.snap
+1. Update app version in the header of ./setup.py
+2. Add change info into ./debian/changelog
+3. Run ./build_package to build a source tarball and the accompanying files
+4. Run the dput command displayed by build_package
+5. Create snap: snapcraft clean && snapcraft snap
+6. Upload snap: snapcraft upload --release=stable indicator-sound-switcher*.snap
