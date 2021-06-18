@@ -51,7 +51,7 @@ class Config(dict):
           [1] Optional default value to return if the key isn't found. If not given, a new, empty Config instance will
               be inserted and returned
         :rtype : V
-        :return Configuration value corresponfing to the name or the default.
+        :return Configuration value corresponding to the name or the default.
         """
         # Sort the arguments
         default = None
@@ -113,9 +113,23 @@ class KeyboardManager:
         """Constructor.
         :param on_port_selected: callback that receives the port once the corresponding shortcut has been pressed
         """
-        self.current_mappings = {}  # Dictionary of tuples: shortcut => (device_name, port_name)
+        self.current_mappings = {}  # Dictionary of list of tuples: shortcut => [(device_name, port_name), ...]
         self.on_port_selected = on_port_selected
         Keybinder.init()
+
+    def _bind_all(self):
+        """Bind all key bindings according to the current_mappings."""
+        for shortcut, mapping in self.current_mappings.items():
+            if Keybinder.bind(shortcut, self.on_port_selected, mapping):
+                logging.debug('  - Bound keyboard shortcut `%s` to `%s`', shortcut, mapping)
+            else:
+                logging.warning('Failed to bind keyboard shortcut `%s` to `%s`', shortcut, mapping)
+
+    def _unbind_all(self):
+        """Unbind all mapped key bindings."""
+        for shortcut in self.current_mappings.keys():
+            Keybinder.unbind(shortcut)
+            logging.debug('  - Unbound keyboard shortcut `%s`', shortcut)
 
     def bind_keys(self, config: Config):
         """Updates key bindings based on the current configuration.
@@ -130,37 +144,30 @@ class KeyboardManager:
                 # If there's a shortcut
                 shortcut = port_cfg['shortcut', None]
                 if shortcut:
-                    new_mapping = (device_name, port_name)
+                    # Append the tuple to the mapping list for the shortcut
+                    if shortcut not in new_mappings:
+                        new_mappings[shortcut] = []
+                    new_mappings[shortcut].append((device_name, port_name))
 
-                    # If the key combination is already mapped, move on to the next item
-                    if shortcut not in self.current_mappings or self.current_mappings[shortcut] != new_mapping:
-                        # Unmap the current assignment, if needed
-                        if shortcut in self.current_mappings:
-                            Keybinder.unbind(shortcut)
-                            logging.debug('  - Keyboard shortcut `%s` is remapped, unbound', shortcut)
+        # Sort each list by device and port name
+        for m in new_mappings.values():
+            m.sort()
 
-                        # Map the keyboard shortcut
-                        if Keybinder.bind(shortcut, self.on_port_selected, new_mapping):
-                            logging.debug('  - Bound keyboard shortcut `%s` to `%s`', shortcut, new_mapping)
-                        else:
-                            logging.warning('Failed to bind keyboard shortcut `%s` to `%s`', shortcut, new_mapping)
-
-                    # Remember the mapping in new_mappings
-                    new_mappings[shortcut] = new_mapping
-
-        # Remove key mappings that no longer exist
-        for shortcut in self.current_mappings.keys():
-            if shortcut not in new_mappings:
-                Keybinder.unbind(shortcut)
-                logging.debug("  - Keyboard shortcut `%s` isn't used anymore, unbound", shortcut)
-
-        # Save the new mappings for future reference
+        # (Re)map all mappings
+        self._unbind_all()
         self.current_mappings = new_mappings
+        self._bind_all()
+
+    def suspend(self):
+        """Temporarily disable all shortcuts."""
+        self._unbind_all()
+
+    def resume(self):
+        """Restore all shortcuts disabled by a call to suspend()."""
+        self._bind_all()
 
     def shutdown(self):
         """Remove all keyboard bindings."""
         logging.debug('KeyboardManager.shutdown()')
-        for shortcut in self.current_mappings.keys():
-            Keybinder.unbind(shortcut)
-            logging.debug('  - Unbound keyboard shortcut `%s`', shortcut)
+        self._unbind_all()
         self.current_mappings = {}

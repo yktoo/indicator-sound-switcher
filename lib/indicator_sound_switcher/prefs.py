@@ -263,16 +263,6 @@ class PreferencesDialog:
                     device_cfg['ports'][row.port_name] = port_cfg
         return port_cfg
 
-    def remove_shortcut_binding(self, shortcut: str):
-        """Scan every port's config and remove the given shortcut if it's bound to it.
-        :param shortcut: shortcut whose binding is to be removed
-        """
-        # Scan all ports of all devices and remove any current mapping of this shortcut
-        for device_cfg in self.indicator.config['devices'].values():
-            for port_cfg in device_cfg['ports'].values():
-                if port_cfg['shortcut', None] == shortcut:
-                    port_cfg['shortcut'] = None
-
     def on_destroy(self, dlg):
         """Signal handler: dialog destroying."""
         logging.debug('PreferencesDialog.on_destroy()')
@@ -374,10 +364,17 @@ class PreferencesDialog:
         if cfg is None:
             return
 
+        # Suspend the keyboard manager so that it doesn't interfere with key selection (in case the same key combination
+        # is reused)
+        self.indicator.keyboard_manager.suspend()
+
         # Show a grab shortcut dialog
         dlg = KeyboardShortcutDialog(self._dlg.prefs_dialog)
         shortcut = dlg.run()
         dlg.destroy()
+
+        # Restore the keyboard manager
+        self.indicator.keyboard_manager.resume()
 
         # None means grabbing was canceled
         if shortcut is None:
@@ -391,10 +388,6 @@ class PreferencesDialog:
         # BackSpace means shortkey removal
         if key_name == 'BackSpace':
             key_name = None
-
-        # Remove any current mapping of this shortcut
-        if key_name:
-            self.remove_shortcut_binding(key_name)
 
         # Update the button and the port config
         self.b_port_set_shortcut.set_label(key_name or _('(none)'))

@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - OS: [e.g. Ubuntu] and its version
  - Desktop environment [e.g. GNOME] and its version
- - Sound Switcher Indicator version [e.g. 2.3.5]
+ - Sound Switcher Indicator version [e.g. 2.3.6]
 
 **Indicator log:**
 In order to fetch it, quit the indicator from the menu ("Quit"), open Terminal and start it again as follows: 

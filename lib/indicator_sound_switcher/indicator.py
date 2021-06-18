@@ -223,20 +223,26 @@ class SoundSwitcherIndicator(GObject.GObject):
         if widget.get_active():
             self.activate_port(*data)
 
-    def on_port_keyboard_shortcut(self, shortcut, data):
+    def on_port_keyboard_shortcut(self, shortcut, data: list):
         """Signal handler: port selected by a keyboard shortcut."""
         logging.debug('.on_port_keyboard_shortcut(`%s`, `%s`)', shortcut, data)
-        device_name, port_name = data
 
-        # Try to find the card by name
-        for idx_card in self.cards.keys():
-            if self.cards[idx_card].name == device_name:
-                # Found - activate the port
-                self.activate_port(idx_card, port_name)
-                return
+        # Iterate the (device, port) tuples to figure out if any of them is active
+        idx_active = -1
+        for idx in range(len(data)):
+            card, port = self.find_card_port_by_name(*data[idx])
+            if card and port and port.is_active:
+                idx_active = idx
+                logging.debug('  * card `%s`, port `%s` is currently active', card.name, port.name)
+                break
 
-        # Not found
-        logging.warning('Failed to find card `%s` among the available devices', device_name)
+        # If none of them is active, or the last is active, start over from 0. Otherwise pick the next one from the list
+        idx_active = 0 if idx_active < 0 or idx_active == len(data)-1 else idx_active+1
+
+        # Activate the port
+        card, port = self.find_card_port_by_name(*data[idx_active])
+        if card and port:
+            self.activate_port(card.index, port.name)
 
     # ------------------------------------------------------------------------------------------------------------------
     # PulseAudio callbacks
@@ -919,6 +925,22 @@ class SoundSwitcherIndicator(GObject.GObject):
         logging.debug('* Activated source: `%s`', name)
         for source in self.sources.values():
             source.is_active = source.name == name
+
+    def find_card_port_by_name(self, card_name: str, port_name: str) -> tuple:
+        """Find a card and its port by their names, and return both as a tuple, or (None, None), if not found."""
+        # Iterate known cards
+        for idx, card in self.cards.items():
+            if card.name == card_name:
+                # If the port isn't found for the card, return only the card
+                if port_name not in card.ports:
+                    logging.warning('# Failed to find port `%` on card `%s`', port_name, card_name)
+                    return card, None
+
+                # Return the card and the port
+                return card, card.ports[port_name]
+
+        # Card not found
+        logging.warning('Failed to find card `%s` among the available devices', card_name)
 
     @staticmethod
     def run():
