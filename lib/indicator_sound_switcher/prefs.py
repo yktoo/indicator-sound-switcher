@@ -128,10 +128,11 @@ class PreferencesDialog:
             grid.attach(Gtk.Image.new_from_icon_name('yast_soundcard', Gtk.IconSize.MENU), 0, 0, 1, 2)
 
             # Add a device title label
-            grid.attach(utils.lbl_bold(card.get_descriptive_name(), xalign=0), 1, 0,  1, 1)
+            grid.attach(utils.lbl_bold(card.get_descriptive_name(), xalign=0), 1, 0, 1, 1)
 
-            # Add a device name label
-            grid.attach(Gtk.Label(card.name, xalign=0), 1, 1,  1, 1)
+            # Add a product/device name label
+            grid.attach(Gtk.Label('{} / {}'.format(card.vendor_name, card.product_name), xalign=0), 1, 1, 1, 1)
+            grid.attach(utils.lbl_markup('<small>{}</small>'.format(card.name), xalign=0), 1, 2, 1, 1)
 
             # Add the row to the list box
             self.lbx_devices.add(row)

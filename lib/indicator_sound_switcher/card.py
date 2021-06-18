@@ -43,7 +43,7 @@ class Card(GObject.GObject):
         """Constructor.
         :param index:         Index of the card, as provided by PulseAudio
         :param name:          (Internal) name of the card, as provided by PulseAudio
-        :param display_name:  Card display name overriden by user. If empty, description is to be used
+        :param display_name:  Card display name overridden by user. If empty, description is to be used
         :param driver:        Name of the driver used
         :param profiles:      Dictionary of CardProfile objects, indexed by profile name
         :param ports:         Dictionary of Port objects, indexed by port name
@@ -59,8 +59,9 @@ class Card(GObject.GObject):
         self.proplist     = proplist
 
         # Initialise derived properties
-        # Default device description, prefetched from the property list
-        self.description = self.get_property_str("device.description")
+        self.description  = self.get_property_str("device.description")
+        self.vendor_name  = self.get_property_str("device.vendor.name")
+        self.product_name = self.get_property_str("device.product.name")
 
         # Assign every port's owner_card
         for port in self.ports.values():
@@ -68,7 +69,8 @@ class Card(GObject.GObject):
 
     def get_property_str(self, name: str) -> str:
         """Returns value of a property by its name as a string."""
-        return lib_pulseaudio.pa_proplist_gets(self.proplist, name.encode()).decode()
+        v = lib_pulseaudio.pa_proplist_gets(self.proplist, name.encode())
+        return v.decode() if v else _('(none)')
 
     def get_display_name(self) -> str:
         """Returns display name for the card."""
@@ -100,4 +102,3 @@ class Card(GObject.GObject):
                 stream.is_active and \
                 stream_port is not None and \
                 (port.is_dummy or stream_port.is_active)
-
