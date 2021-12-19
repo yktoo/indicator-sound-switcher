@@ -6,7 +6,7 @@ import shutil
 
 
 APP_ID      = 'indicator-sound-switcher'
-APP_VERSION = '2.3.6'
+APP_VERSION = '2.3.7'
 
 
 def compile_lang_files() -> list:
@@ -56,17 +56,24 @@ def compile_lang_files() -> list:
 
 data_files = [
     # App shortcut
-    ('share/applications',                      [APP_ID+'.desktop']),
+    ('share/applications',                  [APP_ID+'.desktop']),
 
     # Autostart entry
-    ('/etc/xdg/autostart',                      [APP_ID+'.desktop']),
+    ('/etc/xdg/autostart',                  [APP_ID+'.desktop']),
 
     # Icons
-    ('share/icons/hicolor/scalable/status',     ['icons/indicator-sound-switcher-symbolic.svg']),
-    ('share/icons/hicolor/scalable/apps',       ['icons/indicator-sound-switcher.svg']),
+    ('share/icons/hicolor/scalable/status', ['icons/indicator-sound-switcher-symbolic.svg']),
+    ('share/icons/hicolor/scalable/apps',   ['icons/indicator-sound-switcher.svg']),
+    ('share/icons/hicolor/symbolic/apps',   ['icons/indicator-sound-switcher-symbolic.svg']),
+    ('share/icons/hicolor/16x16/apps',      ['icons/16/indicator-sound-switcher-symbolic.symbolic.png']),
+    ('share/icons/hicolor/32x32/apps',      ['icons/32/indicator-sound-switcher-symbolic.symbolic.png']),
+    ('share/icons/hicolor/48x48/apps',      ['icons/48/indicator-sound-switcher-symbolic.symbolic.png']),
+    ('share/icons/hicolor/64x64/apps',      ['icons/64/indicator-sound-switcher-symbolic.symbolic.png']),
+    ('share/icons/hicolor/128x128/apps',    ['icons/128/indicator-sound-switcher-symbolic.symbolic.png']),
+    ('share/icons/hicolor/256x256/apps',    ['icons/256/indicator-sound-switcher-symbolic.symbolic.png']),
 
     # Manpage
-    ('share/man/man1',                          ['man/indicator-sound-switcher.1']),
+    ('share/man/man1',                      ['man/indicator-sound-switcher.1']),
 ]
 
 # Configure

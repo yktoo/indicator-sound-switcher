@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.7-1) impish; urgency=low
+
+  * Provide fallback PNG symbolic icons (addresses #91)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 19 Dec 2021 15:07:35 +0100
+
 indicator-sound-switcher (2.3.6-1) hirsute; urgency=low
 
   * Allow assigning same keyboard shortcut to multiple ports (#106)
