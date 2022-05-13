@@ -227,21 +227,29 @@ class SoundSwitcherIndicator(GObject.GObject):
         """Signal handler: port selected by a keyboard shortcut."""
         logging.debug('.on_port_keyboard_shortcut(`%s`, `%s`)', shortcut, data)
 
-        # Iterate the (device, port) tuples to figure out if any of them is active
+        # Build a list of available devices/ports
         idx_active = -1
+        card_ports = []  # List of (card, port) tuples
         for idx in range(len(data)):
             card, port = self.find_card_port_by_name(*data[idx])
-            if card and port and port.is_active:
-                idx_active = idx
-                logging.debug('  * card `%s`, port `%s` is currently active', card.name, port.name)
-                break
+            if card and port and (port.is_available or port.always_avail):
+                card_ports.append((card, port))
 
-        # If none of them is active, or the last is active, start over from 0. Otherwise pick the next one from the list
-        idx_active = 0 if idx_active < 0 or idx_active == len(data)-1 else idx_active+1
+                # Check if there's an active port
+                if idx_active < 0 and port.is_active:
+                    idx_active = len(card_ports)-1
+                    logging.debug(
+                        '  * card `%s`, port `%s` is currently active (index %d)', card.name, port.name, idx_active)
 
-        # Activate the port
-        card, port = self.find_card_port_by_name(*data[idx_active])
-        if card and port:
+        # If there's any port on the list
+        if card_ports:
+            # If none of the ports is active, or the last is active, start over from 0. Otherwise, pick the next one
+            # from the list
+            idx_active = 0 if idx_active < 0 or idx_active == len(card_ports)-1 else idx_active+1
+            logging.debug('  * switching to index %d amongst %d device ports', idx_active, len(card_ports))
+
+            # Activate the port
+            card, port = card_ports[idx_active]
             self.activate_port(card.index, port.name)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -927,7 +935,8 @@ class SoundSwitcherIndicator(GObject.GObject):
             source.is_active = source.name == name
 
     def find_card_port_by_name(self, card_name: str, port_name: str) -> tuple:
-        """Find a card and its port by their names, and return both as a tuple, or (None, None), if not found."""
+        """Find a card and its port by their names, and return both as a tuple. If the card is found and the port isn't,
+        return (card, None); if neither is found, return (None, None)."""
         # Iterate known cards
         for idx, card in self.cards.items():
             if card.name == card_name:
@@ -941,6 +950,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Card not found
         logging.warning('Failed to find card `%s` among the available devices', card_name)
+        return None, None
 
     @staticmethod
     def run():
