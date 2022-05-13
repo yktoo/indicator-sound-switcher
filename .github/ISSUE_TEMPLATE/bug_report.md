@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - OS: [e.g. Ubuntu] and its version
  - Desktop environment [e.g. GNOME] and its version
- - Sound Switcher Indicator version [e.g. 2.3.7]
+ - Sound Switcher Indicator version [e.g. 2.3.8]
  - Installation source: `snap`, `.deb`, PPA, source code etc.
 
 **Indicator log:**
