@@ -19,26 +19,6 @@ class CardProfile(GObject.GObject):
 class Card(GObject.GObject):
     """Card class."""
 
-    @staticmethod
-    def find_stream_port(card_port, sources: dict, sinks: dict):
-        """Tries to find a sink/source port that corresponds to the given card port.
-        :param card_port: Card port to find a matching port for
-        :param sources: List of all sources to search in case the port is an input
-        :param sinks: List of all sinks to search in case the port is an output
-        :returns tuple containing stream (or None) and its port (or None)
-        """
-        found_stream = found_port = None
-        # Try to find a sink/source for this card (by matching card index)
-        streams = sinks if card_port.is_output else sources
-        for stream in streams.values():
-            if stream.card_index == card_port.owner_card.index:
-                found_stream = stream
-                # Found the stream. Try to find a corresponding stream's port (with the matching port name)
-                if card_port.name in stream.ports:
-                    found_port = stream.ports[card_port.name]
-                break
-        return found_stream, found_port
-
     def __init__(self, index: int, name: str, display_name: str, driver: str, profiles: dict, ports: dict, proplist):
         """Constructor.
         :param index:         Index of the card, as provided by PulseAudio
@@ -66,6 +46,24 @@ class Card(GObject.GObject):
         # Assign every port's owner_card
         for port in self.ports.values():
             port.owner_card = self
+
+    def find_stream_port(self, card_port, sources: dict, sinks: dict):
+        """Try to find a sink/source port that corresponds to the given card port, belonging to this card.
+        :param card_port: Card port to find a matching port for
+        :param sources: List of all sources to search in case the port is an input
+        :param sinks: List of all sinks to search in case the port is an output
+        :returns tuple containing stream (or None) and its port (or None)
+        """
+        # Try to find a sink/source for this card (by matching card index)
+        streams = sinks if card_port.is_output else sources
+        for stream in streams.values():
+            if stream.card_index == self.index:
+                # Found a potential stream. Now try to find a corresponding stream's port (with the matching port name).
+                if card_port.name in stream.ports:
+                    return stream, stream.ports[card_port.name]
+
+        # No luck
+        return None, None
 
     def get_property_str(self, name: str) -> str:
         """Returns value of a property by its name as a string."""

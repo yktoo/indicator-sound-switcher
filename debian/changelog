@@ -1,6 +1,7 @@
 indicator-sound-switcher (2.3.8-1) jammy; urgency=low
 
-  * Only consider available ports for shortcut switching (addresses #118)
+  * Only consider available ports for shortcut switching (#118)
+  * Fix port selection on cards with multiple sinks/sources (#107, #119)
 
  -- Dmitry Kann <yktooo@gmail.com>  Fri, 13 May 2022 10:25:37 +0200
 

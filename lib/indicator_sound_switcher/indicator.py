@@ -455,7 +455,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                             '    * Port is made %savailable: `%s` (`%s`)',
                             '' if port.is_available else 'un', port.name, port.description)
 
-        # Otherwise register a new card object
+        # Otherwise, register a new card object
         else:
             logging.debug('  + Card[%d] added: `%s`, driver: `%s`', index, name, data.driver.decode())
 
@@ -515,18 +515,24 @@ class SoundSwitcherIndicator(GObject.GObject):
         for card in self.cards.values():
             card.update_port_activity(self.sources, self.sinks)
 
-    def card_switch_profile(self, port, can_keep_current: bool):
+    def card_switch_profile(self, port, can_keep_current: bool) -> bool:
         """Find the most appropriate profile for the given card port and activate it on its card.
         :param port: Port that we need the best profile for
-        :param can_keep_current: whether the currently active profile is compatible with this port so we can keep it
+        :param can_keep_current: whether the currently active profile is compatible with this port, so we can keep it
+        :return whether profile has been switched
         """
         card = port.owner_card
 
         # Compile a list of profiles supporting the port
         profiles = {pname: card.profiles[pname] for pname in port.profiles if pname in card.profiles}
-        selected_profile = None
+        if not profiles:
+            logging.warning(
+                '! Card[%d] has no supported profiles for port `%s`, supposedly device misconfiguration',
+                card.index, port.name)
+            return False
 
         # If the port is given a preferred profile, verify it's valid for this port
+        selected_profile = None
         if port.pref_profile:
             if port.pref_profile in profiles:
                 selected_profile = profiles[port.pref_profile]
@@ -538,11 +544,16 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # If no preferred profile given and the current one is fine, do nothing
         if not selected_profile and can_keep_current:
-            return
+            return False
 
-        # Otherwise pick the one with max priority
+        # Otherwise, pick the one with max priority
         if not selected_profile:
             selected_profile = max(profiles.values(), key=lambda k: k.priority)
+
+        # Don't bother if the profile is already active (it won't help anyway)
+        if selected_profile.is_active:
+            logging.debug('* Profile `%s` is already active on card[%d]', selected_profile.name, card.index)
+            return False
 
         # Switch the profile
         logging.debug(
@@ -556,6 +567,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                 selected_profile.name.encode(),
                 self._pacb_context_success,
                 None))
+        return True
 
     # ------------------------------------------------------------------------------------------------------------------
     # Sink list related procs
@@ -622,7 +634,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             sink = Sink(index, name, sink_name, description, sink_ports, data.card)
             self.sinks[index] = sink
 
-            # If it's a virtual sink and it's visible, create its menu item
+            # If it's a virtual sink, and it's visible, create its menu item
             if virtual_card and sink_visible and self.item_header_outputs is not None and \
                     self.item_separator_outputs is not None:
                 for port in sink_ports.values():
@@ -705,7 +717,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             logging.debug('  * Source[%d] updated: `%s`, card %d', index, name, data.card)
             source = self.sources[index]
 
-        # Otherwise register a new source object
+        # Otherwise, register a new source object
         else:
             logging.debug('  + Source[%d] added: `%s`, card %d', index, name, data.card)
 
@@ -839,6 +851,8 @@ class SoundSwitcherIndicator(GObject.GObject):
         :param stream_or_port: either stream index if idx_card refers to a dummy sink/source, or name of the port on the
                                card given by idx_card
         """
+        logging.debug('.activate_port(%d, %s)', idx_card, stream_or_port)
+
         # If it's a dummy (virtual) card sink, buf[1] is the sink's index
         if idx_card == CARD_NONE_SINK:
             port       = None
@@ -855,7 +869,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             is_output  = False
             logging.info('# Virtual source[%d] `%s` selected', idx_stream, stream.name)
 
-        # Otherwise it's a real device and buf[1] is the port's name
+        # Otherwise, it's a real device and buf[1] is the port's name
         else:
             port_name = stream_or_port
 
@@ -869,16 +883,18 @@ class SoundSwitcherIndicator(GObject.GObject):
             is_output = port.is_output
             logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
 
-            # Try to find a matching stream and its port
-            stream, stream_port = card.find_stream_port(port, self.sources, self.sinks)
+            # Try to find a matching stream
+            stream = card.find_stream_port(port, self.sources, self.sinks)[0]
+
+            # Switch profile if necessary
+            if self.card_switch_profile(port, stream is not None):
+                # Profile is changed: retry searching for the stream
+                stream = card.find_stream_port(port, self.sources, self.sinks)[0]
 
             # If no stream found, that's an error
             if stream is None:
                 logging.error('Failed to map card[%d], port `%s` to a stream', idx_card, port_name)
                 return
-
-            # Switch profile if necessary
-            self.card_switch_profile(port, stream_port is not None)
 
         # Switching output
         if is_output:
@@ -997,7 +1013,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         # If there's at least one item, get the group from it
         group = [] if idx_to == idx_from else items[idx_from].get_group()
 
-        # Create and setup a new radio item
+        # Create and set up a new radio item
         new_item = Gtk.RadioMenuItem.new_with_mnemonic(group, label)
         if show:
             new_item.show()
@@ -1154,7 +1170,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
     def synchronise_op(self, name: str, operation):
         """Turn an asynchronous PulseAudio operation into a synchronous one by waiting on the operation to complete.
-        Finally dereference the operation object.
+        Finally, dereference the operation object.
         :param name: operation name for logging purposes
         :param operation: PulseAudio operation to execute
         """
