@@ -21,16 +21,6 @@ Log into Snapcraft with your Ubuntu One account:
 snapcraft login
 ```
 
-NB: there's a [known issue](https://github.com/canonical/multipass/issues/1866) in Multipass when it cannot reach the network if Docker is installed on the machine, use the following script to resolve that:
-
-```bash
-#!/bin/bash
-
-for table in filter nat mangle; do
-  sudo iptables-legacy -t $table -S | grep Multipass | xargs -L1 sudo iptables-nft -t $table
-done
-```
-
 ## Making a release
 
 1. Update app version in the header of ./setup.py
