@@ -2,6 +2,7 @@
 /dist/
 /locale/
 /.idea/
+/venv/
 MANIFEST
 *.pyc
 *.mo

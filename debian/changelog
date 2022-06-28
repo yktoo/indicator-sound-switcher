@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.9-1) jammy; urgency=low
+
+  * Configuration prune button in Preferences (#120)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Tue, 28 Jun 2022 11:28:02 +0200
+
 indicator-sound-switcher (2.3.8-1) jammy; urgency=low
 
   * Only consider available ports for shortcut switching (#118)

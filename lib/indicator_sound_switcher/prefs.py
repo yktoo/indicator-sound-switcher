@@ -270,6 +270,58 @@ class PreferencesDialog:
         # Make sure config update has run
         self.indicator_refresh_cb()
 
+    def on_config_prune(self, *args):
+        """Signal handler: Prune configuration button clicked."""
+        logging.debug('PreferencesDialog.on_config_prune()')
+
+        # Show a confirmation dialog
+        pruned = False
+        cnt = 0
+        dialog = Gtk.MessageDialog(
+            transient_for=self.prefs_dialog,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text=_('Prune configuration'))
+        dialog.format_secondary_text(_(
+            'This will remove any settings about devices that are currently offline, such as Bluetooth headphones or '
+            'external sound cards.\n\n'
+            'Do you wish to continue?'))
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            # Make a set of known devices
+            known = {card.name for card in self.indicator.cards.values()}
+            logging.debug('Pruning config')
+
+            # Remove unknown devices from the config
+            for name in list(self.indicator.config['devices'].keys()):
+                if name not in known:
+                    del self.indicator.config['devices'][name]
+                    cnt += 1
+                    logging.debug('  - Pruned device `%s`', name)
+
+            # Save the configuration if there was a change
+            if cnt > 0:
+                logging.debug('Config changed, saving')
+                self.indicator.config_save()
+
+            pruned = True
+
+        # Kill the dialog
+        dialog.destroy()
+
+        # Show info message after pruning
+        if pruned:
+            info_dlg = Gtk.MessageDialog(
+                transient_for=self.prefs_dialog,
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.CLOSE,
+                text=_('Prune configuration'))
+            info_dlg.format_secondary_text(_('Removed {} device configuration entries.').format(cnt))
+            info_dlg.run()
+            info_dlg.destroy()
+
     def on_refresh(self, *args):
         """Signal handler: Refresh button clicked."""
         logging.debug('PreferencesDialog.on_refresh()')
