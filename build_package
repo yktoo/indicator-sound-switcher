@@ -2,7 +2,7 @@
 #-------------------------------------------------------------------------------
 # Purpose
 #     Build distribution packages for Ubuntu
-# Synapsis
+# Synopsis
 #     build_package [options] [revision]
 # Options
 #     -b  build binary package (instead of source)
