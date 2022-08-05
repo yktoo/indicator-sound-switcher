@@ -4,9 +4,7 @@
 
 AUTOSTART="$SNAP_USER_DATA/.config/autostart/"
 
-if [ ! -d "$AUTOSTART" ]; then
-    mkdir -p "$AUTOSTART"
-fi
+mkdir -p "$AUTOSTART"
 
 ln -sfnt "$AUTOSTART" "$SNAP/share/applications/indicator-sound-switcher.desktop"
 
