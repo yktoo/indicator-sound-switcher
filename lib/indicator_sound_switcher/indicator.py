@@ -216,7 +216,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         logging.debug('.on_refresh()')
         self.keyboard_manager.bind_keys(self.config)
         self.menu_setup()
-        self.update_all_pa_items()
+        self.update_pa_items()
 
     def on_select_port(self, widget, data):
         """Signal handler: port selection item clicked."""
@@ -567,6 +567,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                 selected_profile.name.encode(),
                 self._pacb_context_success,
                 None))
+
+        # Reload all PA objects, except cards, because switching a profile may result in a change in the list of
+        # available sources and/or sinks for that card
+        self.update_pa_items(update_cards=False)
         return True
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -1081,7 +1085,7 @@ class SoundSwitcherIndicator(GObject.GObject):
             # If connection succeeded
             if succeeded:
                 # Update PulseAudio environment info
-                self.update_all_pa_items()
+                self.update_pa_items()
 
                 # Subscribe to context-specific daemon state changes
                 self.synchronise_op(
@@ -1193,39 +1197,51 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Unlock the main loop
         pa_threaded_mainloop_unlock(self.pa_mainloop)
 
-    def update_all_pa_items(self):
-        """Synchronously update information about all PulseAudio items (sinks, sources, server etc.)."""
+    def update_pa_items(self, update_cards=True, update_sources=True, update_sinks=True, update_server=True):
+        """Synchronously update information about PulseAudio items: cards, sinks, sources, server etc."""
+        logging.debug('.update_pa_items(%s, %s, %s, %s)', update_cards, update_sources, update_sinks, update_server)
+
         # Remove all PA objects
-        self.card_remove_all()
-        self.source_remove_all()
-        self.source_output_remove_all()
-        self.sink_remove_all()
-        self.sink_input_remove_all()
+        if update_cards:
+            self.card_remove_all()
+        if update_sources:
+            self.source_remove_all()
+            self.source_output_remove_all()
+        if update_sinks:
+            self.sink_remove_all()
+            self.sink_input_remove_all()
 
         # Cards
-        self.synchronise_op(
-            'pa_context_get_card_info_list()',
-            pa_context_get_card_info_list(self.pa_context, self._pacb_card_info, None))
-        # Sources
-        self.synchronise_op(
-            'pa_context_get_source_info_list()',
-            pa_context_get_source_info_list(self.pa_context, self._pacb_source_info, None))
-        # Source outputs
-        self.synchronise_op(
-            'pa_context_get_source_output_info_list()',
-            pa_context_get_source_output_info_list(self.pa_context, self._pacb_source_output_info, None))
-        # Sinks
-        self.synchronise_op(
-            'pa_context_get_sink_info_list()',
-            pa_context_get_sink_info_list(self.pa_context, self._pacb_sink_info, None))
-        # Sink inputs
-        self.synchronise_op(
-            'pa_context_get_sink_input_info_list()',
-            pa_context_get_sink_input_info_list(self.pa_context, self._pacb_sink_input_info, None))
-        # Server info
-        self.synchronise_op(
-            'pa_context_get_server_info()',
-            pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
+        if update_cards:
+            self.synchronise_op(
+                'pa_context_get_card_info_list()',
+                pa_context_get_card_info_list(self.pa_context, self._pacb_card_info, None))
+
+        if update_sources:
+            # Sources
+            self.synchronise_op(
+                'pa_context_get_source_info_list()',
+                pa_context_get_source_info_list(self.pa_context, self._pacb_source_info, None))
+            # Source outputs
+            self.synchronise_op(
+                'pa_context_get_source_output_info_list()',
+                pa_context_get_source_output_info_list(self.pa_context, self._pacb_source_output_info, None))
+
+        if update_sinks:
+            # Sinks
+            self.synchronise_op(
+                'pa_context_get_sink_info_list()',
+                pa_context_get_sink_info_list(self.pa_context, self._pacb_sink_info, None))
+            # Sink inputs
+            self.synchronise_op(
+                'pa_context_get_sink_input_info_list()',
+                pa_context_get_sink_input_info_list(self.pa_context, self._pacb_sink_input_info, None))
+
+        if update_server:
+            # Server info
+            self.synchronise_op(
+                'pa_context_get_server_info()',
+                pa_context_get_server_info(self.pa_context, self._pacb_server_info, None))
 
     @staticmethod
     def is_virtual_card(card_index: int) -> bool:
