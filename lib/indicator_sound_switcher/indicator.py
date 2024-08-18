@@ -1,7 +1,7 @@
 import os.path
 import logging
 import time
-import pkg_resources
+from importlib.metadata import version
 
 import gi
 
@@ -38,7 +38,7 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see http://www.gnu.org/licenses/"""
 
 # Determine app version
-APP_VERSION = pkg_resources.require(APP_ID)[0].version
+APP_VERSION = version(APP_ID)
 
 YESNO = {False: 'No', True: 'Yes'}
 

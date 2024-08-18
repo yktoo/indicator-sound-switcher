@@ -29,7 +29,7 @@ import tempfile
 import fcntl
 import gettext
 
-from .indicator import SoundSwitcherIndicator, APP_ID
+from .indicator import SoundSwitcherIndicator, APP_ID, APP_NAME, APP_VERSION
 
 
 def _parse_cmd_line():
@@ -62,8 +62,8 @@ def main():
         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         # Instantiate and run the indicator
-        logging.info('Starting indicator application')
+        logging.info('%s v%s', APP_NAME, APP_VERSION)
         SoundSwitcherIndicator().run()
 
     except OSError:
-        logging.info('Indicator is already running, exiting')
+        logging.info('%s is already running, exiting', APP_NAME)
