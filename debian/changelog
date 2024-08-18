@@ -1,3 +1,12 @@
+indicator-sound-switcher (2.3.10-1) noble; urgency=low
+
+  * Replace deprecated pkg_resources with importlib
+  * Better debug logging
+  * Reload sinks/sources on card profile change (#132)
+  * Fix autostart after multiple snap updates (#127)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Sun, 18 Aug 2024 18:26:48 +0200
+
 indicator-sound-switcher (2.3.9-1) jammy; urgency=low
 
   * Configuration prune button in Preferences (#120)

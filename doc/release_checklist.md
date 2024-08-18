@@ -24,7 +24,7 @@ snapcraft login
 ## Making a release
 
 1. Update app version in the header of ./setup.py
-2. Add change info into ./debian/changelog
+2. Add change info into ./debian/changelog (`dch -v <VERSION>-1`)
 3. Run ./build_package to build a source tarball and the accompanying files
 4. Run the dput command displayed by build_package
 5. Create snap: snapcraft clean && snapcraft snap
