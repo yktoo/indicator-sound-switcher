@@ -86,6 +86,10 @@ class Port(GObject.GObject):
         """Returns display name for the port."""
         return self.display_name or self.description
 
+    def get_id_text(self):
+        """Return a descriptive identification text for the port."""
+        return '`{}` ({})'.format(self.name, self.description)
+
     def get_menu_item_title(self) -> str:
         """Returns the title to be used with menu item."""
         # Port on a physical device

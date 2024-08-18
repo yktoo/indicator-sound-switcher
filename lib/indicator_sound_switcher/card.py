@@ -15,6 +15,10 @@ class CardProfile(GObject.GObject):
         self.priority    = priority
         self.is_active   = is_active
 
+    def get_id_text(self):
+        """Return a descriptive identification text for the profile."""
+        return '`{}` ({})'.format(self.name, self.description)
+
 
 class Card(GObject.GObject):
     """Card class."""
@@ -64,6 +68,13 @@ class Card(GObject.GObject):
 
         # No luck
         return None, None
+
+    def get_active_profile(self) -> CardProfile | None:
+        """Returns the currently active profile on the card, if any, otherwise None."""
+        for profile in self.profiles.values():
+            if profile.is_active:
+                return profile
+        return None
 
     def get_property_str(self, name: str) -> str:
         """Returns value of a property by its name as a string."""

@@ -239,7 +239,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                 if idx_active < 0 and port.is_active:
                     idx_active = len(card_ports)-1
                     logging.debug(
-                        '  * card `%s`, port `%s` is currently active (index %d)', card.name, port.name, idx_active)
+                        '  * card `%s`, port %s is currently active (index %d)', card.name, port.get_id_text(), idx_active)
 
         # If there's any port on the list
         if card_ports:
@@ -436,14 +436,18 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # If card already exists, fetch it
         if index in self.cards:
-            logging.debug('  * Card[%d] updated', index)
             card = self.cards[index]
+            logging.debug('  * Card[%d] `%s` updated', index, card.name)
 
             # Update active profile
+            cur_profile = card.get_active_profile()
             for profile in card.profiles.values():
                 profile.is_active = profile.name == act_prof_name
-                if profile.is_active:
-                    logging.debug('    * Activated profile: `%s` (`%s`)', profile.name, profile.description)
+                if profile.is_active and profile != cur_profile:
+                    logging.debug(
+                        '    * Switched active profile: %s ⇒ %s',
+                        cur_profile.get_id_text() if cur_profile else 'None',
+                        profile.get_id_text())
 
             # Update port availability
             for new_port in card_ports.values():
@@ -452,8 +456,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                     if port.is_available != new_port.is_available:
                         port.is_available = new_port.is_available
                         logging.debug(
-                            '    * Port is made %savailable: `%s` (`%s`)',
-                            '' if port.is_available else 'un', port.name, port.description)
+                            '    * Port is made %savailable: %s',
+                            '' if port.is_available else 'un', port.get_id_text())
 
         # Otherwise, register a new card object
         else:
@@ -464,14 +468,14 @@ class SoundSwitcherIndicator(GObject.GObject):
             # Log profiles
             for profile in card_profiles.values():
                 logging.debug(
-                    '    + Card profile added: `%s` (`%s`), %d sinks, %d sources, priority: %d%s',
-                    profile.name, profile.description, profile.num_sinks, profile.num_sources, profile.priority,
+                    '    + Card profile added: %s, %d sinks, %d sources, priority: %d%s',
+                    profile.get_id_text(), profile.num_sinks, profile.num_sources, profile.priority,
                     ' -- Active' if profile.is_active else '')
             # Log ports
             for port in card_ports.values():
                 logging.debug(
-                    '    + Card port added: `%s` (`%s`); priority: %d; direction: %d; available: %s',
-                    port.name, port.description, port.priority, port.direction, YESNO[port.is_available])
+                    '    + Card port added: %s; priority: %d; direction: %d; available: %s',
+                    port.get_id_text(), port.priority, port.direction, YESNO[port.is_available])
                 if port.profiles:
                     for port_profile_name in port.profiles:
                         logging.debug('      . Supported profile: `%s`', port_profile_name)
@@ -536,11 +540,11 @@ class SoundSwitcherIndicator(GObject.GObject):
         if port.pref_profile:
             if port.pref_profile in profiles:
                 selected_profile = profiles[port.pref_profile]
-                logging.debug('* Preferred profile `%s` is specified for port `%s`', port.pref_profile, port.name)
+                logging.debug('* Preferred profile `%s` is specified for port %s', port.pref_profile, port.get_id_text())
             else:
                 logging.warning(
-                    '! Cannot activate preferred profile `%s` for port `%s` as this port doesn\'t support it',
-                    port.pref_profile, port.name)
+                    '! Cannot activate preferred profile `%s` for port %s as this port doesn\'t support it',
+                    port.pref_profile, port.get_id_text())
 
         # If no preferred profile given and the current one is fine, do nothing
         if not selected_profile and can_keep_current:
@@ -552,13 +556,13 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Don't bother if the profile is already active (it won't help anyway)
         if selected_profile.is_active:
-            logging.debug('* Profile `%s` is already active on card[%d]', selected_profile.name, card.index)
+            logging.debug('* Profile %s is already active on card[%d]', selected_profile.get_id_text(), card.index)
             return False
 
         # Switch the profile
         logging.debug(
-            '* Switching card[%d] to profile `%s` with priority %d',
-            card.index, selected_profile.name, selected_profile.priority)
+            '* Switching card[%d] to profile %s with priority %d',
+            card.index, selected_profile.get_id_text(), selected_profile.priority)
         self.synchronise_op(
             'pa_context_set_card_profile_by_index()',
             pa_context_set_card_profile_by_index(
@@ -630,8 +634,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                         False)
                     sink_ports[port.name] = port
                     logging.debug(
-                        '    + Sink port added: `%s` (`%s`); priority: %d; available: %s',
-                        port.name, port.description, port.priority, YESNO[port.is_available])
+                        '    + Sink port added: %s; priority: %d; available: %s',
+                        port.get_id_text(), port.priority, YESNO[port.is_available])
                     idx_port += 1
 
             # Create and register a new instance of Sink object (this will also set owner_stream in each port)
@@ -762,8 +766,8 @@ class SoundSwitcherIndicator(GObject.GObject):
                         False)
                     source_ports[port.name] = port
                     logging.debug(
-                        '    + Source port added: `%s` (`%s`); priority: %d; available: %s',
-                        port.name, port.description, port.priority, YESNO[port.is_available])
+                        '    + Source port added: %s; priority: %d; available: %s',
+                        port.get_id_text(), port.priority, YESNO[port.is_available])
                     idx_port += 1
 
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
@@ -885,7 +889,7 @@ class SoundSwitcherIndicator(GObject.GObject):
 
             port = card.ports[port_name]
             is_output = port.is_output
-            logging.info('# Card[%d], port `%s` selected', idx_card, port.name)
+            logging.info('# Card[%d], port %s selected', idx_card, port.get_id_text())
 
             # Try to find a matching stream
             stream = card.find_stream_port(port, self.sources, self.sinks)[0]
