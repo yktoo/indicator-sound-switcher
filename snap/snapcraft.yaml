@@ -19,7 +19,7 @@ confinement: strict
 
 apps:
   indicator-sound-switcher:
-    command: desktop-launch $SNAP/bin/launch.sh $SNAP/bin/indicator-sound-switcher
+    command: bin/launch.sh $SNAP/bin/indicator-sound-switcher
     desktop: share/applications/indicator-sound-switcher.desktop
     autostart: indicator-sound-switcher.desktop
     extensions:
@@ -42,12 +42,12 @@ parts:
       - python3-gi
 
     override-pull: |
-      snapcraftctl pull
+      craftctl default
 
       # Use version from setup.py
       version="$(sed -ne 's/\s*APP_VERSION\s*=\s*\x27\([^\x27]\+\)\x27.*/\1/p' setup.py)"
-      
-      snapcraftctl set-version "$version"
+
+      craftctl set "version=$version"
 
       # Fix icon path in the .desktop
       sed -i -E 's!^Icon=.*!Icon=/usr/share/icons/hicolor/scalable/status/indicator-sound-switcher.svg!' indicator-sound-switcher.desktop
@@ -61,3 +61,9 @@ parts:
     stage:
       - usr/*
       - bin/*
+    override-prime: |
+      craftctl default
+
+      # Fix resource permissions
+      chmod +rx $CRAFT_PRIME/bin/launch.sh
+      chmod +r $CRAFT_PRIME/meta/gui/icon.svg
