@@ -1,3 +1,9 @@
+indicator-sound-switcher (2.3.10.1-1) noble; urgency=medium
+
+  * Fix snap package by reverting to core18 (#134)
+
+ -- Dmitry Kann <yktooo@gmail.com>  Tue, 20 Aug 2024 19:10:54 +0200
+
 indicator-sound-switcher (2.3.10-1) noble; urgency=low
 
   * Replace deprecated pkg_resources with importlib
