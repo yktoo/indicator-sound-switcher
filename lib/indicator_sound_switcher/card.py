@@ -69,7 +69,7 @@ class Card(GObject.GObject):
         # No luck
         return None, None
 
-    def get_active_profile(self) -> CardProfile | None:
+    def get_active_profile(self):
         """Returns the currently active profile on the card, if any, otherwise None."""
         for profile in self.profiles.values():
             if profile.is_active:
