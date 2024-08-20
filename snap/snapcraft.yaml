@@ -1,5 +1,5 @@
 name: indicator-sound-switcher
-base: core20
+base: core18
 adopt-info: indicator-sound-switcher
 summary: Sound input/output selector application for Linux
 title: Sound Switcher Indicator
@@ -19,11 +19,11 @@ confinement: strict
 
 apps:
   indicator-sound-switcher:
-    command: bin/launch.sh $SNAP/bin/indicator-sound-switcher
+    command: desktop-launch $SNAP/bin/launch.sh $SNAP/bin/indicator-sound-switcher
     desktop: share/applications/indicator-sound-switcher.desktop
     autostart: indicator-sound-switcher.desktop
     extensions:
-      - gnome-3-38
+      - gnome-3-28
     plugs:
       - audio-playback
 
@@ -40,7 +40,6 @@ parts:
       - libayatana-indicator3-7
       - libkeybinder-3.0-0
       - python3-gi
-      - python3-setuptools
 
     override-pull: |
       snapcraftctl pull
