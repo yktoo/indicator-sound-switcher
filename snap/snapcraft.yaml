@@ -62,8 +62,9 @@ parts:
       - usr/*
       - bin/*
     override-prime: |
-      craftctl default
-
       # Fix resource permissions
-      chmod +rx $CRAFT_PRIME/bin/launch.sh
-      chmod +r $CRAFT_PRIME/meta/gui/icon.svg
+      chmod +rx $CRAFT_STAGE/bin/launch.sh
+      chmod +r $CRAFT_STAGE/usr/share/icons/hicolor/scalable/status/indicator-sound-switcher.svg
+      chmod +r $CRAFT_STAGE/share/icons/hicolor/scalable/apps/indicator-sound-switcher.svg
+
+      craftctl default
