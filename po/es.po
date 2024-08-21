@@ -7,41 +7,164 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-28 10:25+0200\n"
-"PO-Revision-Date: 2016-09-28 10:26+0200\n"
+"POT-Creation-Date: 2024-08-21 08:41+0200\n"
+"PO-Revision-Date: 2024-08-21 09:17+0200\n"
+"Last-Translator: Rayner <raynerluis@yahoo.es>\n"
 "Language-Team: \n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.7.1\n"
-"Last-Translator: \n"
+"X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: es\n"
 
-#: indicator-sound-switcher:188
+#: lib/indicator_sound_switcher/prefs.glade:90
+msgid "Show inputs"
+msgstr "Mostrar entradas"
+
+#: lib/indicator_sound_switcher/prefs.glade:105
+msgid "Show outputs"
+msgstr "Mostrar salidas"
+
+#: lib/indicator_sound_switcher/prefs.glade:153
+msgid "Prune configuration…"
+msgstr "Eliminar configuración..."
+
+#: lib/indicator_sound_switcher/prefs.glade:178
+msgid "_General"
+msgstr "_General"
+
+#: lib/indicator_sound_switcher/prefs.glade:202
+msgid "Devices"
+msgstr "Dispositivos"
+
+#: lib/indicator_sound_switcher/prefs.glade:217
+msgid "Device settings"
+msgstr "Configuración del dispositivo"
+
+#: lib/indicator_sound_switcher/prefs.glade:232
+msgid "Port settings"
+msgstr "Configuración de puertos"
+
+#: lib/indicator_sound_switcher/prefs.glade:291
+#: lib/indicator_sound_switcher/prefs.glade:422
+msgid "Custom name:"
+msgstr "Nombre personalizado:"
+
+#: lib/indicator_sound_switcher/prefs.glade:304
+#: lib/indicator_sound_switcher/prefs.glade:458
+msgid "Reset"
+msgstr "Restablecer"
+
+#: lib/indicator_sound_switcher/prefs.glade:326
+msgid "Ports:"
+msgstr "Puertos:"
+
+#: lib/indicator_sound_switcher/prefs.glade:386
+msgid "Visible:"
+msgstr "Visible:"
+
+#: lib/indicator_sound_switcher/prefs.glade:410
+msgid "Always available:"
+msgstr "Siempre disponible:"
+
+#: lib/indicator_sound_switcher/prefs.glade:434
+msgid "Preferred profile:"
+msgstr "Perfil preferido:"
+
+#: lib/indicator_sound_switcher/prefs.glade:485
+msgid "Keyboard shortcut:"
+msgstr "Atajo de teclado:"
+
+#: lib/indicator_sound_switcher/prefs.glade:519
+msgid "_Devices"
+msgstr "_Dispositivos"
+
+#: lib/indicator_sound_switcher/prefs.glade:546
+msgid "Preferences"
+msgstr "Preferencias"
+
+#: lib/indicator_sound_switcher/prefs.glade:547
+msgid "Sound Switcher Indicator"
+msgstr "Sound Switcher Indicator"
+
+#: lib/indicator_sound_switcher/card.py:82
+#: lib/indicator_sound_switcher/prefs.py:217
+#: lib/indicator_sound_switcher/prefs.py:225
+#: lib/indicator_sound_switcher/prefs.py:446
+msgid "(none)"
+msgstr "(ninguna)"
+
+#: lib/indicator_sound_switcher/prefs.py:182
+msgid "Out"
+msgstr "Salida"
+
+#: lib/indicator_sound_switcher/prefs.py:182
+msgid "In"
+msgstr "Entrada"
+
+#: lib/indicator_sound_switcher/prefs.py:285
+#: lib/indicator_sound_switcher/prefs.py:320
+msgid "Prune configuration"
+msgstr "Eliminar configuración"
+
+#: lib/indicator_sound_switcher/prefs.py:287
+msgid ""
+"This will remove any settings about devices that are currently offline, such "
+"as Bluetooth headphones or external sound cards.\n"
+"\n"
+"Do you wish to continue?"
+msgstr ""
+"Esto eliminará cualquier configuración sobre dispositivos que estén "
+"actualmente desconectados, como auriculares Bluetooth o tarjetas de sonido "
+"externas.\n"
+"\n"
+"¿Desea continuar?"
+
+#: lib/indicator_sound_switcher/prefs.py:321
+msgid "Removed {} device configuration entries."
+msgstr "Eliminadas {} entradas de configuración de dispositivos."
+
+#: lib/indicator_sound_switcher/prefs.py:463
+msgid "Keyboard shortcut"
+msgstr "Atajo de teclado"
+
+#: lib/indicator_sound_switcher/prefs.py:470
+msgid ""
+"Press the desired key combination, <b>Backspace</b> to remove any shortcut, "
+"or <b>Esc</b> to cancel."
+msgstr ""
+"Pulsa la combinación de teclas deseada, <b>Retroceso</b> para eliminar "
+"cualquier acceso directo, o <b>Esc</b> para cancelar."
+
+#: lib/indicator_sound_switcher/port.py:103
+msgid "(unknown device)"
+msgstr "(dispositivo desconocido)"
+
+#: lib/indicator_sound_switcher/indicator.py:195
 msgid "Written by Dmitry Kann"
 msgstr "Escrito por Dmitry Kann"
 
-#: indicator-sound-switcher:804
+#: lib/indicator_sound_switcher/indicator.py:1049
 msgid "Inputs"
 msgstr "Entradas"
 
-#: indicator-sound-switcher:808
+#: lib/indicator_sound_switcher/indicator.py:1057
 msgid "Outputs"
 msgstr "Salidas"
 
-#: indicator-sound-switcher:812
+#: lib/indicator_sound_switcher/indicator.py:1064
 msgid "_Refresh"
 msgstr "_Refrescar"
 
-#: indicator-sound-switcher:813
-msgid "_About"
-msgstr "S_obre"
+#: lib/indicator_sound_switcher/indicator.py:1065
+msgid "_Preferences…"
+msgstr "_Preferencias…"
 
-#: indicator-sound-switcher:814
+#: lib/indicator_sound_switcher/indicator.py:1066
+msgid "_About"
+msgstr "_Acerca"
+
+#: lib/indicator_sound_switcher/indicator.py:1067
 msgid "_Quit"
 msgstr "_Salir"
-
-#: lib/indicator_sound_switcher/port.py:65
-msgid "(unknown device)"
-msgstr "(dispositivo desconocido)"
