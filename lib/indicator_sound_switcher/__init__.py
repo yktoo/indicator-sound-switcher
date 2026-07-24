@@ -33,11 +33,14 @@ from .indicator import SoundSwitcherIndicator, APP_ID, APP_NAME, APP_VERSION
 
 
 def _parse_cmd_line():
-    """Parse command line arguments. Currently only sets up logging."""
+    """Parse command line arguments and set up logging."""
     # Check command line arguments
     lvl = logging.WARNING
     for arg in sys.argv:
-        if arg == '-v':
+        if arg == '--version':
+            print('{} {}'.format(APP_NAME, APP_VERSION))
+            sys.exit(0)
+        elif arg == '-v':
             lvl = logging.INFO
             break
         elif arg == '-vv':
