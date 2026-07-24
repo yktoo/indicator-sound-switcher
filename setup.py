@@ -3,6 +3,7 @@
 from setuptools import setup, find_packages
 import os
 import shutil
+import subprocess
 
 
 APP_ID      = 'indicator-sound-switcher'
@@ -35,8 +36,8 @@ def compile_lang_files() -> list:
                 os.makedirs(mo_dir)
                 # Compile the .po into a .mo
                 print('INFO: Compiling {} into {}/{}.mo'.format(in_file, mo_dir, APP_ID))
-                os.system(
-                    'msgfmt "{}" -o "{}"'.format(os.path.join(po_dir, in_file), os.path.join(mo_dir, APP_ID + '.mo')))
+                subprocess.run(
+                    ['msgfmt', os.path.join(po_dir, in_file), '-o', os.path.join(mo_dir, APP_ID + '.mo')], check=True)
     else:
         print('WARNING: Directory {} doesn\'t exist, no .po locale files available'.format(po_dir))
 
