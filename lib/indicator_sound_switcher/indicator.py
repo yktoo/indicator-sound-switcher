@@ -423,7 +423,7 @@ class SoundSwitcherIndicator(GObject.GObject):
                     port.handler_id = port.menu_item.connect('activate', self.on_select_port, (card.index, port.name))
 
     def card_info(self, data):
-        """Register a new Card instance or updates an existing one."""
+        """Register a new Card instance or update an existing one."""
         # Fetch properties from the data struct
         index         = data.index
         name          = data.name.decode()
@@ -432,13 +432,24 @@ class SoundSwitcherIndicator(GObject.GObject):
         # Try to fetch the card's configuration
         card_cfg = self.config_devices[name]
 
-        # Prepare ports array
-        card_ports = self.card_fetch_ports(data.ports, card_cfg['ports'])
+        # Prepare profiles dict and ports array
+        card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
+        card_ports    = self.card_fetch_ports(data.ports, card_cfg['ports'])
 
         # If card already exists, fetch it
         if index in self.cards:
             card = self.cards[index]
             logging.debug('  * Card[%d] `%s` updated', index, card.name)
+
+            # If the set of ports or profiles has changed (e.g. a Bluetooth device exposing its A2DP profile a while
+            # after connecting), re-register the card from scratch
+            real_port_names = {port.name for port in card.ports.values() if not port.is_dummy}
+            if set(card_ports) != real_port_names or set(card_profiles) != set(card.profiles):
+                logging.debug('    * Ports or profiles changed, re-registering the card')
+                self.card_remove(index)
+                card = self.card_register(index, name, card_cfg, data, card_profiles, card_ports)
+                card.update_port_activity(self.sources, self.sinks)
+                return
 
             # Update active profile
             cur_profile = card.get_active_profile()
@@ -462,39 +473,44 @@ class SoundSwitcherIndicator(GObject.GObject):
 
         # Otherwise, register a new card object
         else:
-            logging.debug('  + Card[%d] added: `%s`, driver: `%s`', index, name, data.driver.decode())
+            self.card_register(index, name, card_cfg, data, card_profiles, card_ports)
 
-            # Prepare profiles dict
-            card_profiles = self.card_fetch_profiles(data.n_profiles, data.profiles, act_prof_name)
-            # Log profiles
-            for profile in card_profiles.values():
-                logging.debug(
-                    '    + Card profile added: %s, %d sinks, %d sources, priority: %d%s',
-                    profile.get_id_text(), profile.num_sinks, profile.num_sources, profile.priority,
-                    ' -- Active' if profile.is_active else '')
-            # Log ports
-            for port in card_ports.values():
-                logging.debug(
-                    '    + Card port added: %s; priority: %d; direction: %d; available: %s',
-                    port.get_id_text(), port.priority, port.direction, YESNO[port.is_available])
-                if port.profiles:
-                    for port_profile_name in port.profiles:
-                        logging.debug('      . Supported profile: `%s`', port_profile_name)
+    def card_register(self, index: int, name: str, card_cfg: Config, data, card_profiles: dict, card_ports: dict):
+        """Create and register a new Card instance, along with its menu items.
+        :return: the new Card object
+        """
+        logging.debug('  + Card[%d] added: `%s`, driver: `%s`', index, name, data.driver.decode())
 
-            # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
-            if not card_ports:
-                card_ports['#dummy_out'] = Port(
-                    '#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
-                card_ports['#dummy_in']  = Port(
-                    '#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None, None, False)
+        # Log profiles
+        for profile in card_profiles.values():
+            logging.debug(
+                '    + Card profile added: %s, %d sinks, %d sources, priority: %d%s',
+                profile.get_id_text(), profile.num_sinks, profile.num_sources, profile.priority,
+                ' -- Active' if profile.is_active else '')
+        # Log ports
+        for port in card_ports.values():
+            logging.debug(
+                '    + Card port added: %s; priority: %d; direction: %d; available: %s',
+                port.get_id_text(), port.priority, port.direction, YESNO[port.is_available])
+            if port.profiles:
+                for port_profile_name in port.profiles:
+                    logging.debug('      . Supported profile: `%s`', port_profile_name)
 
-            # Create and register a new card object
-            self.cards[index] = card = Card(
-                index, name, card_cfg['name', ''], data.driver.decode(), card_profiles, card_ports,
-                data.proplist.contents)
+        # If there's no port on this card (most likely Bluetooth), create a couple of dummy ones
+        if not card_ports:
+            card_ports['#dummy_out'] = Port(
+                '#dummy_out', None, '', -1, True, True, PA_DIRECTION_OUTPUT, None, None, False)
+            card_ports['#dummy_in']  = Port(
+                '#dummy_in',  None, '', -1, True, True, PA_DIRECTION_INPUT,  None, None, False)
 
-            # Add a menu item for each card port
-            self.card_create_menu_items(card)
+        # Create and register a new card object
+        self.cards[index] = card = Card(
+            index, name, card_cfg['name', ''], data.driver.decode(), card_profiles, card_ports,
+            data.proplist.contents)
+
+        # Add a menu item for each card port
+        self.card_create_menu_items(card)
+        return card
 
     def card_remove(self, index: int):
         """Remove a Card instance by its index (PulseAudio's card index)."""
@@ -582,6 +598,43 @@ class SoundSwitcherIndicator(GObject.GObject):
     # Sink list related procs
     # ------------------------------------------------------------------------------------------------------------------
 
+    @staticmethod
+    def stream_fetch_ports(pa_ports, direction: int) -> dict:
+        """Extract sink/source ports from a PA data structure.
+        :return: ports as a dictionary {name: Port}
+        """
+        ports = {}
+        if pa_ports:
+            idx = 0
+            while True:
+                port_ptr = pa_ports[idx]
+                # NULL pointer terminates the array
+                if not port_ptr:
+                    break
+                pa_port = port_ptr.contents
+                port = Port(
+                    pa_port.name.decode(),
+                    pa_port.description.decode(),
+                    '',
+                    pa_port.priority,
+                    pa_port.available != PA_PORT_AVAILABLE_NO,
+                    False,
+                    direction,
+                    None,
+                    None,
+                    False)
+                ports[port.name] = port
+                idx += 1
+        return ports
+
+    @staticmethod
+    def stream_log_ports(kind: str, ports: dict):
+        """Log the given sink/source ports."""
+        for port in ports.values():
+            logging.debug(
+                '    + %s port added: %s; priority: %d; available: %s',
+                kind, port.get_id_text(), port.priority, YESNO[port.is_available])
+
     def sink_info(self, data):
         """Register a new Sink instance or update an existing one."""
         # Fetch properties from the data struct
@@ -593,6 +646,14 @@ class SoundSwitcherIndicator(GObject.GObject):
         if index in self.sinks:
             logging.debug('  * Sink[%d] updated: `%s`, card %d', index, name, data.card)
             sink = self.sinks[index]
+
+            # Refresh the list of ports if it has changed (e.g. on a Bluetooth card profile switch)
+            if not self.is_virtual_card(data.card):
+                sink_ports = self.stream_fetch_ports(data.ports, PA_DIRECTION_OUTPUT)
+                if set(sink_ports) != set(sink.ports):
+                    logging.debug('    * Sink ports changed')
+                    self.stream_log_ports('Sink', sink_ports)
+                    sink.set_ports(sink_ports)
 
         # Otherwise register a new sink object
         else:
@@ -612,32 +673,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                 sink_name    = sink_cfg['name', '']
                 sink_visible = bool(sink_cfg['visible', True])
 
-            # Else iterate through ports[] (array of pointers to structs)
-            elif data.ports:
-                idx_port = 0
-                while True:
-                    port_ptr = data.ports[idx_port]
-                    # NULL pointer terminates the array
-                    if not port_ptr:
-                        break
-
-                    port_struct = port_ptr.contents
-                    port = Port(
-                        port_struct.name.decode(),
-                        port_struct.description.decode(),
-                        '',
-                        port_struct.priority,
-                        port_struct.available != PA_PORT_AVAILABLE_NO,
-                        False,
-                        PA_DIRECTION_OUTPUT,
-                        None,
-                        None,
-                        False)
-                    sink_ports[port.name] = port
-                    logging.debug(
-                        '    + Sink port added: %s; priority: %d; available: %s',
-                        port.get_id_text(), port.priority, YESNO[port.is_available])
-                    idx_port += 1
+            # Else fetch the real ports
+            else:
+                sink_ports = self.stream_fetch_ports(data.ports, PA_DIRECTION_OUTPUT)
+                self.stream_log_ports('Sink', sink_ports)
 
             # Create and register a new instance of Sink object (this will also set owner_stream in each port)
             sink = Sink(index, name, sink_name, description, sink_ports, data.card)
@@ -726,6 +765,14 @@ class SoundSwitcherIndicator(GObject.GObject):
             logging.debug('  * Source[%d] updated: `%s`, card %d', index, name, data.card)
             source = self.sources[index]
 
+            # Refresh the list of ports if it has changed (e.g. on a Bluetooth card profile switch)
+            if not self.is_virtual_card(data.card):
+                source_ports = self.stream_fetch_ports(data.ports, PA_DIRECTION_INPUT)
+                if set(source_ports) != set(source.ports):
+                    logging.debug('    * Source ports changed')
+                    self.stream_log_ports('Source', source_ports)
+                    source.set_ports(source_ports)
+
         # Otherwise, register a new source object
         else:
             logging.debug('  + Source[%d] added: `%s`, card %d', index, name, data.card)
@@ -744,32 +791,10 @@ class SoundSwitcherIndicator(GObject.GObject):
                 source_name    = source_cfg['name', '']
                 source_visible = bool(source_cfg['visible', True])
 
-            # Else iterate through ports[] (array of pointers to structs)
-            elif data.ports:
-                idx_port = 0
-                while True:
-                    port_ptr = data.ports[idx_port]
-                    # NULL pointer terminates the array
-                    if not port_ptr:
-                        break
-
-                    port_struct = port_ptr.contents
-                    port = Port(
-                        port_struct.name.decode(),
-                        port_struct.description.decode(),
-                        '',
-                        port_struct.priority,
-                        port_struct.available != PA_PORT_AVAILABLE_NO,
-                        False,
-                        PA_DIRECTION_INPUT,
-                        None,
-                        None,
-                        False)
-                    source_ports[port.name] = port
-                    logging.debug(
-                        '    + Source port added: %s; priority: %d; available: %s',
-                        port.get_id_text(), port.priority, YESNO[port.is_available])
-                    idx_port += 1
+            # Else fetch the real ports
+            else:
+                source_ports = self.stream_fetch_ports(data.ports, PA_DIRECTION_INPUT)
+                self.stream_log_ports('Source', source_ports)
 
             # Create and register a new instance of Source object (this will also set owner_stream in each port)
             source = Source(index, name, source_name, description, source_ports, data.card)

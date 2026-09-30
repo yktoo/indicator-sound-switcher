@@ -26,11 +26,13 @@ class Stream(GObject.GObject):
         self.name         = name
         self.display_name = display_name
         self.description  = description
-        self.ports        = ports
         self.card_index   = card_index
         self._is_active   = False
+        self.set_ports(ports)
 
-        # Assign every port's owner_stream
+    def set_ports(self, ports: dict):
+        """Replace the stream's ports, assigning every port's owner_stream."""
+        self.ports = ports
         for port in self.ports.values():
             port.owner_stream = self
 

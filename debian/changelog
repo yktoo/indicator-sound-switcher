@@ -1,5 +1,6 @@
 indicator-sound-switcher (2.4.0.0-1) resolute; urgency=medium
 
+  * keep card and stream port lists in sync with PulseAudio (#137)
   * build_package: support normalised sdist names, don't sign binary builds
   * use PortalKeyboardManager in Wayland sessions (#139)
   * add desktop ID, rename .desktop
