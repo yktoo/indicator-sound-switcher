@@ -22,6 +22,13 @@ More in the documentation:
 * [Changelog](debian/changelog)
 
 
+## Why libayatana-appindicator (and not libayatana-appindicator-glib)
+
+The application uses the GTK 3 `libayatana-appindicator3` library (falling back to the older `libappindicator3`) to display its icon and menu. `libayatana-appindicator3` is officially deprecated in favour of `libayatana-appindicator-glib`, however the latter exports the indicator menu only via the `org.gtk.Menus` D-Bus interface, whereas most tray hosts — including GNOME Shell's AppIndicator extension and KDE Plasma — expect the `com.canonical.dbusmenu` interface. With `libayatana-appindicator-glib` the icon would still appear, but its menu wouldn't work on those desktops.
+
+The application therefore sticks to `libayatana-appindicator3` for the time being.
+
+
 ## Bug Reporting
 
 Run the application in verbose mode to see the detailed log:
