@@ -24,7 +24,7 @@ Runtime dependencies (system packages, imported via GObject Introspection — th
 `gir1.2-gtk-3.0`, `gir1.2-ayatanaappindicator3-0.1` (or the older `gir1.2-appindicator3-0.1`), `libpulse0`; optionally
 `gir1.2-keybinder-3.0` (global shortcuts on X11).
 
-Unit tests live in `tests/` (pytest, configured in `pytest.ini`; currently `Config` and `KeyboardManager.bind_keys()`) 
+Unit tests live in `tests/` (pytest, configured in `pytest.ini`; currently `Config`, `KeyboardManager.bind_keys()` and `Card`) 
 and run in GitHub Actions (`.github/workflows/test.yml`):
 
 ```bash
