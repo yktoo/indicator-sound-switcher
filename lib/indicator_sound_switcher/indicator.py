@@ -24,6 +24,7 @@ from .prefs import PreferencesDialog
 
 # Global definitions
 APP_ID      = 'indicator-sound-switcher'
+DESKTOP_ID  = 'com.yktoo.IndicatorSoundSwitcher'  # Also the app ID reported to the XDG portal
 APP_NAME    = 'Sound Switcher Indicator'
 APP_LICENCE = """This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 3, as published
@@ -95,7 +96,7 @@ class SoundSwitcherIndicator(GObject.GObject):
         self.config_devices   = self.config['devices']
 
         # Initialise the keyboard manager
-        self.keyboard_manager = KeyboardManager(self.on_port_keyboard_shortcut)
+        self.keyboard_manager = KeyboardManager.create(self.on_port_keyboard_shortcut)
         self.keyboard_manager.bind_keys(self.config)
 
         # Create a menu

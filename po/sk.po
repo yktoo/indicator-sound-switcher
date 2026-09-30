@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-27 21:31+0200\n"
+"POT-Creation-Date: 2026-09-30 12:12+0200\n"
 "PO-Revision-Date: 2016-09-27 21:31+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -16,33 +16,155 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 "X-Generator: Poedit 1.8.7.1\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: indicator-sound-switcher:188
+#: lib/indicator_sound_switcher/port.py:103
+msgid "(unknown device)"
+msgstr "(neznáme zariadenie)"
+
+#: lib/indicator_sound_switcher/prefs.glade:90
+msgid "Show inputs"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:105
+#, fuzzy
+msgid "Show outputs"
+msgstr "Výstupné zariadenia"
+
+#: lib/indicator_sound_switcher/prefs.glade:153
+msgid "Prune configuration…"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:178
+msgid "_General"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:202
+msgid "Devices"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:217
+msgid "Device settings"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:232
+msgid "Port settings"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:291
+#: lib/indicator_sound_switcher/prefs.glade:422
+msgid "Custom name:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:304
+#: lib/indicator_sound_switcher/prefs.glade:458
+msgid "Reset"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:326
+msgid "Ports:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:386
+msgid "Visible:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:410
+msgid "Always available:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:434
+msgid "Preferred profile:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:485
+msgid "Keyboard shortcut:"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:519
+msgid "_Devices"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:546
+msgid "Preferences"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.glade:547
+msgid "Sound Switcher Indicator"
+msgstr ""
+
+#: lib/indicator_sound_switcher/card.py:82
+#: lib/indicator_sound_switcher/prefs.py:217
+#: lib/indicator_sound_switcher/prefs.py:225
+#: lib/indicator_sound_switcher/prefs.py:446
+msgid "(none)"
+msgstr ""
+
+#: lib/indicator_sound_switcher/config.py:398
+msgid "Switch to {}"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:182
+#, fuzzy
+msgid "Out"
+msgstr "Výstupné zariadenia"
+
+#: lib/indicator_sound_switcher/prefs.py:182
+msgid "In"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:285
+#: lib/indicator_sound_switcher/prefs.py:320
+msgid "Prune configuration"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:287
+msgid ""
+"This will remove any settings about devices that are currently offline, such "
+"as Bluetooth headphones or external sound cards.\n"
+"\n"
+"Do you wish to continue?"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:321
+msgid "Removed {} device configuration entries."
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:463
+msgid "Keyboard shortcut"
+msgstr ""
+
+#: lib/indicator_sound_switcher/prefs.py:470
+msgid ""
+"Press the desired key combination, <b>Backspace</b> to remove any shortcut, "
+"or <b>Esc</b> to cancel."
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:196
 msgid "Written by Dmitry Kann"
 msgstr "Autor: Dmitry Kann"
 
-#: indicator-sound-switcher:804
+#: lib/indicator_sound_switcher/indicator.py:1050
 msgid "Inputs"
 msgstr "Vstupné zariadenia"
 
-#: indicator-sound-switcher:808
+#: lib/indicator_sound_switcher/indicator.py:1058
 msgid "Outputs"
 msgstr "Výstupné zariadenia"
 
-#: indicator-sound-switcher:812
+#: lib/indicator_sound_switcher/indicator.py:1065
 msgid "_Refresh"
 msgstr "_Obnoviť"
 
-#: indicator-sound-switcher:813
+#: lib/indicator_sound_switcher/indicator.py:1066
+msgid "_Preferences…"
+msgstr ""
+
+#: lib/indicator_sound_switcher/indicator.py:1067
 msgid "_About"
 msgstr "О _programe"
 
-#: indicator-sound-switcher:814
+#: lib/indicator_sound_switcher/indicator.py:1068
 msgid "_Quit"
 msgstr "_Ukončiť"
-
-#: lib/indicator_sound_switcher/port.py:65
-msgid "(unknown device)"
-msgstr "(neznáme zariadenie)"

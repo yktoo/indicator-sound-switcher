@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-08-21 08:41+0200\n"
+"POT-Creation-Date: 2026-09-30 12:12+0200\n"
 "PO-Revision-Date: 2024-08-21 09:17+0200\n"
 "Last-Translator: Rayner <raynerluis@yahoo.es>\n"
 "Language-Team: \n"
@@ -17,6 +17,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/indicator_sound_switcher/port.py:103
+msgid "(unknown device)"
+msgstr "(dispositivo desconocido)"
 
 #: lib/indicator_sound_switcher/prefs.glade:90
 msgid "Show inputs"
@@ -95,6 +99,10 @@ msgstr "Sound Switcher Indicator"
 msgid "(none)"
 msgstr "(ninguna)"
 
+#: lib/indicator_sound_switcher/config.py:398
+msgid "Switch to {}"
+msgstr "Cambiar a {}"
+
 #: lib/indicator_sound_switcher/prefs.py:182
 msgid "Out"
 msgstr "Salida"
@@ -137,34 +145,30 @@ msgstr ""
 "Pulsa la combinación de teclas deseada, <b>Retroceso</b> para eliminar "
 "cualquier acceso directo, o <b>Esc</b> para cancelar."
 
-#: lib/indicator_sound_switcher/port.py:103
-msgid "(unknown device)"
-msgstr "(dispositivo desconocido)"
-
-#: lib/indicator_sound_switcher/indicator.py:195
+#: lib/indicator_sound_switcher/indicator.py:196
 msgid "Written by Dmitry Kann"
 msgstr "Escrito por Dmitry Kann"
 
-#: lib/indicator_sound_switcher/indicator.py:1049
+#: lib/indicator_sound_switcher/indicator.py:1050
 msgid "Inputs"
 msgstr "Entradas"
 
-#: lib/indicator_sound_switcher/indicator.py:1057
+#: lib/indicator_sound_switcher/indicator.py:1058
 msgid "Outputs"
 msgstr "Salidas"
 
-#: lib/indicator_sound_switcher/indicator.py:1064
+#: lib/indicator_sound_switcher/indicator.py:1065
 msgid "_Refresh"
 msgstr "_Refrescar"
 
-#: lib/indicator_sound_switcher/indicator.py:1065
+#: lib/indicator_sound_switcher/indicator.py:1066
 msgid "_Preferences…"
 msgstr "_Preferencias…"
 
-#: lib/indicator_sound_switcher/indicator.py:1066
+#: lib/indicator_sound_switcher/indicator.py:1067
 msgid "_About"
 msgstr "_Acerca"
 
-#: lib/indicator_sound_switcher/indicator.py:1067
+#: lib/indicator_sound_switcher/indicator.py:1068
 msgid "_Quit"
 msgstr "_Salir"

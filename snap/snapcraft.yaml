@@ -20,8 +20,8 @@ confinement: strict
 apps:
   indicator-sound-switcher:
     command: desktop-launch $SNAP/bin/launch.sh $SNAP/bin/indicator-sound-switcher
-    desktop: share/applications/indicator-sound-switcher.desktop
-    autostart: indicator-sound-switcher.desktop
+    desktop: share/applications/com.yktoo.IndicatorSoundSwitcher.desktop
+    autostart: com.yktoo.IndicatorSoundSwitcher.desktop
     extensions:
       - gnome-3-28
     plugs:
@@ -50,7 +50,7 @@ parts:
       snapcraftctl set-version "$version"
 
       # Fix icon path in the .desktop
-      sed -i -E 's!^Icon=.*!Icon=/usr/share/icons/hicolor/scalable/status/indicator-sound-switcher.svg!' indicator-sound-switcher.desktop
+      sed -i -E 's!^Icon=.*!Icon=/usr/share/icons/hicolor/scalable/status/indicator-sound-switcher.svg!' com.yktoo.IndicatorSoundSwitcher.desktop
 
   resources:
     plugin: dump

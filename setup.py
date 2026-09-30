@@ -7,6 +7,7 @@ import subprocess
 
 
 APP_ID      = 'indicator-sound-switcher'
+DESKTOP_ID  = 'com.yktoo.IndicatorSoundSwitcher'
 APP_VERSION = '2.3.10.2'
 
 
@@ -57,10 +58,10 @@ def compile_lang_files() -> list:
 
 data_files = [
     # App shortcut
-    ('share/applications',                  [APP_ID+'.desktop']),
+    ('share/applications',                  [DESKTOP_ID+'.desktop']),
 
     # Autostart entry
-    ('/etc/xdg/autostart',                  [APP_ID+'.desktop']),
+    ('/etc/xdg/autostart',                  [DESKTOP_ID+'.desktop']),
 
     # Icons
     ('share/icons/hicolor/scalable/status', ['icons/indicator-sound-switcher-symbolic.svg']),

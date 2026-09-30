@@ -29,7 +29,10 @@ import tempfile
 import fcntl
 import gettext
 
-from .indicator import SoundSwitcherIndicator, APP_ID, APP_NAME, APP_VERSION
+from gi.repository import GLib
+
+from .indicator import SoundSwitcherIndicator, APP_ID, APP_NAME, APP_VERSION, DESKTOP_ID
+from .config import register_portal_app_id
 
 
 def _parse_cmd_line():
@@ -51,6 +54,23 @@ def _parse_cmd_line():
     logging.basicConfig(level=lvl, format='%(levelname)-8s %(message)s')
 
 
+def _migrate_autostart_entry():
+    """Rename the user's autostart entry from the old .desktop file name, if any. The entry typically overrides the
+    system-wide one (e.g. to disable autostart), which only works if both have the same name.
+    """
+    autostart_dir = os.path.join(GLib.get_user_config_dir(), 'autostart')
+    old_file = os.path.join(autostart_dir, APP_ID + '.desktop')
+    new_file = os.path.join(autostart_dir, DESKTOP_ID + '.desktop')
+
+    # Leave symlinks alone: they're managed by the snap launcher
+    if os.path.isfile(old_file) and not os.path.islink(old_file) and not os.path.lexists(new_file):
+        try:
+            os.rename(old_file, new_file)
+            logging.info('Renamed autostart entry %s to %s', old_file, new_file)
+        except OSError as e:
+            logging.warning('Failed to rename autostart entry %s: %s', old_file, e)
+
+
 def main():
     """The main application routine."""
     # Set up the gettext localisation engine
@@ -66,6 +86,8 @@ def main():
 
         # Instantiate and run the indicator
         logging.info('%s v%s', APP_NAME, APP_VERSION)
+        _migrate_autostart_entry()
+        register_portal_app_id(DESKTOP_ID)
         SoundSwitcherIndicator().run()
 
     except OSError:
