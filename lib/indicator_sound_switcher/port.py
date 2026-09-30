@@ -18,7 +18,7 @@ class Port(GObject.GObject):
             with self.menu_item.handler_block(self.handler_id):
                 self.menu_item.set_active(True)
 
-    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
+    is_active = GObject.Property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
     def get_is_available(self):
         """is_available: defines whether the associated port is the available for the user."""
@@ -34,7 +34,7 @@ class Port(GObject.GObject):
             else:
                 self.menu_item.hide()
 
-    is_available = GObject.property(type=bool, default=False, getter=get_is_available, setter=set_is_available)
+    is_available = GObject.Property(type=bool, default=False, getter=get_is_available, setter=set_is_available)
 
     def __init__(
             self, name: str, description, display_name: str, priority: int, is_available: bool, is_visible: bool,

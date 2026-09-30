@@ -17,7 +17,7 @@ class Stream(GObject.GObject):
                     port.is_active = True
                     break
 
-    is_active = GObject.property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
+    is_active = GObject.Property(type=bool, default=False, getter=get_is_active, setter=set_is_active)
 
     def __init__(self, index: int, name: str, display_name: str, description: str, ports: dict, card_index: int):
         """Constructor."""
