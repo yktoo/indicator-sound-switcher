@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # PyGObject and the GIR typelibs are only available as system packages, so use the system Python
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 libpulse0 \
+            python3-pytest python3-setuptools gettext
+
+      # The app reads its version from the package metadata, so generate it next to the package
+      - name: Generate package metadata
+        run: python3 setup.py egg_info --egg-base lib
+
+      - name: Run tests
+        run: python3 -m pytest -v

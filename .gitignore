@@ -10,3 +10,4 @@ MANIFEST
 *.*~
 *.egg-info/
 *.snap
+/.pytest_cache/
