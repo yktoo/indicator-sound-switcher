@@ -46,22 +46,27 @@ echo "Building ${APP_NAME} version ${APP_VERSION} revision ${REVISION}..."
 # Run the setup script to create a source tarball
 python3 "$SETUP_SCRIPT" sdist || err "Building source tarball failed"
 
-# Add '.orig' and change '-' to '_' before version in tarball's name
+# Add '.orig' and change '-' to '_' before version in tarball's name. Newer setuptools normalises the sdist name
+# (PEP 625: 'indicator_sound_switcher'), older ones don't, so locate the tarball rather than assume its name
+SDIST_TARBALL=$(ls "${DIST_ROOT_DIR}"/*-"${APP_VERSION}".tar.gz 2>/dev/null | head -1)
+[[ -n "$SDIST_TARBALL" ]] || err "Source tarball not found in $DIST_ROOT_DIR"
+SDIST_BASENAME=$(basename "$SDIST_TARBALL" .tar.gz)
 TARBALL_NAME="${DIST_ROOT_DIR}/${APP_NAME}_${APP_VERSION}.orig.tar.gz"
-mv "${DIST_ROOT_DIR}/${APP_NAME}-${APP_VERSION}.tar.gz" "$TARBALL_NAME" || err "Renaming tarball file failed"
+mv "$SDIST_TARBALL" "$TARBALL_NAME" || err "Renaming tarball file failed"
 
 # Unpack the tarball: it will create the release dir
-tar --directory "$DIST_ROOT_DIR" -xzf "$TARBALL_NAME" "${APP_NAME}-${APP_VERSION}" || err "Unpacking $TARBALL_NAME failed"
+tar --directory "$DIST_ROOT_DIR" -xzf "$TARBALL_NAME" "$SDIST_BASENAME" || err "Unpacking $TARBALL_NAME failed"
 
 # Copy debian/ into the release dir
-RELEASE_DIR="${DIST_ROOT_DIR}/${APP_NAME}-${APP_VERSION}"
+RELEASE_DIR="${DIST_ROOT_DIR}/${SDIST_BASENAME}"
 cp -r debian "$RELEASE_DIR" || err "Copying debian/ into $RELEASE_DIR failed"
 
 # Build a Debian package
 if ((do_binary == 0)); then
     DEBUILD_FLAGS="-S -sa"
 else
-    DEBUILD_FLAGS="-b"
+    # Binary packages are only built for local testing, so don't sign them
+    DEBUILD_FLAGS="-b -us -uc"
 fi
 pushd .
 cd "$RELEASE_DIR" || err "Failed to cd $RELEASE_DIR"

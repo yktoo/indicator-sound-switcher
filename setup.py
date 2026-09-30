@@ -8,7 +8,7 @@ import subprocess
 
 APP_ID      = 'indicator-sound-switcher'
 DESKTOP_ID  = 'com.yktoo.IndicatorSoundSwitcher'
-APP_VERSION = '2.3.10.2'
+APP_VERSION = '2.4.0.0'
 
 
 def compile_lang_files() -> list:
