@@ -26,6 +26,7 @@ apps:
       - gnome-3-28
     plugs:
       - audio-playback
+      - audio-record
 
 parts:
   indicator-sound-switcher:
