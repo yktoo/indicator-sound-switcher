@@ -27,5 +27,5 @@ snapcraft login
 2. Add change info into ./debian/changelog (`dch -v <VERSION>-1`)
 3. Run ./build_package to build a source tarball and the accompanying files
 4. Run the dput command displayed by build_package
-5. Create snap: snapcraft clean && snapcraft snap
+5. Create snap: snapcraft clean && snapcraft pack
 6. Upload snap: snapcraft upload --release=stable indicator-sound-switcher*.snap

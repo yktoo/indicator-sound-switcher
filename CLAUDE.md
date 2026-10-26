@@ -122,7 +122,7 @@ User-facing strings use the gettext `_()` function (installed globally in `main(
 Version lives in **one place**: `APP_VERSION` in `setup.py` (read at runtime via `importlib.metadata`, and scraped by
 `build_package`/snapcraft with `sed`). Release steps (`doc/release_checklist.md`): bump `setup.py`, add a
 `debian/changelog` entry (`dch -v <VERSION>-1`), run `./build_package` to produce a source tarball + Debian package,
-then `dput` to the PPA. Snap: `snapcraft snap` then `snapcraft upload`.
+then `dput` to the PPA. Snap: `snapcraft pack` then `snapcraft upload`.
 
 ## Conventions
 
