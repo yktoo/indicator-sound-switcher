@@ -177,7 +177,31 @@ The `build_package` script builds a source tarball and a Debian source package i
 snapcraft clean && snapcraft pack
 ```
 
-The release process is described in the [release checklist](doc/release_checklist.md).
+Snapcraft builds the snap in an LXD container (you need to be in the `lxd` group). If Docker is installed on the same machine, the build may fail early with `A network related operation failed in a context of no network access`: Docker sets the iptables `FORWARD` policy to `DROP`, which blocks the container's traffic going out through the LXD bridge. You can check this with `sudo iptables -S FORWARD`; if it prints `-P FORWARD DROP`, allow the LXD bridge traffic in Docker's `DOCKER-USER` chain:
+
+```bash
+sudo iptables -I DOCKER-USER -i lxdbr0 -j ACCEPT
+sudo iptables -I DOCKER-USER -o lxdbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+```
+
+These rules don't survive a reboot; to make them permanent, install `iptables-persistent` and run `sudo netfilter-persistent save`. If the failed build left a broken base instance behind, delete it (`lxc --project snapcraft list` shows it) before building again.
+
+### Making a release
+
+Publishing requires upload rights to the [PPA](https://launchpad.net/~yktooo/+archive/ubuntu/ppa) and the [Snap Store](https://snapcraft.io/indicator-sound-switcher) entry. Log into the Snap Store once, with your Ubuntu One account:
+
+```bash
+snapcraft login
+```
+
+Then, for each release:
+
+1. Update `APP_VERSION` in `setup.py`.
+2. Add the change info to `debian/changelog` (`dch -v <VERSION>-1`).
+3. Run `./build_package` to build the source tarball and the Debian source package.
+4. Run the `dput` command printed by `build_package` to upload the package to the PPA.
+5. Build the snap: `snapcraft clean && snapcraft pack`.
+6. Upload the snap: `snapcraft upload --release=stable indicator-sound-switcher*.snap`.
 
 ### Why libayatana-appindicator (and not libayatana-appindicator-glib)
 
