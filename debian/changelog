@@ -10,7 +10,7 @@ indicator-sound-switcher (2.4.0.0-1) resolute; urgency=medium
   * code: replace pkg_resources with importlib.metadata (#144)
   * Update Spanish translation (#136)
 
- -- Dmitry Kann <yktooo@gmail.com>  Wed, 30 Sep 2026 12:28:15 +0200
+ -- Dmitry Kann <yktooo@gmail.com>  Wed, 26 Oct 2026 17:49:44 +0100
 
 indicator-sound-switcher (2.3.10.1-1) noble; urgency=medium
 
