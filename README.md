@@ -201,7 +201,28 @@ Then, for each release:
 3. Run `./build_package` to build the source tarball and the Debian source package.
 4. Run the `dput` command printed by `build_package` to upload the package to the PPA.
 5. Build the snap: `snapcraft clean && snapcraft pack`.
-6. Upload the snap: `snapcraft upload --release=stable indicator-sound-switcher*.snap`.
+6. *Optional:* upload the snap: `snapcraft upload --release=stable indicator-sound-switcher*.snap`. This will only upload your current arch version; in order to publish all available versions, navigate to https://snapcraft.io/indicator-sound-switcher/builds and trigger a new build from GitHub. Then click the Releases tab and *promote* the created `edge` packages to `stable`.
+
+#### Important note about the PPA
+
+Launchpad doesn't seem to accept plaintext and/or anonymous FTP uploads via `dput` anymore. To fix that, edit the `[ppa]` section in the file `/etc/dput.cf`:
+
+```conf
+[ppa]
+fqdn     = ppa.launchpad.net
+method   = sftp              # Use SFTP
+incoming = ~%(ppa)s
+login    = yktooo            # Your Launchpad username here
+```
+
+#### Supported architectures
+
+The snap package is only made available for:
+* `amd64`
+* `arm64`
+* `armhf`
+
+There's no `gnome` extension from Canonical for `i386`, `ppc64el`, or `s390x`, hence no indicator build either.
 
 ### Why libayatana-appindicator (and not libayatana-appindicator-glib)
 
